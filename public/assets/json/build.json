@@ -1,0 +1,283 @@
+{
+  "version": "1.0.0",
+  "name": "Sistema Web",
+  "description": "Configurações de build do projeto",
+  "buildDate": "2025-11-15",
+  
+  "environment": {
+    "development": {
+      "debug": true,
+      "minify": false,
+      "sourceMaps": true,
+      "cacheControl": false,
+      "apiUrl": "http://localhost/api",
+      "assetsUrl": "http://localhost/assets",
+      "logLevel": "debug"
+    },
+    "staging": {
+      "debug": true,
+      "minify": true,
+      "sourceMaps": true,
+      "cacheControl": true,
+      "apiUrl": "https://staging.exemplo.com/api",
+      "assetsUrl": "https://staging.exemplo.com/assets",
+      "logLevel": "info"
+    },
+    "production": {
+      "debug": false,
+      "minify": true,
+      "sourceMaps": false,
+      "cacheControl": true,
+      "apiUrl": "https://exemplo.com/api",
+      "assetsUrl": "https://cdn.exemplo.com/assets",
+      "logLevel": "error"
+    }
+  },
+  
+  "paths": {
+    "root": "/",
+    "source": {
+      "js": "src/js",
+      "css": "src/css",
+      "images": "src/images",
+      "php": "src/php",
+      "views": "src/views",
+      "modules": "src/modules"
+    },
+    "output": {
+      "js": "assets/dist/js",
+      "css": "assets/dist/css",
+      "images": "assets/dist/images",
+      "maps": "assets/dist/maps"
+    },
+    "vendor": "assets/vendor",
+    "cache": "cache",
+    "logs": "logs",
+    "uploads": "uploads"
+  },
+  
+  "build": {
+    "tasks": [
+      {
+        "name": "clean",
+        "description": "Limpa arquivos de build anteriores",
+        "enabled": true,
+        "paths": [
+          "assets/dist",
+          "cache/build"
+        ]
+      },
+      {
+        "name": "copyVendors",
+        "description": "Copia bibliotecas de terceiros",
+        "enabled": true,
+        "source": "node_modules",
+        "destination": "assets/vendor",
+        "files": [
+          "jquery/dist/jquery.min.js",
+          "bootstrap/dist/js/bootstrap.bundle.min.js",
+          "bootstrap/dist/css/bootstrap.min.css",
+          "datatables.net/js/jquery.dataTables.min.js",
+          "chart.js/dist/chart.umd.js"
+        ]
+      },
+      {
+        "name": "compileJS",
+        "description": "Compila e minifica JavaScript",
+        "enabled": true,
+        "source": "src/js/**/*.js",
+        "destination": "assets/dist/js",
+        "options": {
+          "minify": "${environment.minify}",
+          "sourceMaps": "${environment.sourceMaps}",
+          "transpile": true,
+          "targetES": "ES2015"
+        }
+      },
+      {
+        "name": "compileCSS",
+        "description": "Compila SASS/CSS e minifica",
+        "enabled": true,
+        "source": "src/css/**/*.{css,scss}",
+        "destination": "assets/dist/css",
+        "options": {
+          "minify": "${environment.minify}",
+          "sourceMaps": "${environment.sourceMaps}",
+          "autoprefixer": true,
+          "sassCompiler": "dart-sass"
+        }
+      },
+      {
+        "name": "optimizeImages",
+        "description": "Otimiza imagens",
+        "enabled": true,
+        "source": "src/images/**/*.{jpg,jpeg,png,gif,svg}",
+        "destination": "assets/dist/images",
+        "options": {
+          "quality": 85,
+          "progressive": true,
+          "optimizeSvg": true
+        }
+      },
+      {
+        "name": "createBundles",
+        "description": "Cria bundles de JS e CSS",
+        "enabled": true,
+        "reference": "js_map.json",
+        "bundles": [
+          "common",
+          "admin"
+        ]
+      },
+      {
+        "name": "generateManifest",
+        "description": "Gera manifest com hash dos arquivos",
+        "enabled": true,
+        "output": "assets/manifest.json",
+        "hashLength": 8
+      },
+      {
+        "name": "versionAssets",
+        "description": "Adiciona versão aos assets",
+        "enabled": true,
+        "strategy": "hash",
+        "output": "assets/versions.json"
+      }
+    ]
+  },
+  
+  "watch": {
+    "enabled": true,
+    "debounce": 300,
+    "paths": [
+      {
+        "pattern": "src/js/**/*.js",
+        "tasks": ["compileJS"]
+      },
+      {
+        "pattern": "src/css/**/*.{css,scss}",
+        "tasks": ["compileCSS"]
+      },
+      {
+        "pattern": "src/images/**/*",
+        "tasks": ["optimizeImages"]
+      }
+    ],
+    "ignored": [
+      "node_modules/**",
+      "assets/dist/**",
+      "cache/**"
+    ]
+  },
+  
+  "optimization": {
+    "js": {
+      "minify": {
+        "compress": {
+          "dead_code": true,
+          "drop_console": true,
+          "drop_debugger": true,
+          "unused": true
+        },
+        "mangle": {
+          "toplevel": true
+        },
+        "output": {
+          "comments": false,
+          "beautify": false
+        }
+      },
+      "treeshake": true,
+      "splitChunks": {
+        "enabled": true,
+        "minSize": 20000,
+        "maxSize": 244000
+      }
+    },
+    "css": {
+      "minify": {
+        "removeComments": true,
+        "removeWhitespace": true,
+        "mergeRules": true
+      },
+      "purgeCss": {
+        "enabled": false,
+        "content": ["src/**/*.php", "src/**/*.html"]
+      }
+    },
+    "images": {
+      "jpeg": {
+        "quality": 85,
+        "progressive": true
+      },
+      "png": {
+        "quality": 85,
+        "compressionLevel": 9
+      },
+      "webp": {
+        "enabled": true,
+        "quality": 80
+      }
+    }
+  },
+  
+  "cache": {
+    "enabled": true,
+    "type": "file",
+    "ttl": 3600,
+    "paths": {
+      "build": "cache/build",
+      "assets": "cache/assets"
+    },
+    "strategies": {
+      "development": "no-cache",
+      "staging": "private, max-age=3600",
+      "production": "public, max-age=31536000, immutable"
+    }
+  },
+  
+  "deployment": {
+    "preDeployTasks": [
+      "clean",
+      "compileJS",
+      "compileCSS",
+      "optimizeImages",
+      "createBundles",
+      "generateManifest"
+    ],
+    "postDeployTasks": [
+      "clearCache",
+      "warmupCache"
+    ],
+    "excludeFromDeploy": [
+      "node_modules",
+      "src",
+      ".git",
+      "cache",
+      "logs/*.log",
+      ".env",
+      "*.md"
+    ]
+  },
+  
+  "hooks": {
+    "preBuild": [],
+    "postBuild": [
+      "php artisan cache:clear",
+      "php artisan view:clear"
+    ],
+    "preWatch": [],
+    "postWatch": []
+  },
+  
+  "notifications": {
+    "enabled": true,
+    "onSuccess": true,
+    "onError": true,
+    "channels": {
+      "console": true,
+      "desktop": false,
+      "email": false
+    }
+  }
+}

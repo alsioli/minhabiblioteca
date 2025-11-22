@@ -1,0 +1,438 @@
+{
+  "version": "1.0.0",
+  "description": "Mapeamento de rotas do sistema",
+  "lastUpdate": "2025-11-15",
+  "baseUrl": "/",
+  
+  "routes": {
+    "public": [
+      {
+        "name": "home",
+        "path": "/",
+        "controller": "HomeController",
+        "action": "index",
+        "method": "GET",
+        "middleware": [],
+        "title": "Página Inicial",
+        "description": "Página inicial do sistema"
+      },
+      {
+        "name": "login",
+        "path": "/login",
+        "controller": "AuthController",
+        "action": "login",
+        "method": ["GET", "POST"],
+        "middleware": ["guest"],
+        "title": "Login",
+        "description": "Página de autenticação"
+      },
+      {
+        "name": "logout",
+        "path": "/logout",
+        "controller": "AuthController",
+        "action": "logout",
+        "method": "POST",
+        "middleware": ["auth"],
+        "title": "Logout",
+        "description": "Sair do sistema"
+      },
+      {
+        "name": "esqueci-senha",
+        "path": "/esqueci-senha",
+        "controller": "AuthController",
+        "action": "forgotPassword",
+        "method": ["GET", "POST"],
+        "middleware": ["guest"],
+        "title": "Esqueci minha senha",
+        "description": "Recuperação de senha"
+      },
+      {
+        "name": "resetar-senha",
+        "path": "/resetar-senha/{token}",
+        "controller": "AuthController",
+        "action": "resetPassword",
+        "method": ["GET", "POST"],
+        "middleware": ["guest"],
+        "title": "Resetar senha",
+        "description": "Criação de nova senha"
+      }
+    ],
+    
+    "protected": [
+      {
+        "name": "dashboard",
+        "path": "/dashboard",
+        "controller": "DashboardController",
+        "action": "index",
+        "method": "GET",
+        "middleware": ["auth"],
+        "roles": ["admin", "user", "gerente"],
+        "title": "Dashboard",
+        "description": "Painel principal",
+        "breadcrumb": ["Dashboard"]
+      },
+      
+      {
+        "name": "usuarios.lista",
+        "path": "/usuarios/lista",
+        "controller": "UsuariosController",
+        "action": "listar",
+        "method": "GET",
+        "middleware": ["auth", "role:admin"],
+        "roles": ["admin"],
+        "title": "Lista de Usuários",
+        "description": "Listagem de todos os usuários",
+        "breadcrumb": ["Dashboard", "Cadastros", "Usuários"],
+        "requiredScripts": ["modules.usuarios"]
+      },
+      {
+        "name": "usuarios.cadastro",
+        "path": "/usuarios/cadastro",
+        "controller": "UsuariosController",
+        "action": "cadastrar",
+        "method": ["GET", "POST"],
+        "middleware": ["auth", "role:admin"],
+        "roles": ["admin"],
+        "title": "Cadastro de Usuário",
+        "description": "Formulário de cadastro de usuário",
+        "breadcrumb": ["Dashboard", "Cadastros", "Usuários", "Novo"],
+        "requiredScripts": ["modules.usuarios", "core.formValidator"]
+      },
+      {
+        "name": "usuarios.editar",
+        "path": "/usuarios/editar/{id}",
+        "controller": "UsuariosController",
+        "action": "editar",
+        "method": ["GET", "POST"],
+        "middleware": ["auth", "role:admin"],
+        "roles": ["admin"],
+        "title": "Editar Usuário",
+        "description": "Formulário de edição de usuário",
+        "breadcrumb": ["Dashboard", "Cadastros", "Usuários", "Editar"],
+        "requiredScripts": ["modules.usuarios", "core.formValidator"]
+      },
+      {
+        "name": "usuarios.excluir",
+        "path": "/usuarios/excluir/{id}",
+        "controller": "UsuariosController",
+        "action": "excluir",
+        "method": "DELETE",
+        "middleware": ["auth", "role:admin"],
+        "roles": ["admin"],
+        "title": "Excluir Usuário",
+        "description": "Exclusão de usuário"
+      },
+      
+      {
+        "name": "clientes.lista",
+        "path": "/clientes/lista",
+        "controller": "ClientesController",
+        "action": "listar",
+        "method": "GET",
+        "middleware": ["auth", "role:admin,gerente"],
+        "roles": ["admin", "gerente"],
+        "title": "Lista de Clientes",
+        "description": "Listagem de todos os clientes",
+        "breadcrumb": ["Dashboard", "Cadastros", "Clientes"],
+        "requiredScripts": ["vendors.datatables"]
+      },
+      {
+        "name": "clientes.novo",
+        "path": "/clientes/novo",
+        "controller": "ClientesController",
+        "action": "cadastrar",
+        "method": ["GET", "POST"],
+        "middleware": ["auth", "role:admin,gerente"],
+        "roles": ["admin", "gerente"],
+        "title": "Novo Cliente",
+        "description": "Formulário de cadastro de cliente",
+        "breadcrumb": ["Dashboard", "Cadastros", "Clientes", "Novo"],
+        "requiredScripts": ["core.formValidator"]
+      },
+      
+      {
+        "name": "vendas.nova",
+        "path": "/vendas/nova",
+        "controller": "VendasController",
+        "action": "nova",
+        "method": ["GET", "POST"],
+        "middleware": ["auth", "role:admin,gerente,vendedor"],
+        "roles": ["admin", "gerente", "vendedor"],
+        "title": "Nova Venda",
+        "description": "Formulário de nova venda",
+        "breadcrumb": ["Dashboard", "Vendas", "Nova Venda"],
+        "requiredScripts": ["core.formValidator", "core.dateUtils"]
+      },
+      {
+        "name": "vendas.lista",
+        "path": "/vendas/lista",
+        "controller": "VendasController",
+        "action": "listar",
+        "method": "GET",
+        "middleware": ["auth", "role:admin,gerente,vendedor"],
+        "roles": ["admin", "gerente", "vendedor"],
+        "title": "Lista de Vendas",
+        "description": "Listagem de todas as vendas",
+        "breadcrumb": ["Dashboard", "Vendas", "Listar"],
+        "requiredScripts": ["vendors.datatables", "core.filterUtils", "core.dateUtils"]
+      },
+      
+      {
+        "name": "financeiro.contas-pagar",
+        "path": "/financeiro/contas-pagar",
+        "controller": "FinanceiroController",
+        "action": "contasPagar",
+        "method": "GET",
+        "middleware": ["auth", "role:admin,gerente,financeiro"],
+        "roles": ["admin", "gerente", "financeiro"],
+        "title": "Contas a Pagar",
+        "description": "Gestão de contas a pagar",
+        "breadcrumb": ["Dashboard", "Financeiro", "Contas a Pagar"],
+        "requiredScripts": ["vendors.datatables", "core.filterUtils", "core.dateUtils"]
+      },
+      {
+        "name": "financeiro.contas-receber",
+        "path": "/financeiro/contas-receber",
+        "controller": "FinanceiroController",
+        "action": "contasReceber",
+        "method": "GET",
+        "middleware": ["auth", "role:admin,gerente,financeiro"],
+        "roles": ["admin", "gerente", "financeiro"],
+        "title": "Contas a Receber",
+        "description": "Gestão de contas a receber",
+        "breadcrumb": ["Dashboard", "Financeiro", "Contas a Receber"],
+        "requiredScripts": ["vendors.datatables", "core.filterUtils", "core.dateUtils"]
+      },
+      
+      {
+        "name": "relatorios.vendas",
+        "path": "/relatorios/vendas",
+        "controller": "RelatoriosController",
+        "action": "vendas",
+        "method": "GET",
+        "middleware": ["auth", "role:admin,gerente"],
+        "roles": ["admin", "gerente"],
+        "title": "Relatório de Vendas",
+        "description": "Relatório detalhado de vendas",
+        "breadcrumb": ["Dashboard", "Relatórios", "Vendas"],
+        "requiredScripts": ["modules.relatorios", "vendors.chartjs", "core.dateUtils"]
+      },
+      {
+        "name": "relatorios.financeiro",
+        "path": "/relatorios/financeiro",
+        "controller": "RelatoriosController",
+        "action": "financeiro",
+        "method": "GET",
+        "middleware": ["auth", "role:admin,gerente"],
+        "roles": ["admin", "gerente"],
+        "title": "Relatório Financeiro",
+        "description": "Relatório financeiro consolidado",
+        "breadcrumb": ["Dashboard", "Relatórios", "Financeiro"],
+        "requiredScripts": ["modules.relatorios", "vendors.chartjs", "core.dateUtils"]
+      },
+      
+      {
+        "name": "perfil",
+        "path": "/perfil",
+        "controller": "PerfilController",
+        "action": "index",
+        "method": "GET",
+        "middleware": ["auth"],
+        "roles": ["admin", "user", "gerente", "vendedor", "financeiro"],
+        "title": "Meu Perfil",
+        "description": "Página de perfil do usuário",
+        "breadcrumb": ["Dashboard", "Perfil"]
+      },
+      {
+        "name": "perfil.editar",
+        "path": "/perfil/editar",
+        "controller": "PerfilController",
+        "action": "editar",
+        "method": ["GET", "POST"],
+        "middleware": ["auth"],
+        "roles": ["admin", "user", "gerente", "vendedor", "financeiro"],
+        "title": "Editar Perfil",
+        "description": "Edição de perfil do usuário",
+        "breadcrumb": ["Dashboard", "Perfil", "Editar"],
+        "requiredScripts": ["core.formValidator"]
+      },
+      
+      {
+        "name": "configuracoes.sistema",
+        "path": "/configuracoes/sistema",
+        "controller": "ConfiguracoesController",
+        "action": "sistema",
+        "method": ["GET", "POST"],
+        "middleware": ["auth", "role:admin"],
+        "roles": ["admin"],
+        "title": "Configurações do Sistema",
+        "description": "Configurações gerais do sistema",
+        "breadcrumb": ["Dashboard", "Configurações", "Sistema"]
+      }
+    ],
+    
+    "api": [
+      {
+        "name": "api.usuarios.listar",
+        "path": "/api/usuarios",
+        "controller": "Api\\UsuariosController",
+        "action": "index",
+        "method": "GET",
+        "middleware": ["api", "auth:api"],
+        "roles": ["admin"],
+        "rateLimit": {
+          "maxAttempts": 60,
+          "decayMinutes": 1
+        }
+      },
+      {
+        "name": "api.usuarios.criar",
+        "path": "/api/usuarios",
+        "controller": "Api\\UsuariosController",
+        "action": "store",
+        "method": "POST",
+        "middleware": ["api", "auth:api"],
+        "roles": ["admin"],
+        "rateLimit": {
+          "maxAttempts": 10,
+          "decayMinutes": 1
+        }
+      },
+      {
+        "name": "api.usuarios.mostrar",
+        "path": "/api/usuarios/{id}",
+        "controller": "Api\\UsuariosController",
+        "action": "show",
+        "method": "GET",
+        "middleware": ["api", "auth:api"],
+        "roles": ["admin"]
+      },
+      {
+        "name": "api.usuarios.atualizar",
+        "path": "/api/usuarios/{id}",
+        "controller": "Api\\UsuariosController",
+        "action": "update",
+        "method": ["PUT", "PATCH"],
+        "middleware": ["api", "auth:api"],
+        "roles": ["admin"]
+      },
+      {
+        "name": "api.usuarios.excluir",
+        "path": "/api/usuarios/{id}",
+        "controller": "Api\\UsuariosController",
+        "action": "destroy",
+        "method": "DELETE",
+        "middleware": ["api", "auth:api"],
+        "roles": ["admin"]
+      },
+      
+      {
+        "name": "api.vendas.listar",
+        "path": "/api/vendas",
+        "controller": "Api\\VendasController",
+        "action": "index",
+        "method": "GET",
+        "middleware": ["api", "auth:api"],
+        "roles": ["admin", "gerente", "vendedor"],
+        "cache": {
+          "enabled": true,
+          "ttl": 300
+        }
+      },
+      {
+        "name": "api.vendas.criar",
+        "path": "/api/vendas",
+        "controller": "Api\\VendasController",
+        "action": "store",
+        "method": "POST",
+        "middleware": ["api", "auth:api"],
+        "roles": ["admin", "gerente", "vendedor"],
+        "validation": "VendaRequest"
+      },
+      
+      {
+        "name": "api.dashboard.stats",
+        "path": "/api/dashboard/stats",
+        "controller": "Api\\DashboardController",
+        "action": "statistics",
+        "method": "GET",
+        "middleware": ["api", "auth:api"],
+        "roles": ["admin", "gerente"],
+        "cache": {
+          "enabled": true,
+          "ttl": 600
+        }
+      }
+    ]
+  },
+  
+  "errorPages": {
+    "404": {
+      "controller": "ErrorController",
+      "action": "notFound",
+      "view": "errors/404",
+      "title": "Página não encontrada"
+    },
+    "403": {
+      "controller": "ErrorController",
+      "action": "forbidden",
+      "view": "errors/403",
+      "title": "Acesso negado"
+    },
+    "500": {
+      "controller": "ErrorController",
+      "action": "serverError",
+      "view": "errors/500",
+      "title": "Erro interno do servidor"
+    }
+  },
+  
+  "redirects": {
+    "/home": "/dashboard",
+    "/painel": "/dashboard",
+    "/admin": "/dashboard",
+    "/index.php": "/",
+    "/index.asp": "/"
+  },
+  
+  "patterns": {
+    "id": "[0-9]+",
+    "uuid": "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}",
+    "slug": "[a-z0-9-]+",
+    "date": "[0-9]{4}-[0-9]{2}-[0-9]{2}",
+    "token": "[a-zA-Z0-9]{64}"
+  },
+  
+  "middleware": {
+    "auth": {
+      "class": "AuthMiddleware",
+      "redirect": "/login"
+    },
+    "guest": {
+      "class": "GuestMiddleware",
+      "redirect": "/dashboard"
+    },
+    "role": {
+      "class": "RoleMiddleware",
+      "redirect": "/403"
+    },
+    "api": {
+      "class": "ApiMiddleware"
+    },
+    "auth:api": {
+      "class": "ApiAuthMiddleware"
+    }
+  },
+  
+  "routeConfig": {
+    "cacheRoutes": true,
+    "cacheFile": "cache/routes.php",
+    "strictMode": false,
+    "trailingSlash": false,
+    "caseSensitive": false,
+    "defaultMethod": "GET",
+    "routePrefix": "",
+    "apiPrefix": "api",
+    "apiVersion": "v1"
+  }
+}

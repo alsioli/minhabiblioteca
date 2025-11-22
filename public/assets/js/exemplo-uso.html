@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Exemplo - Bibliotecas de Data e Filtros</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 30px;
+            border-bottom: 3px solid #007bff;
+            padding-bottom: 10px;
+        }
+        
+        h2 {
+            color: #555;
+            margin-top: 30px;
+            margin-bottom: 15px;
+        }
+        
+        .section {
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #f9f9f9;
+            border-radius: 5px;
+        }
+        
+        .filter-controls {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        label {
+            font-weight: bold;
+            margin-bottom: 5px;
+            color: #555;
+        }
+        
+        input, select {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        
+        button {
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background-color 0.3s;
+        }
+        
+        button:hover {
+            background-color: #0056b3;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        
+        th {
+            background-color: #007bff;
+            color: white;
+            font-weight: bold;
+        }
+        
+        tr:hover {
+            background-color: #f5f5f5;
+        }
+        
+        .result-box {
+            background: #e9ecef;
+            padding: 15px;
+            border-radius: 4px;
+            margin-top: 10px;
+            font-family: monospace;
+        }
+        
+        .pagination {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        
+        .pagination button {
+            padding: 5px 10px;
+        }
+        
+        .pagination button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+        
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .stat-card {
+            background: white;
+            padding: 15px;
+            border-radius: 5px;
+            border-left: 4px solid #007bff;
+        }
+        
+        .stat-label {
+            color: #666;
+            font-size: 12px;
+            text-transform: uppercase;
+        }
+        
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #333;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Demonstração - Bibliotecas JavaScript</h1>
+        
+        <!-- Seção de Datas -->
+        <div class="section">
+            <h2>1. Utilitários de Data (DateUtils)</h2>
+            
+            <div class="filter-controls">
+                <div class="form-group">
+                    <label>Data (dd/mm/yyyy):</label>
+                    <input type="text" id="inputDate" placeholder="15/11/2025">
+                </div>
+                <div class="form-group">
+                    <label>Adicionar Dias:</label>
+                    <input type="number" id="addDays" value="30">
+                </div>
+            </div>
+            
+            <button onclick="testDateFunctions()">Testar Funções de Data</button>
+            
+            <div id="dateResults" class="result-box" style="display:none;"></div>
+        </div>
+        
+        <!-- Seção de Filtros -->
+        <div class="section">
+            <h2>2. Utilitários de Filtros (FilterUtils)</h2>
+            
+            <div class="filter-controls">
+                <div class="form-group">
+                    <label>Buscar por Nome:</label>
+                    <input type="text" id="searchText" placeholder="Digite para buscar...">
+                </div>
+                <div class="form-group">
+                    <label>Departamento:</label>
+                    <select id="filterDept">
+                        <option value="">Todos</option>
+                        <option value="TI">TI</option>
+                        <option value="RH">RH</option>
+                        <option value="Vendas">Vendas</option>
+                        <option value="Financeiro">Financeiro</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Salário Mínimo:</label>
+                    <input type="number" id="minSalary" placeholder="3000">
+                </div>
+                <div class="form-group">
+                    <label>Salário Máximo:</label>
+                    <input type="number" id="maxSalary" placeholder="10000">
+                </div>
+            </div>
+            
+            <button onclick="applyFilters()">Aplicar Filtros</button>
+            <button onclick="clearFilters()" style="background-color: #6c757d;">Limpar Filtros</button>
+            
+            <div class="stats" id="stats"></div>
+            
+            <table id="dataTable">
+                <thead>
+                    <tr>
+                        <th onclick="sortTable('nome')">Nome ↕</th>
+                        <th onclick="sortTable('departamento')">Departamento ↕</th>
+                        <th onclick="sortTable('salario')">Salário ↕</th>
+                        <th onclick="sortTable('dataAdmissao')">Data Admissão ↕</th>
+                    </tr>
+                </thead>
+                <tbody id="tableBody"></tbody>
+            </table>
+            
+            <div class="pagination" id="pagination"></div>
+        </div>
+    </div>
+    
+    <!-- Incluir as bibliotecas -->
+    <script src="dateUtils.js"></script>
+    <script src="filterUtils.js"></script>
+    
+    <script>
+        // Dados de exemplo
+        let originalData = [
+            { id: 1, nome: 'Ana Silva', departamento: 'TI', salario: 5500, dataAdmissao: '2023-01-15' },
+            { id: 2, nome: 'Bruno Santos', departamento: 'RH', salario: 4200, dataAdmissao: '2022-03-20' },
+            { id: 3, nome: 'Carlos Oliveira', departamento: 'Vendas', salario: 6800, dataAdmissao: '2021-07-10' },
+            { id: 4, nome: 'Diana Costa', departamento: 'TI', salario: 7200, dataAdmissao: '2020-11-05' },
+            { id: 5, nome: 'Eduardo Alves', departamento: 'Financeiro', salario: 8500, dataAdmissao: '2019-05-22' },
+            { id: 6, nome: 'Fernanda Lima', departamento: 'RH', salario: 3800, dataAdmissao: '2024-02-14' },
+            { id: 7, nome: 'Gabriel Rocha', departamento: 'Vendas', salario: 5200, dataAdmissao: '2023-08-30' },
+            { id: 8, nome: 'Helena Martins', departamento: 'TI', salario: 9100, dataAdmissao: '2018-12-01' },
+            { id: 9, nome: 'Igor Ferreira', departamento: 'Financeiro', salario: 6300, dataAdmissao: '2022-09-18' },
+            { id: 10, nome: 'Julia Mendes', departamento: 'Vendas', salario: 4700, dataAdmissao: '2023-04-25' }
+        ];
+        
+        let filteredData = [...originalData];
+        let currentPage = 1;
+        let itemsPerPage = 5;
+        let currentSort = { field: 'nome', order: 'asc' };
+        
+        // Inicializar tabela
+        renderTable();
+        updateStats();
+        
+        // Função para testar utilitários de data
+        function testDateFunctions() {
+            const dateInput = document.getElementById('inputDate').value;
+            const daysToAdd = parseInt(document.getElementById('addDays').value) || 0;
+            
+            let html = '<strong>Resultados dos testes de data:</strong><br><br>';
+            
+            // Validar data brasileira
+            const isValid = DateUtils.isValidBRDate(dateInput);
+            html += `Data válida: ${isValid}<br>`;
+            
+            if (isValid) {
+                // Converter para ISO
+                const isoDate = DateUtils.brToISO(dateInput);
+                html += `Data ISO: ${isoDate}<br>`;
+                
+                // Criar objeto Date
+                const dateObj = new Date(isoDate);
+                
+                // Formatar de volta para BR
+                html += `Formatado BR: ${DateUtils.formatToBR(dateObj)}<br>`;
+                html += `Com hora: ${DateUtils.formatDateTimeToBR(dateObj)}<br>`;
+                
+                // Adicionar dias
+                const newDate = DateUtils.addDays(dateObj, daysToAdd);
+                html += `<br>Adicionar ${daysToAdd} dias: ${DateUtils.formatToBR(newDate)}<br>`;
+                
+                // Informações do mês
+                html += `<br>Primeiro dia do mês: ${DateUtils.formatToBR(DateUtils.getFirstDayOfMonth(dateObj))}<br>`;
+                html += `Último dia do mês: ${DateUtils.formatToBR(DateUtils.getLastDayOfMonth(dateObj))}<br>`;
+                
+                // Nome do mês e dia
+                html += `<br>Mês: ${DateUtils.getMonthName(dateObj.getMonth())}<br>`;
+                html += `Dia da semana: ${DateUtils.getDayName(dateObj.getDay())}<br>`;
+                
+                // Diferença para hoje
+                const today = new Date();
+                const diff = DateUtils.diffInDays(dateObj, today);
+                html += `<br>Diferença para hoje: ${diff} dias<br>`;
+                html += `É hoje?: ${DateUtils.isToday(dateObj)}<br>`;
+                
+                // Formato SQL
+                html += `<br>Formato SQL: ${DateUtils.formatToSQL(dateObj)}`;
+            }
+            
+            const resultsDiv = document.getElementById('dateResults');
+            resultsDiv.innerHTML = html;
+            resultsDiv.style.display = 'block';
+        }
+        
+        // Aplicar filtros
+        function applyFilters() {
+            let data = [...originalData];
+            
+            // Filtro de texto
+            const searchText = document.getElementById('searchText').value;
+            if (searchText) {
+                data = FilterUtils.filterByText(data, searchText, ['nome', 'departamento']);
+            }
+            
+            // Filtro de departamento
+            const dept = document.getElementById('filterDept').value;
+            if (dept) {
+                data = FilterUtils.filterByValues(data, 'departamento', [dept]);
+            }
+            
+            // Filtro de salário
+            const minSalary = document.getElementById('minSalary').value;
+            const maxSalary = document.getElementById('maxSalary').value;
+            if (minSalary || maxSalary) {
+                data = FilterUtils.filterByRange(
+                    data, 
+                    'salario', 
+                    minSalary ? parseFloat(minSalary) : null,
+                    maxSalary ? parseFloat(maxSalary) : null
+                );
+            }
+            
+            // Aplicar ordenação
+            data = FilterUtils.sortBy(data, currentSort.field, currentSort.order);
+            
+            filteredData = data;
+            currentPage = 1;
+            renderTable();
+            updateStats();
+        }
+        
+        // Limpar filtros
+        function clearFilters() {
+            document.getElementById('searchText').value = '';
+            document.getElementById('filterDept').value = '';
+            document.getElementById('minSalary').value = '';
+            document.getElementById('maxSalary').value = '';
+            
+            filteredData = [...originalData];
+            currentPage = 1;
+            renderTable();
+            updateStats();
+        }
+        
+        // Ordenar tabela
+        function sortTable(field) {
+            if (currentSort.field === field) {
+                currentSort.order = currentSort.order === 'asc' ? 'desc' : 'asc';
+            } else {
+                currentSort.field = field;
+                currentSort.order = 'asc';
+            }
+            
+            filteredData = FilterUtils.sortBy(filteredData, field, currentSort.order);
+            renderTable();
+        }
+        
+        // Renderizar tabela
+        function renderTable() {
+            const paginatedData = FilterUtils.paginate(filteredData, currentPage, itemsPerPage);
+            const tbody = document.getElementById('tableBody');
+            
+            tbody.innerHTML = paginatedData.data.map(item => `
+                <tr>
+                    <td>${item.nome}</td>
+                    <td>${item.departamento}</td>
+                    <td>R$ ${item.salario.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</td>
+                    <td>${DateUtils.formatToBR(item.dataAdmissao)}</td>
+                </tr>
+            `).join('');
+            
+            renderPagination(paginatedData.pagination);
+        }
+        
+        // Renderizar paginação
+        function renderPagination(pagination) {
+            const paginationDiv = document.getElementById('pagination');
+            
+            paginationDiv.innerHTML = `
+                <button onclick="changePage(${pagination.currentPage - 1})" 
+                        ${!pagination.hasPrev ? 'disabled' : ''}>
+                    ← Anterior
+                </button>
+                <span>Página ${pagination.currentPage} de ${pagination.totalPages}</span>
+                <button onclick="changePage(${pagination.currentPage + 1})" 
+                        ${!pagination.hasNext ? 'disabled' : ''}>
+                    Próxima →
+                </button>
+            `;
+        }
+        
+        // Mudar página
+        function changePage(page) {
+            currentPage = page;
+            renderTable();
+        }
+        
+        // Atualizar estatísticas
+        function updateStats() {
+            const total = filteredData.length;
+            const departments = FilterUtils.countValues(filteredData, 'departamento');
+            const avgSalary = filteredData.reduce((sum, item) => sum + item.salario, 0) / total;
+            
+            const statsDiv = document.getElementById('stats');
+            statsDiv.innerHTML = `
+                <div class="stat-card">
+                    <div class="stat-label">Total de Funcionários</div>
+                    <div class="stat-value">${total}</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Salário Médio</div>
+                    <div class="stat-value">R$ ${avgSalary.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Departamentos</div>
+                    <div class="stat-value">${Object.keys(departments).length}</div>
+                </div>
+            `;
+        }
+        
+        // Event listeners para filtros em tempo real
+        document.getElementById('searchText').addEventListener('input', applyFilters);
+    </script>
+</body>
+</html>

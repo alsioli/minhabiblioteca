@@ -1,0 +1,4 @@
+
+GET http://localhost:8080/php/api/base/biblioteca.php HTTP/1.1
+
+###

@@ -1,0 +1,95 @@
+/**
+ * colors.css
+ * Sistema de cores reutilizável
+ */
+
+:root {
+  /* Cores Primárias */
+  --color-primary: #2563eb;
+  --color-primary-light: #60a5fa;
+  --color-primary-dark: #1e40af;
+  
+  /* Cores Secundárias */
+  --color-secondary: #7c3aed;
+  --color-secondary-light: #a78bfa;
+  --color-secondary-dark: #5b21b6;
+  
+  /* Cores de Sucesso */
+  --color-success: #10b981;
+  --color-success-light: #34d399;
+  --color-success-dark: #059669;
+  
+  /* Cores de Alerta */
+  --color-warning: #f59e0b;
+  --color-warning-light: #fbbf24;
+  --color-warning-dark: #d97706;
+  
+  /* Cores de Erro */
+  --color-error: #ef4444;
+  --color-error-light: #f87171;
+  --color-error-dark: #dc2626;
+  
+  /* Cores de Informação */
+  --color-info: #06b6d4;
+  --color-info-light: #22d3ee;
+  --color-info-dark: #0891b2;
+  
+  /* Escala de Cinzas */
+  --color-gray-50: #f9fafb;
+  --color-gray-100: #f3f4f6;
+  --color-gray-200: #e5e7eb;
+  --color-gray-300: #d1d5db;
+  --color-gray-400: #9ca3af;
+  --color-gray-500: #6b7280;
+  --color-gray-600: #4b5563;
+  --color-gray-700: #374151;
+  --color-gray-800: #1f2937;
+  --color-gray-900: #111827;
+  
+  /* Cores Neutras */
+  --color-white: #ffffff;
+  --color-black: #000000;
+  
+  /* Backgrounds */
+  --bg-primary: var(--color-white);
+  --bg-secondary: var(--color-gray-50);
+  --bg-tertiary: var(--color-gray-100);
+  --bg-dark: var(--color-gray-900);
+  
+  /* Textos */
+  --text-primary: var(--color-gray-900);
+  --text-secondary: var(--color-gray-600);
+  --text-tertiary: var(--color-gray-500);
+  --text-inverse: var(--color-white);
+  
+  /* Bordas */
+  --border-color: var(--color-gray-200);
+  --border-color-hover: var(--color-gray-300);
+  
+  /* Sombras */
+  --shadow-color: rgba(0, 0, 0, 0.1);
+  --shadow-color-dark: rgba(0, 0, 0, 0.2);
+}
+
+/* Classes utilitárias de cores de texto */
+.text-primary { color: var(--color-primary); }
+.text-secondary { color: var(--color-secondary); }
+.text-success { color: var(--color-success); }
+.text-warning { color: var(--color-warning); }
+.text-error { color: var(--color-error); }
+.text-info { color: var(--color-info); }
+.text-gray { color: var(--text-secondary); }
+.text-muted { color: var(--text-tertiary); }
+.text-white { color: var(--color-white); }
+
+/* Classes utilitárias de background */
+.bg-primary { background-color: var(--color-primary); }
+.bg-secondary { background-color: var(--color-secondary); }
+.bg-success { background-color: var(--color-success); }
+.bg-warning { background-color: var(--color-warning); }
+.bg-error { background-color: var(--color-error); }
+.bg-info { background-color: var(--color-info); }
+.bg-white { background-color: var(--color-white); }
+.bg-gray-50 { background-color: var(--color-gray-50); }
+.bg-gray-100 { background-color: var(--color-gray-100); }
+.bg-gray-900 { background-color: var(--color-gray-900); }

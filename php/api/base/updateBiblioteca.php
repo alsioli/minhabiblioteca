@@ -1,20 +1,23 @@
 <?php
 
-include 'php/util/class/database.php';
-include 'php/util/class/routes.php';
-include 'php/class/assets/js/http.js';
+include_once 'php/util/database.php';
+include_once 'php/util/routes.php';
 
+//Inicializar variáveis de resposta
+$result_status = 'false';
+$result_error = '';
+$result_data = null;
 
 
 switch($_SERVER['REQUEST_METHOD']) {
     
     case 'GET':
-        //GetMethod($routes -> $params);
+        //GetMethod($routes->$params);
         break;
     case 'POST':
         break;
     case 'PUT':
-        PutMethod($routes -> $params);
+        PutMethod();
         break;
     case 'DELETE':
         break;
@@ -28,65 +31,62 @@ $response = array(
     'data' => $result_data,
 );
 
-header('Content-Type: application/json');
+//header('Content-Type: application/json');
 echo json_encode($response);
 
 function PutMethod($params) {
     
     global $result_status, $result_error, $result_data;
 
-    $titulo  = isset[()]   
-    $aut = isset[()]   = isset [()] 
-    $serie  = isset [()] 
-    $volume  = isset [()] 
-    $genero  = isset [()] 
-    $tema  = isset [()] 
-    $edit = isset [()] a  = isset [()] 
-    $tipo_edicao  = isset [()] 
-    $paginas  = isset [()] 
-    $nacionalidade  = isset [()] 
-    $troca_skoob  = isset [()] 
-    $local  = isset [()] 
-    $status  = isset [()] 
-    $avaliacao  = isset [()] 
-    $emprestimo  = isset [()] 
-    $compra_bienal  = isset [()] 
-    $mes_leitura  = isset [()] 
-    $data_compra
-    $id;
+    $id = isset($_GET['id']);
+    $titulo  = isset($_GET['titulo']) ? $_GET['titulo'] : null;  
+    $autor = isset ($_GET['autor']) ? $_GET['autor'] : null;
+    $serie  = isset($_GET['serie']) ? $_GET['serie']: null;
+    $volume  = isset($_GET['volume']) ? $_GET['volume']: null;
+    $genero  = isset($_GET['genero']) ? $_GET['genero']: null;
+    $tema  = isset($_GET['tema']) ? $_GET['tema']: null;
+    $editora = isset($_GET['editora']) ? $_GET['editora']: null;
+    $tipo_edicao  = isset($_GET['tipo_edicao']) ? $_GET['tipo_edicao']: null;
+    $paginas  = isset($_GET['paginas']) ? $_GET['paginas']: null;
+    $nacionalidade  = isset($_GET['nacionalidade']) ? $_GET['nacionalidade']: null;
+    $troca_skoob  = isset($_GET['troca_skoob']) ? $_GET['troca_skoob']: null;
+    $local  = isset($_GET['local']) ? $_GET['local']: null;
+    $status  = isset($_GET['status']) ? $_GET['status']: null;
+    $avaliacao  = isset($_GET['avaliacao']) ? $_GET['avaliacao']: null;
+    $emprestimo  = isset($_GET['emprestimo']) ? $_GET['emprestimo']: null;
+    $compra_bienal  = isset($_GET['compra_bienal']) ? $_GET['compra_bienal']: null;
+    $mes_leitura  = isset($_GET['mes_leitura']) ? $_GET['mes_leitura']: null;
+    $data_compra = isset($_GET['data_compra']) ? $_GET['data_compra']: null;
 
     $sqlQuery = "UPDATE [Biblioteca].[dbo].[Livros]
-    SET
-        titulo = $titulo OR  
-        autor = $autor or
-        serie = $serie or
-        volume = $volume or
-        genero = $genero or
-        tema = $tema or
-        editora = $editora or
-        tipo_edicao = $tipo_edicao or
-        paginas = $paginas or
-        nacionalidade = $nacionalidade or
-        troca_skoob = $troca_skoob or
-        local = $local or
-        status = $status or
-        avaliacao = $avaliacao or
-        emprestimo = $emprestimo or
-        compra_bienal = $compra_bienal or
-        mes_leitura = $mes_leitura or
-        data_compra = $data_compra
-    WHERE id = $id;
+        SET titulo = $titulo',
+            autor = '$autor',
+            serie = '$serie',
+            volume = '$volume',
+            genero = '$genero',
+            tema = '$tema',
+            editora = '$editora',
+            tipo_edicao = '$tipo_edicao',
+            paginas = '$paginas',
+            nacionalidade = '$nacionalidade',
+            troca_skoob = '$troca_skoob',
+            local = '$local',
+            status = '$status',
+            avaliacao = '$avaliacao',
+            emprestimo = '$emprestimo',
+            compra_bienal = '$compra_bienal',
+            mes_leitura = '$mes_leitura',
+            data_compra = '$data_compra'
+        WHERE id = $id;";
 
     try{
       $db = new Database(); 
-     // echo $sqlQuery;
+        // echo $sqlQuery;
       //die();
-      $result_data = array_values($db->GetMany($sqlQuery));
+      $result_data = $db->ExecuteNonQuery($sqlQuery, $params = []);
       $result_status = 'true';
     } catch(Exception $e){
       $result_status = 'false';
       $result_error = $e->getMessage();
     }
-}
-
 }

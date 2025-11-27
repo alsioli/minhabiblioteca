@@ -1,10 +1,8 @@
 <?php
 
-include 'php/util/class/database.php';
-include 'php/util/class/routes.php';
-include 'php/class/assets/js/http.js';
-
-
+include 'php/util/database.php';
+include 'php/util/routes.php';
+include 'public/assets/js/http.js';
 
 switch($_SERVER['REQUEST_METHOD']) {
     

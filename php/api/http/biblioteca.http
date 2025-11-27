@@ -1,4 +1,14 @@
 
 GET http://localhost:8080/php/api/base/biblioteca.php HTTP/1.1
-
+Content-Type: application/json
 ###
+
+PUT http://localhost:8080/php/api/base/updateBiblioteca.php HTTP/1.1
+Content-Type: application/json
+
+{   
+    "id": 2174,
+    "titulo": "Novo Titulo",
+    "autor": "Novo Autor"
+}
+

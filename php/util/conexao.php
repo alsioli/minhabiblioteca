@@ -27,23 +27,7 @@ class Database {
      * @param array $params Parâmetros para prepared statement
      * @return array Array de arrays associativos
      */
-    public function GetMany($query, $params = []) {
-        try {
-            if ($this->conn === null) {
-                $this->connect();
-            }
-
-            $stmt = $this->conn->prepare($query);
-            $stmt->execute($params);
-
-            $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-            return $results;
-        } catch (PDOException $e) {
-            error_log("Erro ao executar GetMany: " . $e->getMessage());
-            return [];
-        }
-    }
+    
 }
 
 $db = new Database();

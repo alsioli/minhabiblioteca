@@ -19,8 +19,9 @@ require 'conexao.php';
 class SqlServerHelper
 {
     private $connection = null;
-    private $host;
-    private $database;
+    private $host = 'ALESSANDRAL\LOCALHOST';
+    private $database = 'Biblioteca';
+    private $conn;
     private $port;
 
     /**
@@ -167,14 +168,13 @@ class SqlServerHelper
      * $usuarios = $db->GetMany($sql, $params);
      */
     //public function GetMany($query, $params = [])
-    public function GetMany(string $query, $params = null)
-    {
+   public function GetMany($query, $params = []) {
         try {
-            if ($this->connection === null) {
-                throw new Exception("Conexão não estabelecida. Use ConectParams() primeiro.");
+            if ($this->conn === null) {
+                $this->connect();
             }
 
-            $stmt = $this->connection->prepare($query);
+            $stmt = $this->conn->prepare($query);
             $stmt->execute($params);
 
             $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -182,7 +182,7 @@ class SqlServerHelper
             return $results;
         } catch (PDOException $e) {
             error_log("Erro ao executar GetMany: " . $e->getMessage());
-            return false;
+            return [];
         }
     }
 

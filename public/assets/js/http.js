@@ -347,6 +347,478 @@ const HTTP = {
     },
 
     /**
+     * Executa comando que não retorna dados (INSERT, UPDATE, DELETE)
+     * Útil para operações de banco de dados que retornam apenas sucesso/falha e linhas afetadas
+     * @param {string} url - URL do endpoint
+     * @param {Object} data - Dados do comando (query, params, etc)
+     * @param {Object} options - Opções adicionais
+     * @returns {Promise<Object>} Promise com objeto { success, affectedRows, message?, insertId? }
+     * 
+     * @example
+     * // INSERT simples
+     * const result = await HTTP.ExecuteNonQuery('/api/usuarios/insert', {
+     *   nome: 'João Silva',
+     *   email: 'joao@email.com'
+     * });
+     * // { success: true, affectedRows: 1, insertId: 123 }
+     * 
+     * // UPDATE com condições
+     * const result = await HTTP.ExecuteNonQuery('/api/usuarios/update', {
+     *   id: 123,
+     *   nome: 'João da Silva'
+     * });
+     * // { success: true, affectedRows: 1 }
+     * 
+     * // DELETE
+     * const result = await HTTP.ExecuteNonQuery('/api/usuarios/delete', {
+     *   id: 123
+     * });
+     * // { success: true, affectedRows: 1 }
+     * 
+     * // Comando SQL direto (se API suportar)
+     * const result = await HTTP.ExecuteNonQuery('/api/execute', {
+     *   query: 'UPDATE usuarios SET ativo = ? WHERE id = ?',
+     *   params: [1, 123]
+     * });
+     * 
+     * // Com confirmação
+     * const result = await HTTP.ExecuteNonQuery('/api/usuarios/delete', 
+     *   { id: 123 },
+     *   { 
+     *     confirmMessage: 'Tem certeza que deseja excluir?',
+     *     showNotification: true
+     *   }
+     * );
+     */
+    async ExecuteNonQuery(url, data = {}, options = {}) {
+        // Confirmar ação se solicitado
+        if (options.confirmMessage) {
+            const confirmed = window.confirm(options.confirmMessage);
+            if (!confirmed) {
+                return { 
+                    success: false, 
+                    cancelled: true,
+                    message: 'Operação cancelada pelo usuário' 
+                };
+            }
+        }
+
+        try {
+            const response = await this.post(url, data, options);
+            
+            // Normalizar resposta para formato padrão
+            const result = {
+                success: response.success !== false,
+                affectedRows: response.affectedRows || response.rowsAffected || response.affected || 0,
+                message: response.message || 'Operação executada com sucesso',
+                insertId: response.insertId || response.id || null,
+                data: response.data || null
+            };
+
+            // Mostrar notificação se solicitado
+            if (options.showNotification && result.success) {
+                this._showNotification(result.message, 'success');
+            }
+
+            return result;
+
+        } catch (error) {
+            const errorResult = {
+                success: false,
+                affectedRows: 0,
+                message: this.errors.getMessage(error),
+                error: error
+            };
+
+            // Mostrar notificação de erro se solicitado
+            if (options.showNotification) {
+                this._showNotification(errorResult.message, 'error');
+            }
+
+            // Lançar erro ou retornar objeto de erro
+            if (options.throwError !== false) {
+                throw error;
+            }
+
+            return errorResult;
+        }
+    },
+
+    /**
+     * Executa Prepared Statement SQL (equivalente ao $stmt = $db->prepare())
+     * Usa placeholders ? ou :nome para prevenir SQL Injection
+     * @param {string} url - URL do endpoint que aceita prepared statements
+     * @param {string} query - Query SQL com placeholders (? ou :nome)
+     * @param {Array|Object} params - Parâmetros (array para ?, objeto para :nome)
+     * @param {Object} options - Opções adicionais
+     * @returns {Promise<Object>} Promise com resultado
+     * 
+     * @example
+     * // INSERT com placeholders ? (posicional)
+     * const result = await HTTP.PreparedQuery(
+     *   '/api/execute/prepared',
+     *   'INSERT INTO usuarios (nome, email, ativo) VALUES (?, ?, ?)',
+     *   ['João Silva', 'joao@email.com', 1]
+     * );
+     * // { success: true, affectedRows: 1, insertId: 123 }
+     * 
+     * // UPDATE com placeholders nomeados
+     * const result = await HTTP.PreparedQuery(
+     *   '/api/execute/prepared',
+     *   'UPDATE usuarios SET nome = :nome, email = :email WHERE id = :id',
+     *   { nome: 'João da Silva', email: 'joao.silva@email.com', id: 123 }
+     * );
+     * 
+     * // SELECT com prepared statement
+     * const result = await HTTP.PreparedQuery(
+     *   '/api/execute/prepared',
+     *   'SELECT * FROM usuarios WHERE email = ? AND ativo = ?',
+     *   ['joao@email.com', 1]
+     * );
+     * // { success: true, data: [...], rowCount: 1 }
+     * 
+     * // DELETE com confirmação
+     * const result = await HTTP.PreparedQuery(
+     *   '/api/execute/prepared',
+     *   'DELETE FROM usuarios WHERE id = ?',
+     *   [123],
+     *   { 
+     *     confirmMessage: 'Confirma exclusão?',
+     *     showNotification: true 
+     *   }
+     * );
+     * 
+     * // Procedure com múltiplos parâmetros
+     * const result = await HTTP.PreparedQuery(
+     *   '/api/execute/prepared',
+     *   'EXEC sp_AtualizarUsuario @id = :id, @nome = :nome, @email = :email',
+     *   { id: 123, nome: 'João', email: 'joao@email.com' }
+     * );
+     */
+    async PreparedQuery(url, query, params = [], options = {}) {
+        // Validar parâmetros
+        if (!query || typeof query !== 'string') {
+            throw new Error('Query SQL é obrigatória');
+        }
+
+        // Confirmar ação se solicitado
+        if (options.confirmMessage) {
+            const confirmed = window.confirm(options.confirmMessage);
+            if (!confirmed) {
+                return { 
+                    success: false, 
+                    cancelled: true,
+                    message: 'Operação cancelada pelo usuário' 
+                };
+            }
+        }
+
+        // Determinar tipo de placeholder
+        const hasNamedPlaceholders = query.includes(':');
+        const hasPositionalPlaceholders = query.includes('?');
+
+        // Validar consistência dos parâmetros
+        if (hasNamedPlaceholders && Array.isArray(params)) {
+            console.warn('Query usa placeholders nomeados mas parâmetros são array. Considere usar objeto.');
+        }
+        if (hasPositionalPlaceholders && !Array.isArray(params)) {
+            console.warn('Query usa placeholders posicionais mas parâmetros são objeto. Considere usar array.');
+        }
+
+        // Preparar dados para enviar ao servidor
+        const requestData = {
+            query: query,
+            params: params,
+            prepared: true,
+            placeholderType: hasNamedPlaceholders ? 'named' : 'positional'
+        };
+
+        try {
+            const response = await this.post(url, requestData, options);
+            
+            // Normalizar resposta
+            const result = {
+                success: response.success !== false,
+                data: response.data || response.rows || response.results || null,
+                affectedRows: response.affectedRows || response.rowsAffected || response.affected || 0,
+                insertId: response.insertId || response.id || response.lastInsertId || null,
+                rowCount: response.rowCount || response.count || (response.data ? response.data.length : 0),
+                message: response.message || 'Query executada com sucesso'
+            };
+
+            // Mostrar notificação se solicitado
+            if (options.showNotification && result.success) {
+                this._showNotification(result.message, 'success');
+            }
+
+            return result;
+
+        } catch (error) {
+            const errorResult = {
+                success: false,
+                data: null,
+                affectedRows: 0,
+                message: this.errors.getMessage(error),
+                error: error,
+                query: options.debugMode ? query : undefined
+            };
+
+            // Mostrar notificação de erro se solicitado
+            if (options.showNotification) {
+                this._showNotification(errorResult.message, 'error');
+            }
+
+            // Lançar erro ou retornar objeto de erro
+            if (options.throwError !== false) {
+                throw error;
+            }
+
+            return errorResult;
+        }
+    },
+
+    /**
+     * Executa múltiplas Prepared Queries em transação
+     * @param {string} url - URL do endpoint
+     * @param {Array} queries - Array de objetos { query, params }
+     * @param {Object} options - Opções adicionais
+     * @returns {Promise<Object>} Promise com resultado
+     * 
+     * @example
+     * const result = await HTTP.PreparedQueryTransaction('/api/execute/transaction', [
+     *   { 
+     *     query: 'INSERT INTO usuarios (nome, email) VALUES (?, ?)', 
+     *     params: ['João', 'joao@email.com'] 
+     *   },
+     *   { 
+     *     query: 'INSERT INTO logs (acao, usuario_id) VALUES (?, ?)', 
+     *     params: ['cadastro', 1] 
+     *   },
+     *   { 
+     *     query: 'UPDATE contadores SET total = total + 1 WHERE tipo = ?', 
+     *     params: ['usuarios'] 
+     *   }
+     * ]);
+     */
+    async PreparedQueryTransaction(url, queries, options = {}) {
+        if (!Array.isArray(queries) || queries.length === 0) {
+            throw new Error('Array de queries é obrigatório');
+        }
+
+        // Confirmar transação se solicitado
+        if (options.confirmMessage) {
+            const confirmed = window.confirm(options.confirmMessage);
+            if (!confirmed) {
+                return { 
+                    success: false, 
+                    cancelled: true,
+                    message: 'Transação cancelada pelo usuário' 
+                };
+            }
+        }
+
+        const requestData = {
+            queries: queries.map(q => ({
+                query: q.query,
+                params: q.params || [],
+                prepared: true
+            })),
+            transaction: true
+        };
+
+        try {
+            const response = await this.post(url, requestData, options);
+            
+            const result = {
+                success: response.success !== false,
+                results: response.results || [],
+                totalAffected: response.totalAffected || 0,
+                message: response.message || 'Transação executada com sucesso'
+            };
+
+            if (options.showNotification && result.success) {
+                this._showNotification(result.message, 'success');
+            }
+
+            return result;
+
+        } catch (error) {
+            const errorResult = {
+                success: false,
+                results: [],
+                totalAffected: 0,
+                message: this.errors.getMessage(error),
+                error: error
+            };
+
+            if (options.showNotification) {
+                this._showNotification(errorResult.message, 'error');
+            }
+
+            if (options.throwError !== false) {
+                throw error;
+            }
+
+            return errorResult;
+        }
+    },
+
+    /**
+     * Executa múltiplos comandos NonQuery em sequência ou paralelo
+     * @param {Array} commands - Array de objetos { url, data, options? }
+     * @param {Object} config - Configurações
+     * @param {boolean} config.parallel - Executar em paralelo (padrão: false - sequencial)
+     * @param {boolean} config.stopOnError - Parar ao encontrar erro (padrão: true)
+     * @param {boolean} config.transaction - Simular transação (rollback se houver erro)
+     * @param {Function} config.onProgress - Callback de progresso
+     * @returns {Promise<Object>} Promise com { success, results, totalAffected, errors? }
+     * 
+     * @example
+     * // Sequencial (padrão)
+     * const result = await HTTP.ExecuteNonQueryBatch([
+     *   { url: '/api/usuarios/insert', data: { nome: 'João' } },
+     *   { url: '/api/usuarios/insert', data: { nome: 'Maria' } },
+     *   { url: '/api/usuarios/insert', data: { nome: 'Pedro' } }
+     * ]);
+     * 
+     * // Paralelo
+     * const result = await HTTP.ExecuteNonQueryBatch(commands, {
+     *   parallel: true,
+     *   onProgress: (completed, total) => console.log(`${completed}/${total}`)
+     * });
+     * 
+     * // Com transação simulada
+     * const result = await HTTP.ExecuteNonQueryBatch(commands, {
+     *   transaction: true,
+     *   stopOnError: true
+     * });
+     */
+    async ExecuteNonQueryBatch(commands, config = {}) {
+        const {
+            parallel = false,
+            stopOnError = true,
+            transaction = false,
+            onProgress = null
+        } = config;
+
+        const results = [];
+        const errors = [];
+        let totalAffected = 0;
+        let completed = 0;
+        const total = commands.length;
+
+        // Função para executar um comando
+        const executeCommand = async (cmd, index) => {
+            try {
+                const result = await this.ExecuteNonQuery(
+                    cmd.url, 
+                    cmd.data, 
+                    { ...cmd.options, throwError: true, showNotification: false }
+                );
+                
+                totalAffected += result.affectedRows || 0;
+                completed++;
+                
+                if (onProgress && typeof onProgress === 'function') {
+                    onProgress(completed, total, index, result);
+                }
+                
+                return { success: true, result, index };
+                
+            } catch (error) {
+                completed++;
+                errors.push({ index, error, command: cmd });
+                
+                if (onProgress && typeof onProgress === 'function') {
+                    onProgress(completed, total, index, null, error);
+                }
+                
+                if (stopOnError) {
+                    throw error;
+                }
+                
+                return { success: false, error, index };
+            }
+        };
+
+        try {
+            if (parallel) {
+                // Execução paralela
+                const promises = commands.map((cmd, idx) => executeCommand(cmd, idx));
+                const allResults = await Promise.all(promises);
+                results.push(...allResults);
+                
+            } else {
+                // Execução sequencial
+                for (let i = 0; i < commands.length; i++) {
+                    const result = await executeCommand(commands[i], i);
+                    results.push(result);
+                    
+                    if (!result.success && stopOnError) {
+                        break;
+                    }
+                }
+            }
+
+            const success = errors.length === 0;
+
+            // Se há erros e é transação, tentar rollback
+            if (!success && transaction && results.some(r => r.success)) {
+                console.warn('Erro na transação. Rollback não implementado no cliente.');
+                // Aqui você poderia chamar um endpoint de rollback se seu backend suportar
+            }
+
+            return {
+                success,
+                results: results.map(r => r.success ? r.result : r.error),
+                totalAffected,
+                executed: completed,
+                total,
+                errors: errors.length > 0 ? errors : null
+            };
+
+        } catch (error) {
+            // Erro crítico que parou a execução
+            return {
+                success: false,
+                results,
+                totalAffected,
+                executed: completed,
+                total,
+                errors: [...errors, { error, critical: true }],
+                message: 'Execução interrompida por erro'
+            };
+        }
+    },
+
+    /**
+     * Helper para mostrar notificações (interno)
+     * @private
+     */
+    _showNotification(message, type = 'info') {
+        // Implementação básica - você pode customizar
+        if (typeof Toastify !== 'undefined') {
+            // Se estiver usando Toastify
+            Toastify({
+                text: message,
+                duration: 3000,
+                gravity: 'top',
+                position: 'right',
+                style: {
+                    background: type === 'success' ? '#4caf50' : 
+                               type === 'error' ? '#f44336' : '#2196f3'
+                }
+            }).showToast();
+        } else if (typeof alert !== 'undefined') {
+            // Fallback para alert
+            alert(message);
+        } else {
+            // Console apenas
+            console.log(`[${type.toUpperCase()}] ${message}`);
+        }
+    },
+
+    /**
      * Upload de arquivo
      * @param {string} url - URL
      * @param {File|FileList} files - Arquivo(s)

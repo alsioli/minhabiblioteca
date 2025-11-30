@@ -16,209 +16,79 @@
 
 require 'conexao.php';
 
-class SqlServerHelper
+class DataBase
 {
-    private $connection = null;
+    private $connection = '';
     private $host = 'ALESSANDRAL\LOCALHOST';
     private $database = 'Biblioteca';
-    private $conn;
-    private $port;
 
-    /**
-     * Construtor da classe
-     *
-     * @param string $host Endereço do servidor
-     * @param string $database Nome do banco de dados
-     * @param int $port Porta (padrão: 1433)
-     */
-    public function __construct($host = '', $database = '', $port = 1433)
-    {
-        $this->host = $host;
-        $this->database = $database;
-        $this->port = $port;
-    }
 
-    /**
-     * ConectParams - Estabelece conexão com o SQL Server
-     *
-     * @param array $params Array associativo com parâmetros de conexão
-     *                      ['host', 'database', 'username', 'password', 'port']
-     * @return PDO|false Retorna objeto PDO ou false em caso de erro
-     *
-     * @example
-     * $params = [
-     *     'host' => 'localhost',
-     *     'database' => 'meudb',
-     *     'username' => 'sa',
-     *     'password' => 'senha123',
-     *     'port' => 1433
-     * ];
-     * $db->ConectParams($params);
-     */
-    public function ConectParams($params = [])
-    {
+    public function __construct(){
         try {
-            // Atualiza os parâmetros se fornecidos
-            if (!empty($params)) {
-                $this->host = $params['host'] ?? $this->host;
-                $this->database = $params['database'] ?? $this->database;
+            $this->connection = new PDO(
+                "sqlsrv:Server={$this->host};Database={$this->database}",   
 
-                $this->port = $params['port'] ?? $this->port;
-            }
+            );
+            $this->connection->setAttribute(PDO:: ATTR_ERRMODE, PDO:: ERRMODE_EXCEPTION);
 
-            // String de conexão para SQL Server
-            $dsn = "sqlsrv:Server={$this->host},{$this->port};Database={$this->database}";
+        } catch (PDOException $e){
 
-            // Opções de conexão
-            $options = [
-                PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-                PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-                PDO::ATTR_EMULATE_PREPARES => false,
-            ];
+            throw new Exception ("Erro de conexao:" . $e->getMessage());
 
-            $this->connection = new PDO($dsn, options: $options);
-
-            return $this->connection;
-        } catch (PDOException $e) {
-            error_log("Erro de conexão SQL Server: " . $e->getMessage());
-            return false;
         }
-    }
+    }    
 
-    /**
-     * Retorna a conexão ativa
-     *
-     * @return PDO|null
-     */
+
     public function getConnection()
     {
         return $this->connection;
     }
 
-    /**
-     * ExecuteNonQuery - Executa comandos que não retornam dados (INSERT, UPDATE, DELETE)
-     *
-     * @param string $query Query SQL a ser executada
-     * @param array $params Parâmetros para prepared statement
-     * @return int|false Número de linhas afetadas ou false em caso de erro
-     *
-     * @example
-     * $sql = "INSERT INTO usuarios (nome, email) VALUES (:nome, :email)";
-     * $params = ['nome' => 'João', 'email' => 'joao@email.com'];
-     * $rowsAffected = $db->ExecuteNonQuery($sql, $params);
-     */
     public function ExecuteNonQuery($query, $params = [])
     {
-        try {
-            if ($this->connection === null) {
-                throw new Exception("Conexão não estabelecida. Use ConectParams() primeiro.");
-            }
 
+        try{
             $stmt = $this->connection->prepare($query);
             $stmt->execute($params);
+            $result = $stmt-> rowCount();
 
-            return $stmt->rowCount();
-        } catch (PDOException $e) {
-            error_log("Erro ao executar ExecuteNonQuery: " . $e->getMessage());
-            return false;
+        } catch (PDOException $e){
+         
+            throw new Exception("Erro ao executar a query:" . $e->getMessage());
+
         }
     }
 
-    /**
-     * GetOne - Retorna um único registro do banco de dados
-     *
-     * @param string $query Query SQL a ser executada
-     * @param array $params Parâmetros para prepared statement
-     * @return array|false Array associativo com o registro ou false se não encontrado
-     *
-     * @example
-     * $sql = "SELECT * FROM usuarios WHERE id = :id";
-     * $params = ['id' => 1];
-     * $usuario = $db->GetOne($sql, $params);
-     */
     public function GetOne($query, $params = [])
     {
         try {
-            if ($this->connection === null) {
-                throw new Exception("Conexão não estabelecida. Use ConectParams() primeiro.");
-            }
-
             $stmt = $this->connection->prepare($query);
             $stmt->execute($params);
-
             $result = $stmt->fetch(PDO::FETCH_ASSOC);
-
             return $result !== false ? $result : false;
+
+
         } catch (PDOException $e) {
-            error_log("Erro ao executar GetOne: " . $e->getMessage());
-            return false;
+
+             throw new Exception("Erro ao executar a query:" . $e->getMessage());
+             return false;
         }
     }
 
-    /**
-     * GetMany - Retorna múltiplos registros do banco de dados
-     *
-     * @param string $query Query SQL a ser executada
-     * @param array $params Parâmetros para prepared statement
-     * @return array|false Array de arrays associativos ou false em caso de erro
-     *
-     * @example
-     * $sql = "SELECT * FROM usuarios WHERE ativo = :ativo";
-     * $params = ['ativo' => 1];
-     * $usuarios = $db->GetMany($sql, $params);
-     */
-    //public function GetMany($query, $params = [])
-   public function GetMany($query, $params = []) {
+public function GetMany($query, $params = []) {
         try {
-            if ($this->conn === null) {
-                $this->connect();
-            }
-
-            $stmt = $this->conn->prepare($query);
+            $stmt = $this->connection->prepare($query);
             $stmt->execute($params);
 
             $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
             return $results;
+
         } catch (PDOException $e) {
-            error_log("Erro ao executar GetMany: " . $e->getMessage());
+             throw new Exception("Erro ao executar o GetMany:" . $e->getMessage());
             return [];
         }
     }
 
-    /**
-     * Prepare - Prepara uma query SQL para execução posterior
-     *
-     * @param string $query Query SQL a ser preparada
-     * @return PDOStatement|false PDOStatement preparado ou false em caso de erro
-     *
-     * @example
-     * $sql = "INSERT INTO logs (mensagem, data) VALUES (:msg, :data)";
-     * $stmt = $db->Prepare($sql);
-     * if ($stmt) {
-     *     $stmt->execute(['msg' => 'Log 1', 'data' => date('Y-m-d')]);
-     *     $stmt->execute(['msg' => 'Log 2', 'data' => date('Y-m-d')]);
-     * }
-     */
-    public function Prepare($query)
-    {
-        try {
-            if ($this->connection === null) {
-                throw new Exception("Conexão não estabelecida. Use ConectParams() primeiro.");
-            }
-
-            return $this->connection->prepare($query);
-        } catch (PDOException $e) {
-            error_log("Erro ao preparar query: " . $e->getMessage());
-            return false;
-        }
-    }
-
-    /**
-     * Inicia uma transação
-     *
-     * @return bool
-     */
     public function beginTransaction()
     {
         if ($this->connection !== null) {
@@ -227,11 +97,7 @@ class SqlServerHelper
         return false;
     }
 
-    /**
-     * Confirma uma transação
-     *
-     * @return bool
-     */
+
     public function commit()
     {
         if ($this->connection !== null) {
@@ -240,11 +106,7 @@ class SqlServerHelper
         return false;
     }
 
-    /**
-     * Reverte uma transação
-     *
-     * @return bool
-     */
+
     public function rollback()
     {
         if ($this->connection !== null) {
@@ -253,11 +115,6 @@ class SqlServerHelper
         return false;
     }
 
-    /**
-     * Retorna o último ID inserido
-     *
-     * @return string|false
-     */
     public function lastInsertId()
     {
         if ($this->connection !== null) {
@@ -266,17 +123,12 @@ class SqlServerHelper
         return false;
     }
 
-    /**
-     * Fecha a conexão com o banco de dados
-     */
     public function close()
     {
         $this->connection = null;
     }
 
-    /**
-     * Destrutor - fecha a conexão automaticamente
-     */
+
     public function __destruct()
     {
         $this->close();

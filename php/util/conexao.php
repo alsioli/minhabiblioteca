@@ -1,15 +1,15 @@
-<?php
 
-class Database {
+<?php
+class Conexao {
+
     private $host = 'ALESSANDRAL\LOCALHOST';
-    private $db = 'Biblioteca';
+    private $database = 'Biblioteca';
     private $conn;
 
     public function connect() {
         try {
             $this->conn = new PDO(
-                'sqlsrv:Server=' . $this->host . ';Database=' . $this->db,
- 
+                'sqlsrv:Server=' . $this->host . ';Database=' . $this->database,
             );
             // Configura para lançar exceções em caso de erro
             $this->conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
@@ -19,19 +19,10 @@ class Database {
             return null;
         }
     }
-
-    /**
-     * GetMany - Retorna múltiplos registros do banco de dados
-     *
-     * @param string $query Query SQL a ser executada
-     * @param array $params Parâmetros para prepared statement
-     * @return array Array de arrays associativos
-     */
-    
 }
 
-$db = new Database();
-$conn = $db->connect();
+$database = new Conexao();
+$conn = $database->connect();
 
 if ($conn) {
     echo "Conexão bem-sucedida!";

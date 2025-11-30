@@ -12,3 +12,8 @@ Content-Type: application/json
     "autor": "Novo Autor"
 }
 
+###
+GET http://localhost:8080/php/api/base/consultaGeral.php?autor=Jane Austen  HTTP/1.1
+Content-Type: application/json
+
+###

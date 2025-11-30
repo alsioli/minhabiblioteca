@@ -1,8 +1,7 @@
 <?php
 
 include 'php/util/database.php';
-include 'php/util/routes.php';
-include 'public/assets/js/http.js';
+
 
 switch($_SERVER['REQUEST_METHOD']) {
     

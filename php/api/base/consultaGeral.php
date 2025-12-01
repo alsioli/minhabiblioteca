@@ -77,7 +77,7 @@ function GetMethod() {
         ];
 
         foreach($camposRecebidos as $campo){
-            if (isset($_GET[$campo]) && $_GET[$campo] !== null && $_GET[$campo] !== ''){
+            if(isset($_GET[$campo]) && $_GET[$campo] !== null && $_GET[$campo] !== ''){
                     $campos[] = "$campo = :$campo";
                     $params[":$campo"] = $_GET[$campo];
                 }  

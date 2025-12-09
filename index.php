@@ -1,77 +1,54 @@
+<?php $start_time = microtime(true);
+include 'php/bootstrap.php';
+
+//--- Carrega API ou Painel
+if($routes->route_section == 'api' || $routes->route_section == 'painel'){
+    include_once $routes->server_path . $routes->directory_path . $routes->file_name;
+    exit();
+}
+
+// Verifica se o cache está atualizado
+$cache = new Cache();
+if(!$cache->isUpdated()){
+    header("Cache-Control: no-store, no-cache, must-revalidate, max-age=0");
+    header("Cache-Control: post-check=0, pre-check=0", false);
+    header("Pragma: no-cache");
+    header("Expires: Tue, 01 Jan 1999 06:00:00 GMT");
+}
+
+//--- Geração dos arquivos em Ambiente de Desenvolvimento
+if ($config->debug_mode) {
+    $build = new Build();
+} else {
+    $traffic = new Traffic();
+    $traffic->save();
+}
+
+//--- Configura o título da página
+$config->PageInfo($routes->directory_path);
+?>
+
+ <!-- Carrega Página -->
 <!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
-
-    
-    <!-- Bootstrap 4 -->
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css">
-
-<!-- Bootstrap 5 -->
-<link rel="stylesheet" href="public/assets/libs/bootstrap5.js">
-
-<!-- Datepicker -->
-<script src="public/assets/libs/bootstrap-datepicker.js"></script>
-
-  <link rel="stylesheet" href="public/assets/css/blocks.css">
-  <link rel="stylesheet" href="public/assets/css/colors.css">
-  <link rel="stylesheet" href="public/assets/css/fonts.css">
-  <link rel="stylesheet" href="public/assets/css/global.css">
-  <link rel="stylesheet" href="public/assets/css/modifiers.css">
-</head>
+<html lang="pt-br">
+<?php include_once 'php/utils/components/head/pages.php'; ?>
 <body>
-    <h5>TESTE BIBLIOTECA</h5>
-
-
-<div class="d-flex flex-row card-custom align-items-start">
-
-        <h4 class="ml-2 mr-4">Painel de Vistorias</h4>
-   
-        <textarea class="textarea" rows="6">
-        Atenção - Alterações referentes aos prazos das vistorias conforme CE GERLO 0143/2025
-
-        - Extensão do prazo de adequação: 90 para 180 dias até 28/02/2026.
-        - Suspensão de notificações e PDQs até 28/02/2026.
-        - Vistorias por alteração contratual e reguladores continuam normalmente.
-        </textarea>
-    </div>
-    <h5>#INTERNO.CONFIDENCIAL</h5>
-  </div>
-</div>
-
-    
-<?php
-$texto = "5";
-echo str_pad($texto, 3, "0", STR_PAD_RIGHT);
-?>
-<br>
-<?php
-
-$texto = "5";
-echo str_pad($texto, 3, "0", STR_PAD_LEFT);
-
-?>
-
+    <?php include_once 'php/utils/components/header/index.php' ?>
+    <main>
+        <?php include_once $routes->server_path . $routes->directory_path . $routes->file_name; ?>
+    </main>
+    <?php include_once 'php/utils/components/footer/index.php'; ?>
 </body>
+<?php include_once 'php/utils/class/application/autojs.php'; ?>
 </html>
+<?php $end_time = microtime(true); ?>
+<?php //log_file('Time Lapse: ' . $time_diff = $end_time - $start_time); ?>
 
 
-<style>
-    .card-custom {
-      padding: 1rem;
-      border: 1px solid #ccc;
-      border-radius: 8px;
-    }
-    .linha-decorativa {
-      height: 3px;
-      width: 14rem;
-      background-color: #bbb;
-      margin-left: 1rem;
-    }
-    textarea {
-      width: 400px;
-      white-space: pre-wrap;
-    }
-  </style>
+
+
+
+
+
+
+

@@ -39,7 +39,6 @@ $config->PageInfo($routes->directory_path);
     </main>
     <?php include_once 'php/utils/components/footer/index.php'; ?>
 </body>
-<?php include_once 'php/utils/class/application/autojs.php'; ?>
 </html>
 <?php $end_time = microtime(true); ?>
 <?php //log_file('Time Lapse: ' . $time_diff = $end_time - $start_time); ?>

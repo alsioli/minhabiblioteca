@@ -1,7 +1,6 @@
-<header class="w-100 bg-gradiente-caixa">
-    <div class="d-flex flex-column">
-        <img src="/public/assets/imgs/1980x614/logo-da-caixa.png" alt="logo da CAIXA" width="80" height="30">
-        <img src="/public/assets/imgs/1980x614/logo-da-rede-parceira.png" alt="logo da Rede Parceira" width="75" height="30">
+<header class="bg-gradiente-caixa">
+    <div class="d-flex flex-row">
+        <img src="/public/imagens/imagem_abstrata_em_d.png" alt="imagem_abstrata_em_d" width="50%" height="30%">
       </div>
   <?php// require_once('php/utils/components/header/components/breadcrumb.php'); ?>
   <?php //require_once('php/utils/components/header/components/search.php'); ?>

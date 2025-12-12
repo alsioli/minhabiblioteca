@@ -1,7 +1,7 @@
 <?php
 
-// include 'php/utils/functions.php';
-include 'routes.php';
+include 'php/utils/functions/index.php';
+include 'php/utils/class/application/Routes.php';
 
 // Traz as configurações padrões de sistema
 //$config = Config::getInstance();

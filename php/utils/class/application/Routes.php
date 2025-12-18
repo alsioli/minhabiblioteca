@@ -26,7 +26,8 @@ class Routes {
             }
         }
 
-        $this->server_path = $_SERVER['DOCUMENT_ROOT'] . '/php';
+        // ✅ Normaliza as barras
+        $this->server_path = str_replace('\\', '/', $_SERVER['DOCUMENT_ROOT']) . '/';
 
         try {
             $url = $_SERVER['REQUEST_URI'];
@@ -62,32 +63,45 @@ class Routes {
     }
 
     private function SplitUrlVariables($url_parse) {
+        // ✅ Se URL vazia ou apenas '/', carrega index.php da raiz
+        if (empty(trim($url_parse, '/'))) {
+            $this->directory_path = '';
+            $this->file_name = 'index.php';
+            return;
+        }
+
         $directories = explode('/', trim($url_parse, '/'));
         $directory_search = '';
 
         for ($i = 0; $i < count($directories); $i++) {
             $directory_search .= $directories[$i] . '/';
 
+            // Verifica se o diretório NÃO existe
             if ($this->check_directory_file($directory_search)) {
-                if ($this->check_directory_file($this->directory_path . $directories[$i])) {
+                // Tenta arquivo .php com o nome do diretório
+                if ($this->check_directory_file($this->directory_path . $directories[$i] . '.php')) {
                     $this->file_name = $directories[$i] . '.php';
-                } elseif ($this->check_directory_file($this->directory_path . 'index.php')) {
+                } 
+                // Tenta index.php
+                elseif ($this->check_directory_file($this->directory_path . 'index.php')) {
                     $this->file_name = 'index.php';
-                } else {
-                    throw new Exception('File Not Found: ' . $this->directory_path . $this->file_name);
+                } 
+                else {
+                    throw new Exception('File Not Found: ' . $this->server_path . $this->directory_path . $this->file_name);
                 }
 
-                $this->setParams($url);
+                $this->setParams($url_parse);
                 return;
             }
 
             $this->directory_path = $directory_search;
         }
 
-        if ($this->check_directory_file($this->directory_path . 'index.php')) {
+        // Se chegou aqui, tenta carregar index.php no último diretório
+        if (!$this->check_directory_file($this->directory_path . 'index.php')) {
             $this->file_name = 'index.php';
         } else {
-            throw new Exception('File not found: ' . $this->file_name);
+            throw new Exception('File not found: ' . $this->server_path . $this->directory_path . 'index.php');
         }
     }
 

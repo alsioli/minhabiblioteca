@@ -3,6 +3,7 @@
 class Config {
     public $directory_server;
     public $site_address;
+    public $port;
     public $debug_mode;
     public $page_title;
     public $page_description;
@@ -11,10 +12,22 @@ class Config {
 
 
     private function __construct() {
-        $this->directory_server = $_SERVER['DOCUMENT_ROOT'];
+        $this->directory_server = str_replace('\\', '/', $_SERVER['DOCUMENT_ROOT']);
         $this->site_address = $_SERVER['SERVER_NAME'];
-        // $this->port = $_SERVER['SERVER_NAME'] == 'localhost' ? $_SERVER['SERVER_PORT'] : '';
+        $this->port = $_SERVER['SERVER_NAME'] == 'localhost' ? $_SERVER['SERVER_PORT'] : '';
         $this->debug_mode = str_contains($this->site_address, 'dev.') || str_contains($this->site_address, 'localhost') ? true : false;
+        
+        // echo 'server', $_SERVER['SERVER_NAME'];
+        // echo  'root', $_SERVER['DOCUMENT_ROOT'];
+
+        // ✅ Echo corrigido (melhor formatação para debug)
+        // if($this->debug_mode) {
+        //     echo '<pre>';
+        //     echo 'SERVER: ' . $_SERVER['SERVER_NAME'] . "\n";
+        //     echo 'ROOT: ' . $this->directory_server . "\n";
+        //     echo 'PORT: ' . $this->port . "\n";
+        //     echo '</pre>';
+        // }
 
         // TIMEZONE
         // Foi alterado o padrão de timezone de America/Sao_Paulo,

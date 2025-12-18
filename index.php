@@ -1,8 +1,9 @@
 <?php $start_time = microtime(true);
+
 include 'php/bootstrap.php';
 
 //--- Carrega API ou Painel
-if($routes->route_section == 'api' || $routes->route_section == 'painel'){
+if($routes->route_section == 'api' || $routes->route_section == 'php'){
     include_once $routes->server_path . $routes->directory_path . $routes->file_name;
     exit();
 }
@@ -35,7 +36,15 @@ $config->PageInfo($routes->directory_path);
 <body>
     <?php include_once 'php/utils/components/header/index.php' ?>
     <main>
-        <?php include_once $routes->server_path . $routes->directory_path . $routes->file_name; ?>
+        <?php include_once $routes->server_path . $routes->directory_path . $routes->file_name;
+echo '<pre>';
+echo 'server_path: ' . $routes->server_path . "\n";
+echo 'directory_path: ' . $routes->directory_path . "\n";
+echo 'file_name: ' . $routes->file_name . "\n";
+echo 'CAMINHO COMPLETO: ' . $routes->server_path . $routes->directory_path . $routes->file_name . "\n";
+echo '</pre>';
+
+        ?>
     </main>
     <?php include_once 'php/utils/components/footer/index.php'; ?>
 </body>

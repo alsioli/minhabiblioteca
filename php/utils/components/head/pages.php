@@ -4,7 +4,7 @@
     <title><?php echo $config->page_title; ?></title>
 
     <!-- Ícone da Página -->
-    <link rel="icon" href="/public/assets/imgs/favicon.ico">
+    <link rel="icon" href="">
 
     <!-- ========================== -->
     <!-- DEPENDÊNCIAS GLOBAIS -->
@@ -41,7 +41,7 @@
 
 <!-- jQuery Attach Range (não disponível no CDN público) -->
 <!-- Você precisará manter o arquivo local ou procurar alternativa -->
-<script src="/public/assets/libs/attachrange.js"></script> 
-<script src="/public/assets/libs/attachrange_ext.js"></script> 
+<script src="/public/assets/libs/attrchange.js"></script> 
+<script src="/public/assets/libs/attrchange_ext.js"></script> 
 
 </head>

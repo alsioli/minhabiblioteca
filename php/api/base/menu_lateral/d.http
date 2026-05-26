@@ -1,0 +1,3 @@
+GET  http://localhost:8080/php/api/base/leituras_andamento HTTP/1.1
+Host: localhost
+Accept: application/json

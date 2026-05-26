@@ -6,19 +6,23 @@
     <title>Document</title>
 
     <!-- Bootstrap 4 -->
-<link rel="stylesheet" href="/assets/libs/bootstrap4.js">
+<script src="/public/assets/libs/bootstrap4.js"></script>
 
 <!-- Bootstrap 5 -->
-<link rel="stylesheet" href="/assets/libs/bootstrap5.js">
+<!-- <script src="/public/assets/libs/bootstrap5.js"></script> -->
 
 <!-- Datepicker -->
-<script src="/assets/libs/bootstrap-datepicker.js"></script>
+<script src="/public/assets/libs/bootstrap-datepicker.js"></script>
 
-  <link rel="stylesheet" href="/assets/css/blocks.css">
-  <link rel="stylesheet" href="/assets/css/colors.css">
-  <link rel="stylesheet" href="/assets/css/fonts.css">
-  <link rel="stylesheet" href="/assets/css/global.css">
-  <link rel="stylesheet" href="/assets/css/modifiers.css">
+  <link rel="stylesheet" href="/public/assets/css/blocks.css">
+  <link rel="stylesheet" href="/public/assets/css/colors.css">
+  <link rel="stylesheet" href="/public/assets/css/fonts.css">
+  <link rel="stylesheet" href="/public/assets/css/global.css">
+  <link rel="stylesheet" href="/public/assets/css/modifiers.css">
+  <link rel="stylesheet" href="/public/assets/css/header.css">
+  <link rel="stylesheet" href="/public/assets/css/main.css">
+  <link rel="stylesheet" href="/public/assets/css/menu_lateral.css">
+  <link rel="stylesheet" href="/public/assets/css/footer.css">
 
 </head> 
 <body>

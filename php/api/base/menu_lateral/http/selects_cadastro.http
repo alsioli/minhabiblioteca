@@ -1,0 +1,3 @@
+GET http://localhost:8080/php/api/base/menu_lateral/selects_cadastro HTTP/1.1
+Host: localhost
+Accept: application/json

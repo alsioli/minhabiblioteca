@@ -14,7 +14,7 @@
  * @version 1.0
  */
 
-require 'conexao.php';
+require_once __DIR__ . '/conexao.php';
 
 class DataBase
 {

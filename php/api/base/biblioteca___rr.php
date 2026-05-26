@@ -1,6 +1,6 @@
 <?php
 
-include 'php/util/database.php';
+include 'php/utils/function/database.php';
 
 
 switch($_SERVER['REQUEST_METHOD']) {

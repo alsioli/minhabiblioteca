@@ -1,0 +1,160 @@
+
+/* Menu lateral */
+.menu-lateral {
+    width: 260px;
+    background: #f3f3f3;
+    padding: 20px;
+    height: 100vh;
+    border-right: 2px solid #ddd;
+    overflow-y: auto;
+}
+
+.menu-lateral ul {
+    list-style: none;
+    padding: 0;
+}
+
+.menu-lateral li {
+    margin-bottom: 15px;
+    font-size: 16px;
+    cursor: pointer;
+}
+
+
+.grupo {
+    margin-bottom: 20px;
+}
+
+.botao-menu {
+    width: 100%;
+    background: #6a2bbf;
+    color: white;
+    border: none;
+    padding: 12px;
+    font-size: 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    text-align: left;
+}
+
+.botao-menu:hover {
+    background: #5a22a8;
+}
+
+.grupo ul {
+    list-style: none;
+    padding-left: 15px;
+    margin-top: 10px;
+}
+
+.grupo ul li {
+    margin-bottom: 8px;
+    font-size: 14px;
+    cursor: pointer;
+}
+
+.grupo ul li:hover {
+    text-decoration: underline;
+}
+
+body {
+    background: #f4f4f9;
+    font-family: Arial, sans-serif;
+}
+
+.container {
+    width: 600px;
+    margin: 40px auto;
+    background: white;
+    padding: 25px;
+    border-radius: 12px;
+    box-shadow: 0 0 12px rgba(0,0,0,0.1);
+}
+
+h2 {
+    text-align: center;
+    margin-bottom: 25px;
+    color: #333;
+}
+
+
+label {
+    font-weight: bold;
+    display: block;
+    margin-bottom: 5px;
+}
+
+input, select {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #bbb;
+    border-radius: 6px;
+    font-size: 15px;
+}
+
+.btn {
+    width: 100%;
+    padding: 12px;
+    background: #4a76a8;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 17px;
+    cursor: pointer;
+}
+
+.btn:hover {
+    background: #3b5f87;
+}
+
+.submenu {
+    list-style: none;
+    padding-left: 0;
+    margin-top: 10px;
+}
+
+.submenu li {
+    margin-bottom: 8px;
+}
+
+.btn-submenu {
+    display: block;
+    background: none;      /* remove fundo */
+    color: #4a76a8;        /* cor do texto */
+    padding: 6px 0;        /* espaço leve */
+    border-radius: 0;      /* sem borda arredondada */
+    text-decoration: none; /* remove sublinhado */
+    font-size: 15px;
+    cursor: pointer;       /* vira mãozinha */
+    transition: color 0.2s ease;
+}
+
+.btn-submenu:hover {
+    color: #2d4f73;        /* cor diferente no hover */
+    text-decoration: underline; /* opcional: sublinhar no hover */
+}
+
+.modal-footer {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center;
+}
+
+.modal-footer .btn {
+    width: auto !important;
+}
+
+.linha {
+    display: flex;
+    gap: 20px;
+}
+
+.linha .grupo {
+    flex: 1;
+}
+
+.grupo {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 15px;
+}

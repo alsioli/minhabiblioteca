@@ -32,21 +32,20 @@ $config->PageInfo($routes->directory_path);
  <!-- Carrega Página -->
 <!DOCTYPE html>
 <html lang="pt-br">
-<?php include_once 'php/utils/components/head/pages.php'; ?>
+<?php include_once 'php/pages/base/components/head/pages.php'; ?>
 <body>
-    <?php include_once 'php/utils/components/header/index.php' ?>
+    <?php include_once 'php/pages/base/components/header/index.php' ?>
     <main>
-        <?php include_once $routes->server_path . $routes->directory_path . $routes->file_name;
-echo '<pre>';
-echo 'server_path: ' . $routes->server_path . "\n";
-echo 'directory_path: ' . $routes->directory_path . "\n";
-echo 'file_name: ' . $routes->file_name . "\n";
-echo 'CAMINHO COMPLETO: ' . $routes->server_path . $routes->directory_path . $routes->file_name . "\n";
-echo '</pre>';
-
-        ?>
+        <div class="d-flex justify-content-between align-items-center">
+            <link rel="stylesheet" type="text/css" href="/public/assets/css/menu_lateral.css">
+                <?php include_once 'php/pages/base/components/menu_lateral/index.php' ?>
+                  
+            <link rel="stylesheet" type="text/css" href="/public/assets/css/main.css">
+                <?php include_once 'php/pages/base/components/main/index.php' ?>
+        </div>    
     </main>
-    <?php include_once 'php/utils/components/footer/index.php'; ?>
+    <link rel="stylesheet" type="text/css" href="/public/assets/css/footer.css">
+    <?php include_once 'php/pages/base/components/footer/index.php'; ?>
 </body>
 </html>
 <?php $end_time = microtime(true); ?>

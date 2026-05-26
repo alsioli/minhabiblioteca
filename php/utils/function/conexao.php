@@ -15,7 +15,6 @@ class Conexao {
             $this->conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
             return $this->conn;
         } catch (PDOException $e) {
-            echo 'Erro: ' . $e->getMessage();
             return null;
         }
     }
@@ -23,9 +22,3 @@ class Conexao {
 
 $database = new Conexao();
 $conn = $database->connect();
-
-if ($conn) {
-    echo "Conexão bem-sucedida!";
-} else {
-    echo "Falha na conexão.";
-}

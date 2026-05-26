@@ -1,6 +1,6 @@
 <?php
 
-include 'php/util/database.php';
+include 'php/utils/function/database.php';
 
 //Inicializar variáveis de resposta
 $result_status = 'false';

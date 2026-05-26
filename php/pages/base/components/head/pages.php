@@ -4,7 +4,8 @@
     <title><?php echo $config->page_title; ?></title>
 
     <!-- Ícone da Página -->
-    <link rel="icon" href="">
+    <link rel="icon" href="/public/favicon.ico">
+
 
     <!-- ========================== -->
     <!-- DEPENDÊNCIAS GLOBAIS -->

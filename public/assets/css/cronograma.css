@@ -1,0 +1,54 @@
+/* Container geral dentro do main */
+#cronogramaLCContainer {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center; /* centraliza */
+    padding: 20px;
+}
+
+
+/* Fundo branco grande */
+#tabelaCronogramaLC {
+    background: white;
+    padding: 30px;
+    border-radius: 12px;
+    box-shadow: 0 0 12px rgba(0,0,0,0.15);
+    width: 100%;
+    max-width: 1300px; /* aumenta o fundo */
+}
+
+
+#tabelaCronogramaLC table th {
+    white-space: nowrap;
+}
+
+
+/* Cabeçalho com gradiente */
+#tabelaCronogramaLC table thead {
+    background: linear-gradient(90deg, #ffcc00, #ff9800, #7b1fa2);
+    color: white;
+}
+
+/* Linhas alternadas */
+#tabelaCronogramaLC table tbody tr:nth-child(even) {
+    background-color: #fff7e6;
+}
+
+/* Hover */
+#tabelaCronogramaLC table tbody tr:hover {
+    background-color: #ffe0b2;
+}
+
+/* Título em uma linha */
+#tabelaCronogramaLC table td:first-child {
+    white-space: nowrap;
+}
+
+/* Botão editar */
+.btn-warning {
+    background-color: #ff9800 !important;
+    border-color: #e68900 !important;
+    font-weight: bold;
+    color: #000 !important;
+}

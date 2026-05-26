@@ -21,9 +21,8 @@
         <div class="grupo">
             <button class="botao-menu">Leituras Coletivas</button>
             <ul>
-                <li>Cadastro LC - form</li>
-                <li>Modal</li>
-                <li>Acompanhamento LC</li>
+                <li><a class="btn-submenu" href="#" onclick="menuLateral.abrirModalNovaLC()">Cadastro de LC´s</a></li>
+                <li><a class="btn-submenu" href="#" onclick="menuLateral.abrirCronogramaLC()">Acompanhamento das LC´s</a>
                 <li>Alteração</li>
             </ul>
         </div>

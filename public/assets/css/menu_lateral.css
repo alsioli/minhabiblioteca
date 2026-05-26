@@ -9,6 +9,11 @@
     overflow-y: auto;
 }
 
+#menu_lateral {
+    width: 60px;
+    overflow: hidden;
+}
+
 .menu-lateral ul {
     list-style: none;
     padding: 0;
@@ -158,3 +163,4 @@ input, select {
     flex-direction: column;
     margin-bottom: 15px;
 }
+ 

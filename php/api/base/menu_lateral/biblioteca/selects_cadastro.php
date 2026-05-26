@@ -11,20 +11,15 @@ switch($_SERVER['REQUEST_METHOD']) {
         GetMethod();
         break;
     case 'POST':
-        http_response_code(501);
-        $result_error = 'POST is not implemented';
+       
         break;
     case 'PUT':
-        http_response_code(501);
-        $result_error = 'PUT is not implemented';
+       
         break;
     case 'DELETE':
-        http_response_code(501);
-        $result_error = 'DELETE is not implemented';
+
         break;
     default:
-        http_response_code(405);
-        $result_error = 'Method Not Allowed';
         break;
 }
 

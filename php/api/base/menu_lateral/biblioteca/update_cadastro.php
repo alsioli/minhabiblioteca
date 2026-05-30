@@ -75,87 +75,100 @@ echo json_encode($response);
 function PostMethod() {
     global $result_status, $result_error, $result_data;
 
-    // Recebe dados do FormData (application/x-www-form-urlencoded)
     $data = $_POST;
 
-    if (!isset($data['id_livro']) || empty($data['id_livro'])) {
-        $result_status = false;
+    if (empty($data['id_livro'])) {
         $result_error = 'ID do livro não fornecido.';
         return;
     }
-    
-    $id = $data['id_livro'];
 
-    // Map dos dados recebidos do form - sem sufixo _atualizar
+    $id    = $data['id_livro'];
+    $local = trim($data['local_leitura'] ?? 'Biblioteca');
+
+    // Whitelist de tabelas
+    $tabelaMap = [
+        'Biblioteca'       => '[Biblioteca].[dbo].[Livros]',
+        'Skeelo'           => '[Biblioteca].[dbo].[LeiturasSKEELO]',
+        'Biblion'          => '[Biblioteca].[dbo].[LivrosBiblion]',
+        'MEC_Livros'       => '[Biblioteca].[dbo].[LivrosMEC]',
+        'Audible'          => '[Biblioteca].[dbo].[LivrosAudible]',
+        'Kindle_Unlimited' => '[Biblioteca].[dbo].[LivrosKindleUnlimited]',
+    ];
+    $tabelaDestino = $tabelaMap[$local] ?? '[Biblioteca].[dbo].[Livros]';
+
+    // Campos que podem ser atualizados (comuns + específicos por tabela)
     $map = [
         'titulo'        => 'titulo',
         'autor'         => 'autor',
-        'sexo_autor'    => 'sexo_autor',
-        'nacionalidade' => 'nacionalidade',
-        'raca'          => 'raca',
-        'volume'        => 'volume',
         'serie'         => 'serie',
+        'volume'        => 'volume',
         'genero'        => 'genero',
         'tema'          => 'tema',
         'editora'       => 'editora',
-        'tipo_edicao'   => 'tipo_edicao',
         'paginas'       => 'paginas',
-        'natureza'      => 'natureza',
         'status'        => 'status',
+        'avaliacao'     => 'avaliacao',
         'emprestimo'    => 'emprestimo',
+        'ku_tipo'       => 'ku_tipo',
+        'skeelo_tipo'   => 'skeelo_tipo',
+        'pais'          => 'pais',
+        'tipo_midia'    => 'tipo_midia',
+        'favorito'      => 'favorito',
+        'biblion_tipo'  => 'biblion_tipo',
+        // Exclusivos Biblioteca
+        'sexo_autor'    => 'sexo_autor',
+        'nacionalidade' => 'nacionalidade',
+        'raca'          => 'raça',
+        'tipo_edicao'   => 'tipo_edicao',
+        'natureza'      => 'natureza',
         'data_compra'   => 'data_compra',
         'valor_compra'  => 'valor_compra',
         'local_compra'  => 'local_compra',
-        'observacoes'   => 'observacoes'
+        'observacoes'   => 'observacoes',
     ];
 
     $dadosCorrigidos = [];
-
     foreach ($map as $formField => $dbField) {
-        if (isset($data[$formField])) {
+        if (isset($data[$formField]) && trim($data[$formField]) !== '') {
             $dadosCorrigidos[$dbField] = $data[$formField];
         }
     }
 
-    if (isset($data['codigo'])) {
+    // Processa codigo/tipo_codigo somente para Biblioteca
+    if ($local === 'Biblioteca' && !empty($data['codigo'])) {
         $codigoColumn = getCodigoColumn($data['tipo_codigo'] ?? '');
         if (!$codigoColumn) {
-            $result_status = false;
-            $result_error = 'Tipo de código inválido. Use ASIN, ISBN-10 ou ISBN-13.';
+            $result_error = 'Tipo de código inválido.';
             return;
         }
         $dadosCorrigidos[$codigoColumn] = normalizeCodigoForStorage($data['tipo_codigo'] ?? '', $data['codigo']);
     }
 
-    // Verifica se existem campos para atualizar
     if (empty($dadosCorrigidos)) {
-        $result_status = false;
         $result_error = 'Nenhum campo para atualizar.';
         return;
     }
 
-    // Constrói a query dinamicamente
-    $campos = [];
-    $params = [];
-    
-    foreach ($dadosCorrigidos as $campo => $valor) {
-        $campos[] = "[$campo] = :$campo";
-        $params[":$campo"] = $valor;
+    // Usa índices numéricos para evitar problemas com caracteres especiais (ex: "raça")
+    $setClauses = [];
+    $params     = [];
+    $idx        = 0;
+
+    foreach ($dadosCorrigidos as $col => $val) {
+        $paramKey      = ':p' . $idx++;
+        $setClauses[]  = "[{$col}] = {$paramKey}";
+        $params[$paramKey] = $val;
     }
 
-    $sqlQuery = "UPDATE [Biblioteca].[dbo].[Livros]
-        SET " . implode(', ', $campos) . "
-        WHERE id = :id";
-    
     $params[':id'] = $id;
+    $sqlQuery = "UPDATE {$tabelaDestino} SET " . implode(', ', $setClauses) . " WHERE id = :id";
 
     try {
-        $db = new DataBase(); 
+        $db = new DataBase();
         $db->ExecuteNonQuery($sqlQuery, $params);
         $result_status = true;
-        $result_data = ['id' => $id, 'message' => 'Livro atualizado com sucesso'];
+        $result_data   = ['id' => $id, 'message' => 'Livro atualizado com sucesso'];
     } catch (Exception $e) {
-        $result_status = false;
         $result_error = 'Erro ao atualizar: ' . $e->getMessage();
     }
 }

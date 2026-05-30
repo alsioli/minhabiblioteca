@@ -10,8 +10,13 @@
 }
 
 #menu_lateral {
-    width: 60px;
-    overflow: hidden;
+    width: 250px; /* ou a largura real do seu menu */
+    min-width: 250px;
+    visibility: hidden; /* ou hidden se quiser ocultar */
+}
+
+#menu_lateral.oculto {
+    visibility: hidden;
 }
 
 .menu-lateral ul {

@@ -1,18 +1,50 @@
 
-<header class="cabecalho-biblioteca" >
-    
-        <div class="bloco-esquerda">
-            <h2 id="titulo-frases">Frases de livros especiais</h2>
-        </div>
+<script src="/php/pages/base/components/header/header.js"></script>
 
-        <div class="bloco-meio">
-            <p id="livros-ano">Livros lidos até em 2025:</p>
-            <p id="livros-mes">Livros lidos no mês xx/2025 até o dia: xx/yy:</p>
-        </div>
+<header class="cabecalho-biblioteca">
 
-        <div class="bloco-direita">
-            <h1>Biblioteca Alessandra</h1>
+    <!-- ── Bloco esquerda: Citações rotativas ─────────────────── -->
+    <div class="bloco-esquerda">
+        <p class="citacao-label">Frases de livros especiais</p>
+        <div id="bloco-citacao" class="bloco-citacao-conteudo">
+            <span class="citacao-texto">Carregando...</span>
         </div>
+    </div>
+
+    <!-- ── Bloco meio: Cards de contadores ────────────────────── -->
+    <div class="bloco-meio">
+        <div class="header-cards">
+
+            <div class="header-card">
+                <span class="header-card-numero" id="contador-ano-atual">—</span>
+                <span class="header-card-label">Lidos em <?php echo date('Y'); ?></span>
+            </div>
+
+            <div class="header-card">
+                <span class="header-card-numero" id="contador-ano-anterior">—</span>
+                <span class="header-card-label" id="label-ano-anterior">Lidos em <?php echo date('Y') - 1; ?></span>
+            </div>
+
+            <div class="header-card">
+                <span class="header-card-numero" id="contador-mes">—</span>
+                <span class="header-card-label" id="label-ano-ant-mes">Até <?php echo date('m') . '/' . (date('Y') - 1); ?></span>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- ── Bloco direita: Título + botão início ─────────────────── -->
+    <div class="bloco-direita">
+        <h1>Biblioteca<br>Alessandra</h1>
+        <button onclick="voltarParaInicio()"
+                style="margin-top:8px;padding:4px 14px;font-size:0.8rem;
+                       background:transparent;border:1px solid rgba(255,255,255,0.6);
+                       color:#fff;border-radius:4px;cursor:pointer;letter-spacing:0.03em;
+                       transition:background 0.2s,border-color 0.2s"
+                onmouseover="this.style.background='rgba(255,255,255,0.15)';this.style.borderColor='#fff'"
+                onmouseout="this.style.background='transparent';this.style.borderColor='rgba(255,255,255,0.6)'">
+            ⌂ Início
+        </button>
+    </div>
 
 </header>
-

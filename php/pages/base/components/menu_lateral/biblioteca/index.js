@@ -44,14 +44,11 @@ let biblioteca = {
     carregarSelects: async function () {
         try {
             let response = await http.GET('/php/api/base/menu_lateral/biblioteca/selects_cadastro.php');
-            console.log('Resposta da API:', response);
 
             if (!response.status) {
                 console.error('Erro ao carregar selects:', response.error);
                 return;
             }
-
-            console.log('Dados recebidos:', response.data);
 
             this.tema = response.data?.tema || [];
             this.tipo_edicao = response.data?.tipo_edicao || [];
@@ -63,9 +60,63 @@ let biblioteca = {
             this.select_tema(this.tema, '#select_tema_atualizar');
             this.select_tipo_edicao(this.tipo_edicao, '#select_tipo_edicao_atualizar');
             this.select_natureza(this.natureza, '#select_natureza_atualizar');
+
+            // Carrega o select de local de cadastro
+            await this.carregarLocalCadastro();
         } catch (error) {
             console.error('Falha ao carregar selects:', error);
         }
+    },
+
+    carregarLocalCadastro: async function () {
+        try {
+            const resp = await http.GET('/php/api/base/menu_lateral/leiturasColetivas/listar_local_leitura.php');
+            if (!resp.status) return;
+
+            const sel = $('#select_local_cadastro');
+            if (!sel.length) return;
+
+            sel.empty().append('<option value="">Selecione o local...</option>');
+            resp.data.forEach(l => {
+                sel.append(`<option value="${l.vLocal_Leitura}">${l.vLocal_Leitura}</option>`);
+            });
+        } catch (e) {
+            console.error('Erro ao carregar local de cadastro:', e);
+        }
+    },
+
+    // Chamada quando o local de leitura é selecionado — mostra o formulário adaptado
+    onLocalCadastroChange: function () {
+        const local = $('#select_local_cadastro').val();
+
+        // Esconde o formulário e todas as seções específicas
+        $('#formLivro').hide();
+        $('#secao_biblioteca, #secao_ku, #secao_skeelo, #secao_audible, #secao_biblion, #secao_emprestimo')
+            .hide();
+
+        if (!local) return;
+
+        // Propaga o valor para o campo hidden dentro do form
+        $('#local_cadastro_hidden').val(local);
+
+        // Mostra o formulário e as seções corretas
+        $('#formLivro').show();
+
+        const mapa = {
+            'Biblioteca':        ['secao_biblioteca'],
+            'Kindle_Unlimited':  ['secao_ku',         'secao_emprestimo'],
+            'Skeelo':            ['secao_skeelo'],
+            'Audible':           ['secao_audible'],
+            'Biblion':           ['secao_biblion',    'secao_emprestimo'],
+            'MEC_Livros':        ['secao_emprestimo'],
+        };
+
+        (mapa[local] || []).forEach(id => $('#' + id).show());
+
+        // codigo e tipo_codigo só são required na Biblioteca
+        const req = local === 'Biblioteca';
+        $('#livro_codigo').prop('required', req);
+        $('#livro_tipo_codigo').prop('required', req);
     },
 
     select_tipo_edicao: function (lista, selector = '#select_tipo_edicao') {
@@ -238,49 +289,55 @@ cadastrarLivro: async function () {
     montarTabelaResultados: function(lista){
         $("#tabelaResultados").remove();
 
-    let tabela = `
-        <table id="tabelaResultados" class="table table-sm table-hover mt-1 mb-1">
-            <thead style="font-size: 0.85rem">
-                <tr>
-                    <th style="padding: 0.25rem">Título</th>
-                    <th style="padding: 0.25rem">Autor</th>
-                    <th style="padding: 0.25rem">Editora</th>
-                    <th style="padding: 0.25rem">Tipo Edição</th>
-                </tr>
-            </thead>
-            <tbody style="font-size: 0.85rem">
-    `;
-
-    lista.forEach(livro => {
-        tabela += `
-            <tr onclick="biblioteca.selecionarLivro(${livro.id})" style="cursor:pointer">
-                <td style="padding: 0.25rem">${livro.titulo}</td>
-                <td style="padding: 0.25rem">${livro.autor}</td>
-                <td style="padding: 0.25rem">${livro.editora}</td>
-                <td style="padding: 0.25rem">${livro.tipo_edicao}</td>
-            </tr>
+        let tabela = `
+            <table id="tabelaResultados" class="table table-sm table-hover mt-1 mb-1">
+                <thead style="font-size:0.85rem">
+                    <tr>
+                        <th style="padding:0.25rem">Local</th>
+                        <th style="padding:0.25rem">Título</th>
+                        <th style="padding:0.25rem">Autor</th>
+                        <th style="padding:0.25rem">Editora</th>
+                    </tr>
+                </thead>
+                <tbody style="font-size:0.85rem">
         `;
-    });
+
+        lista.forEach(livro => {
+            const local = livro.local_leitura || 'Biblioteca';
+            tabela += `
+                <tr onclick="biblioteca.selecionarLivro(${livro.id}, '${local}')" style="cursor:pointer">
+                    <td style="padding:0.25rem"><span class="badge badge-secondary">${local}</span></td>
+                    <td style="padding:0.25rem">${livro.titulo || ''}</td>
+                    <td style="padding:0.25rem">${livro.autor  || ''}</td>
+                    <td style="padding:0.25rem">${livro.editora || ''}</td>
+                </tr>
+            `;
+        });
 
         tabela += "</tbody></table>";
-
         $("#titulo_atualizar").after(tabela);
-
     },
 
-    selecionarLivro: async function(id){
-
+    selecionarLivro: async function(id, local){
+        local = local || 'Biblioteca';
         try {
             const body = new FormData();
-            body.append("id", id);
+            body.append("id",    id);
+            body.append("local", local);
 
-            const livro = await http.POST('/php/api/base/menu_lateral/biblioteca/buscar_livro.php', body);
+            const resp = await http.POST('/php/api/base/menu_lateral/biblioteca/buscar_livro.php', body);
 
-            this.preencherFormulario(livro.data || livro);
+            if (!resp.status) {
+                this.mostrarMensagemErro("#titulo_atualizar", resp.error || "Erro ao carregar dados do livro.");
+                return;
+            }
+
+            this.preencherFormulario(resp.data);
             $("#tabelaResultados").remove();
 
         } catch (e) {
             console.error("Erro ao selecionar livro:", e);
+            this.mostrarMensagemErro("#titulo_atualizar", "Erro ao carregar dados do livro. Tente novamente.");
         }
     },
 
@@ -291,8 +348,9 @@ cadastrarLivro: async function () {
     },
 
     preencherFormulario: function(livro){
-        
+
         $("#id_livro").val(livro.id);
+        $("#local_leitura").val(livro.local_leitura || 'Biblioteca');
         $("#codigo_atualizar").val(livro.codigo);
         $("#tipo_codigo_atualizar").val(livro.tipo_codigo);
         $("#titulo_atualizar").val(livro.titulo);
@@ -310,16 +368,18 @@ cadastrarLivro: async function () {
         $("#select_natureza_atualizar").val(livro.natureza);
         $("#status_atualizar").val(livro.status);
         $("#emprestimo_atualizar").val(livro.emprestimo);
-        $("#data_compra_atualizar").val(livro.data_compra);
+        $("#data_compra_atualizar").val(livro.data_compra ? String(livro.data_compra).slice(0, 10) : '');
         $("#valor_compra_atualizar").val(livro.valor_compra);
         $("#local_compra_atualizar").val(livro.local_compra);
         $("#observacoes_atualizar").val(livro.observacoes);
     },
     limparFormCadastro: function() {
         const form = document.getElementById('formLivro');
-        if (form) {
-            form.reset();
-        }
+        if (form) form.reset();
+
+        $('#select_local_cadastro').val('');
+        $('#formLivro').hide();
+        $('#secao_biblioteca, #secao_ku, #secao_skeelo, #secao_audible, #secao_biblion, #secao_emprestimo').hide();
         $('#msgErro').remove();
         $('#tabelaResultados').remove();
         $('#select_tema').val('');

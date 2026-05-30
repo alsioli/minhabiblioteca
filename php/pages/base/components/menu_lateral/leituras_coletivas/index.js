@@ -1,4 +1,268 @@
 let leitura_coletiva = {
+
+    // ── Estado interno do modal Nova LC ─────────────────────────────────────
+    _grupos: [],           // lista de grupos carregados da API
+    _locais: [],           // lista de locais de leitura
+    _tabelaSelecionada: '',// vTabelaVinculada do local escolhido
+    _localSelecionado: '', // nome do local escolhido (para repassar ao cadastro de livros)
+
+    // Abre o modal e carrega os selects iniciais
+    iniciarModalNovaCronogramaLC: async function () {
+        // Limpa estado
+        this._tabelaSelecionada = '';
+        this._localSelecionado  = '';
+        $('#nlc_info_grupo').addClass('d-none');
+        $('#nlc_busca_wrapper').addClass('d-none');
+        $('#nlc_livro_selecionado').addClass('d-none');
+        $('#nlc_secao_datas').addClass('d-none');
+        $('#nlc_nao_encontrado').addClass('d-none');
+        $('#nlc_resultados').empty();
+        $('#nlc_mensagem').empty();
+        $('#nlc_dias_prazo_display').text('—');
+        $('#nlc_media_display').text('—');
+
+        await this._carregarGruposLC();
+        await this._carregarLocaisLeitura();
+    },
+
+    // Carrega o select de grupos de LC
+    _carregarGruposLC: async function () {
+        try {
+            const resp = await fetch('/php/api/base/menu_lateral/leiturasColetivas/listar_grupos_lc.php');
+            const json = await resp.json();
+            this._grupos = json.status ? json.data : [];
+
+            const sel = $('#nlc_grupo');
+            sel.empty().append('<option value="">Selecione a LC...</option>');
+            this._grupos.forEach(g => {
+                sel.append(`<option value="${g.nome_lc}"
+                                    data-participando="${g.participando || ''}"
+                                    data-natureza="${g.natureza || ''}">${g.nome_lc}</option>`);
+            });
+        } catch (e) {
+            console.error('Erro ao carregar grupos LC:', e);
+        }
+    },
+
+    // Carrega o select de locais de leitura
+    _carregarLocaisLeitura: async function () {
+        try {
+            const resp = await fetch('/php/api/base/menu_lateral/leiturasColetivas/listar_local_leitura.php');
+            const json = await resp.json();
+            this._locais = json.status ? json.data : [];
+
+            const sel = $('#nlc_local');
+            sel.empty().append('<option value="">Selecione o local...</option>');
+            this._locais.forEach(l => {
+                sel.append(`<option value="${l.vLocal_Leitura}"
+                                    data-tabela="${l.vTabelaVinculada}">${l.vLocal_Leitura}</option>`);
+            });
+        } catch (e) {
+            console.error('Erro ao carregar locais:', e);
+        }
+    },
+
+    // Reage à mudança no select de grupo — exibe participando e natureza
+    onGrupoLCChange: function () {
+        const opt = $('#nlc_grupo option:selected');
+        const nome = opt.val();
+        if (!nome) {
+            $('#nlc_info_grupo').addClass('d-none');
+            return;
+        }
+        $('#nlc_participando').text(opt.data('participando') || '—');
+        $('#nlc_natureza').text(opt.data('natureza') || '—');
+        $('#nlc_info_grupo').removeClass('d-none');
+    },
+
+    // Reage à mudança no select de local — guarda a tabela e exibe campo de busca
+    onLocalChange: function () {
+        const opt = $('#nlc_local option:selected');
+        this._tabelaSelecionada = opt.data('tabela') || '';
+        this._localSelecionado  = opt.val() || '';
+
+        $('#nlc_resultados').empty();
+        $('#nlc_nao_encontrado').addClass('d-none');
+        $('#nlc_busca_titulo').val('');
+        this.limparLivroSelecionado();
+
+        if (this._tabelaSelecionada) {
+            $('#nlc_busca_wrapper').removeClass('d-none');
+        } else {
+            $('#nlc_busca_wrapper').addClass('d-none');
+        }
+    },
+
+    // Dispara busca ao pressionar Enter no campo de título
+    onBuscaKeyup: function (e) {
+        if (e.key === 'Enter') this.buscarLivroNaTabela();
+    },
+
+    // Pesquisa o livro na tabela do local selecionado
+    buscarLivroNaTabela: async function () {
+        const titulo = $('#nlc_busca_titulo').val().trim();
+        if (titulo.length < 3) {
+            $('#nlc_resultados').html('<p class="text-danger small">Digite pelo menos 3 caracteres.</p>');
+            return;
+        }
+
+        $('#nlc_resultados').html('<p class="text-muted small">Buscando...</p>');
+        $('#nlc_nao_encontrado').addClass('d-none');
+
+        const body = new FormData();
+        body.append('tabela', this._tabelaSelecionada);
+        body.append('titulo', titulo);
+
+        try {
+            const resp = await fetch('/php/api/base/menu_lateral/leiturasColetivas/buscar_livro_tabela.php', {
+                method: 'POST', body
+            });
+            const json = await resp.json();
+
+            if (!json.status) {
+                // Livro não encontrado — oferece cadastro
+                $('#nlc_resultados').empty();
+                $('#nlc_nao_encontrado').removeClass('d-none');
+                return;
+            }
+
+            $('#nlc_nao_encontrado').addClass('d-none');
+            this._montarResultadosBusca(json.data);
+        } catch (e) {
+            $('#nlc_resultados').html('<p class="text-danger small">Erro ao buscar. Tente novamente.</p>');
+        }
+    },
+
+    // Monta a tabela de resultados da busca
+    _montarResultadosBusca: function (lista) {
+        let html = `
+            <table class="table table-sm table-hover mt-1 mb-1">
+                <thead style="font-size:0.82rem">
+                    <tr><th>Título</th><th style="width:70px">Páginas</th></tr>
+                </thead>
+                <tbody style="font-size:0.82rem">
+        `;
+        lista.forEach(livro => {
+            html += `<tr style="cursor:pointer"
+                         onclick="leitura_coletiva.selecionarLivroLC('${livro.titulo.replace(/'/g, "\\'")}', ${livro.paginas || 0})">
+                        <td>${livro.titulo}</td>
+                        <td>${livro.paginas || '—'}</td>
+                    </tr>`;
+        });
+        html += '</tbody></table>';
+        $('#nlc_resultados').html(html);
+    },
+
+    // Seleciona um livro do resultado e prepara a seção de datas
+    selecionarLivroLC: function (titulo, paginas) {
+        $('#nlc_titulo').val(titulo);
+        $('#nlc_paginas').val(paginas);
+        $('#nlc_titulo_display').text(titulo);
+        $('#nlc_paginas_display').text(paginas || '—');
+        $('#nlc_resultados').empty();
+        $('#nlc_busca_wrapper').addClass('d-none');
+        $('#nlc_nao_encontrado').addClass('d-none');
+        $('#nlc_livro_selecionado').removeClass('d-none');
+        $('#nlc_secao_datas').removeClass('d-none');
+        this.calcularAutomaticos();
+    },
+
+    // Limpa o livro selecionado e volta para a busca
+    limparLivroSelecionado: function () {
+        $('#nlc_titulo').val('');
+        $('#nlc_paginas').val('');
+        $('#nlc_titulo_display').text('');
+        $('#nlc_paginas_display').text('');
+        $('#nlc_livro_selecionado').addClass('d-none');
+        $('#nlc_secao_datas').addClass('d-none');
+        if (this._tabelaSelecionada) {
+            $('#nlc_busca_wrapper').removeClass('d-none');
+        }
+    },
+
+    // Recalcula prazo e média quando a data final muda
+    calcularAutomaticos: function () {
+        const dataFinal = $('#nlc_data_final').val();
+        const paginas   = parseInt($('#nlc_paginas').val()) || 0;
+
+        if (!dataFinal) {
+            $('#nlc_dias_prazo_display').text('—');
+            $('#nlc_media_display').text('—');
+            return;
+        }
+
+        const hoje  = new Date();
+        const prazo = new Date(dataFinal);
+        const diff  = Math.ceil((prazo - hoje) / (1000 * 60 * 60 * 24));
+        const dias  = diff > 0 ? diff : 0;
+        const media = dias > 0 ? Math.ceil(paginas / dias) : 0;
+
+        $('#nlc_dias_prazo_display').text(dias > 0 ? dias : 'Encerrado');
+        $('#nlc_media_display').text(dias > 0 ? media : '—');
+    },
+
+    // Abre o cadastro de livros com o local pré-selecionado
+    abrirCadastroLivro: function () {
+        $('#modalNovaCronogramaLC').modal('hide');
+        menuLateral.abrirModalNovoLivro();
+        // Após o modal de livro abrir, pré-seleciona o local (aguarda renderização)
+        setTimeout(() => {
+            if ($('#select_local_cadastro').length) {
+                $('#select_local_cadastro').val(this._localSelecionado);
+            }
+        }, 600);
+    },
+
+    // Salva a nova entrada no CronogramaLCs
+    salvarNovaCronogramaLC: async function () {
+        const lc         = $('#nlc_grupo').val();
+        const titulo     = $('#nlc_titulo').val();
+        const paginas    = $('#nlc_paginas').val();
+        const data_final = $('#nlc_data_final').val();
+        const mes        = $('#nlc_mes').val();
+
+        if (!lc || !titulo || !paginas || !data_final || !mes) {
+            $('#nlc_mensagem').html('<div class="alert alert-danger">Preencha todos os campos obrigatórios.</div>');
+            return;
+        }
+
+        const body = new FormData();
+        body.append('lc',         lc);
+        body.append('titulo',     titulo);
+        body.append('paginas',    paginas);
+        body.append('data_final', data_final);
+        body.append('mes',        mes);
+
+        try {
+            const resp = await fetch('/php/api/base/menu_lateral/leiturasColetivas/create_cronograma_lc.php', {
+                method: 'POST', body
+            });
+            const json = await resp.json();
+
+            if (!json.status) {
+                $('#nlc_mensagem').html(`<div class="alert alert-danger">${json.error}</div>`);
+                return;
+            }
+
+            $('#modalNovaCronogramaLC').modal('hide');
+            Swal.fire({
+                title: 'LC adicionada!',
+                text: 'A leitura foi adicionada ao cronograma com sucesso.',
+                icon: 'success',
+                confirmButtonColor: '#28a745'
+            });
+
+            // Se o cronograma estiver aberto, recarrega a tabela
+            if (window.leitura_coletiva && typeof leitura_coletiva.carregarCronogramaLC === 'function') {
+                leitura_coletiva.carregarCronogramaLC();
+            }
+        } catch (e) {
+            $('#nlc_mensagem').html('<div class="alert alert-danger">Erro ao salvar. Tente novamente.</div>');
+        }
+    },
+
+    // ── Fim das funções Nova LC ──────────────────────────────────────────────
+
     cadastrarLC: async function () {
        
         try {
@@ -114,55 +378,114 @@ let leitura_coletiva = {
         }
     },
 
+    _lista: [],
+    _sortCol: 7,
+    _sortDir: 1,
+
+    ordenar: function (col) {
+        if (this._sortCol === col) {
+            this._sortDir *= -1;
+        } else {
+            this._sortCol = col;
+            this._sortDir = 1;
+        }
+        this.montarTabelaCronograma(this._lista);
+    },
+
     montarTabelaCronograma: function (lista) {
+
+        this._lista = lista;
+
+        const col = this._sortCol;
+        const dir = this._sortDir;
+        const hoje = new Date();
+        const MS_DIA = 1000 * 60 * 60 * 24;
+
+        const calcDiff  = item => Math.ceil((new Date(item.data_final) - hoje) / MS_DIA);
+        const calcMedia = item => {
+            const tot = Math.ceil((new Date(item.data_final) - new Date(item.data_cadastro)) / MS_DIA);
+            return (item.paginas && tot > 0) ? Math.ceil(item.paginas / tot) : 0;
+        };
+
+        const sorted = [...lista].sort((a, b) => {
+            let vA, vB;
+            switch (col) {
+                case 0: return dir * (a.titulo  || '').localeCompare(b.titulo  || '', 'pt-BR');
+                case 1: return dir * (a.lc      || '').localeCompare(b.lc      || '', 'pt-BR');
+                case 2: vA = new Date(a.data_cadastro); vB = new Date(b.data_cadastro); break;
+                case 3: vA = new Date(a.data_final);    vB = new Date(b.data_final);    break;
+                case 4: vA = a.paginas  || 0; vB = b.paginas  || 0; break;
+                case 5: vA = new Date(a.mes);           vB = new Date(b.mes);           break;
+                case 6: return dir * (a.situacao || '').localeCompare(b.situacao || '', 'pt-BR');
+                case 7: vA = calcDiff(a);  vB = calcDiff(b);  break;
+                case 8: vA = calcMedia(a); vB = calcMedia(b); break;
+                default: return 0;
+            }
+            return dir * (vA < vB ? -1 : vA > vB ? 1 : 0);
+        });
+
+        const seta = c => c === col ? (dir === 1 ? ' ▲' : ' ▼') : '';
+        const th = (c, label) =>
+            `<th onclick="leitura_coletiva.ordenar(${c})" style="cursor:pointer;white-space:nowrap">${label}${seta(c)}</th>`;
 
         let html = `
             <table class="table table-striped table-hover">
                 <thead class="thead-dark">
                     <tr>
-                        <th>Título</th>
-                        <th>LC</th>
-                        <th>Data Cadastro</th>
-                        <th>Data Final</th>
-                        <th>Páginas</th>
-                        <th>Mês</th>
-                        <th>Situação</th>
-                        <th>Dias p/ Prazo</th>
-                        <th>Média Páginas</th>
+                        ${th(0,'Título')}
+                        ${th(1,'LC')}
+                        ${th(2,'Data Cadastro')}
+                        ${th(3,'Data Final')}
+                        ${th(4,'Páginas')}
+                        ${th(5,'Mês')}
+                        ${th(6,'Situação')}
+                        ${th(7,'Prazo(dias)')}
+                        ${th(8,'Média Páginas')}
                         <th>Ações</th>
                     </tr>
                 </thead>
                 <tbody>
         `;
 
-        lista.forEach(item => {
+        sorted.forEach(item => {
 
-            // Cálculo dos dias para o prazo
-            let hoje = new Date();
-            let dataFinal = new Date(item.data_final);
-            let diff = Math.ceil((dataFinal - hoje) / (1000 * 60 * 60 * 24));
+            const dataFinal = new Date(item.data_final);
+            const diff  = calcDiff(item);
+            const media = calcMedia(item);
 
-            // Cálculo da média de páginas
-            let media = 0;
-            if (item.paginas && item.dias_para_prazo > 0) {
-                media = Math.ceil(item.paginas / item.dias_para_prazo);
+            let diasTexto, diasStyle;
+            if (diff <= 0) {
+                diasTexto = '<strong>Encerrado</strong>';
+                diasStyle = 'background-color:#add8e6;';
+            } else if (diff <= 5) {
+                diasTexto = diff;
+                diasStyle = 'background-color:#e53935; color:#fff;';
+            } else if (diff <= 10) {
+                diasTexto = diff;
+                diasStyle = 'background-color:#ff9800;';
+            } else if (diff <= 15) {
+                diasTexto = diff;
+                diasStyle = 'background-color:#ffeb3b;';
+            } else {
+                diasTexto = diff;
+                diasStyle = 'background-color:#a5d6a7;';
             }
 
             html += `
                 <tr>
-                    <td style="white-space: nowrap;">${item.titulo}</td>
+                    <td>${item.titulo}</td>
                     <td>${item.lc}</td>
                     <td>${this.formatarDataBR(item.data_cadastro)}</td>
                     <td>${this.formatarDataBR(item.data_final)}</td>
                     <td>${item.paginas}</td>
-                    <td>${item.mes}</td>
+                    <td>${this.formatarMes(item.mes)}</td>
                     <td>${item.situacao}</td>
-                    <td>${diff} dias</td>
-                    <td>${media} pág/dia</td>
+                    <td style="${diasStyle}">${diasTexto}</td>
+                    <td>${media}</td>
                     <td>
-                        <button class="btn btn-sm btn-warning text-dark fw-bold" 
+                        <button class="btn btn-sm btn-warning text-dark fw-bold"
                                 style="background-color:#ff9800; border-color:#e68900;"
-                                onclick="biblioteca.abrirModalEditarLC(${item.id})">
+                                onclick="leitura_coletiva.abrirModalEditarLC(${item.id})">
                             ✏️ Editar
                         </button>
                     </td>
@@ -170,16 +493,82 @@ let leitura_coletiva = {
             `;
         });
 
-        html += "</tbody></table>";
+        html += '</tbody></table>';
 
-        $('#tabelaCronogramaLC').html(html);
+        $('#tabelaCronogramaLC').html(`
+            <div class="tabela-wrapper">
+                ${html}
+            </div>
+        `);
+    },
+
+    abrirModalEditarLC: function (id) {
+        const item = this._lista.find(i => i.id == id);
+        if (!item) return;
+
+        $('#editarLCId').val(item.id);
+        $('#editarLCTitulo').val(item.titulo);
+        $('#editarLCNome').val(item.lc);
+        $('#editarLCDataFinal').val(item.data_final ? item.data_final.substring(0, 10) : '');
+        $('#mensagemEditarLC').empty();
+        $('#modalEditarCronogramaLC').modal('show');
+    },
+
+    salvarEdicaoLC: async function () {
+        const id         = $('#editarLCId').val();
+        const titulo     = $('#editarLCTitulo').val().trim();
+        const data_final = $('#editarLCDataFinal').val();
+
+        if (!titulo || !data_final) {
+            $('#mensagemEditarLC').html('<div class="alert alert-danger">Preencha todos os campos.</div>');
+            return;
+        }
+
+        const body = new FormData();
+        body.append('id', id);
+        body.append('titulo', titulo);
+        body.append('data_final', data_final);
+
+        try {
+            const resp = await fetch('/php/api/base/menu_lateral/leiturasColetivas/update_cronograma_lc.php', {
+                method: 'POST',
+                body
+            });
+            const json = await resp.json();
+
+            if (!json.status) {
+                $('#mensagemEditarLC').html(`<div class="alert alert-danger">${json.error}</div>`);
+                return;
+            }
+
+            $('#modalEditarCronogramaLC').modal('hide');
+            await this.carregarCronogramaLC();
+
+            Swal.fire({
+                title: 'Atualizado!',
+                text: 'Os dados da LC foram atualizados com sucesso.',
+                icon: 'success',
+                confirmButtonText: 'OK',
+                confirmButtonColor: '#28a745'
+            });
+
+        } catch (e) {
+            $('#mensagemEditarLC').html('<div class="alert alert-danger">Erro ao salvar. Tente novamente.</div>');
+        }
     },
 
     formatarDataBR: function (dataISO) {
         const d = new Date(dataISO);
         if (isNaN(d)) return dataISO;
         return d.toLocaleDateString('pt-BR');
-    },    
+    },
+
+    formatarMes: function (dataISO) {
+        if (!dataISO) return '';
+        const partes = dataISO.toString().split('-');
+        if (partes.length < 2) return dataISO;
+        return `${partes[1]}/${partes[0]}`;
+    },
 };
 
 if (typeof window !== 'undefined') {

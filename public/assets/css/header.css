@@ -1,25 +1,27 @@
 
 @import url('https://fonts.googleapis.com/css2?family=Irish+Grover&display=swap');
 
+/* ── Header principal ─────────────────────────────────────── */
 .cabecalho-biblioteca {
     width: 100%;
-    height: 200px; /* ajuste como quiser */
-    padding: 50px 40px;
+    min-height: 120px;
+    padding: 20px 40px;
     display: flex;
     justify-content: space-between;
     align-items: center;
+    gap: 20px;
 
     background-image: url('/public/imagens/imagem_abstrata_em_d.png');
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
 
-    color: black;
+    color: #222;
 }
 
 .cabecalho-biblioteca-modal {
     width: 100%;
-    height: 00px; /* ajuste como quiser */
+    height: 0;
     padding: 50px 40px;
     display: flex;
     justify-content: space-between;
@@ -32,35 +34,100 @@
 
     color: black;
 }
-/* Bloco da esquerda isolado */
+
+/* ── Bloco esquerda: Citações ────────────────────────────── */
 .bloco-esquerda {
-    width: 35%;
+    width: 32%;
+    min-width: 200px;
 }
 
-.bloco-esquerda h2 {
-    margin: 0;
-    font-size: 22px;
-    font-weight: bold;
+.citacao-label {
+    margin: 0 0 4px 0;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    opacity: 0.65;
 }
 
-/* Bloco do meio */
+.bloco-citacao-conteudo {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    transition: opacity 0.35s ease;
+}
+
+.citacao-texto {
+    font-size: 13px;
+    font-style: italic;
+    font-weight: 600;
+    line-height: 1.4;
+    color: #1a1a1a;
+}
+
+.citacao-atrib {
+    font-size: 11px;
+    font-weight: 500;
+    opacity: 0.7;
+}
+
+/* ── Bloco meio: Cards de contadores ────────────────────── */
 .bloco-meio {
-    width: 35%;
+    width: 36%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
-.bloco-meio p {
-    margin: 5px 0;
-    font-size: 18px;
-    font-weight: bold;
+.header-cards {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    justify-content: center;
 }
 
-/* Bloco da direita com fonte decorativa */
+.header-card {
+    background: rgba(0, 0, 0, 0.30);
+    border-radius: 10px;
+    padding: 10px 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 90px;
+    backdrop-filter: blur(4px);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+}
+
+.header-card-numero {
+    font-size: 28px;
+    font-weight: 800;
+    color: #ff9d4d;
+    text-shadow: 1px 1px 3px rgba(0,0,0,0.6);
+    line-height: 1;
+}
+
+.header-card-label {
+    font-size: 10px;
+    font-weight: 600;
+    color: #fff;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+    text-align: center;
+    margin-top: 4px;
+    white-space: nowrap;
+}
+
+/* ── Bloco direita: Título ───────────────────────────────── */
+.bloco-direita {
+    width: 22%;
+    text-align: right;
+}
+
 .bloco-direita h1 {
     margin: 0;
-    font-size: 42px;
+    font-size: 36px;
     font-family: 'Lobster Two', cursive;
     color: #ff9d4d;
     text-shadow: 2px 2px 4px #000;
+    line-height: 1.15;
 }
-
 

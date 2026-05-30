@@ -21,43 +21,49 @@
         <div class="grupo">
             <button class="botao-menu">Leituras Coletivas</button>
             <ul>
-                <li><a class="btn-submenu" href="#" onclick="menuLateral.abrirModalNovaLC()">Cadastro de LC´s</a></li>
-                <li><a class="btn-submenu" href="#" onclick="menuLateral.abrirCronogramaLC()">Acompanhamento das LC´s</a>
-                <li>Alteração</li>
+                <li><a class="btn-submenu" href="#" onclick="menuLateral.abrirModalNovaLC()">Cadastro de Grupo de LC</a></li>
+                <li><a class="btn-submenu" href="#" onclick="menuLateral.abrirModalNovaCronogramaLC()">Nova LC</a></li>
+                <li><a class="btn-submenu" href="#" onclick="menuLateral.abrirCronogramaLC()">Acompanhamento das LC´s</a></li>
             </ul>
         </div>
 
         <div class="grupo">
             <button class="botao-menu">Minhas leituras</button>
             <ul>
-                <li>Começando um livro - modal</li>
-                <li>Atualizar leitura atual - modal</li>
-                <li>Cadastro TBR Mensal - modal</li>
+                <li><a class="btn-submenu" href="#" onclick="menuLateral.abrirModalComecarLivro()">Começando um livro</a></li>
+                <li><a class="btn-submenu" href="#" onclick="menuLateral.abrirModalAtualizandoLeitura()">Atualizando a leitura atual</a></li>
+                <li><a class="btn-submenu" href="#" onclick="menuLateral.abrirModalMinhasImpressoes()">Minhas Impressões</a></li>
+                <li><a class="btn-submenu" href="#" onclick="menuLateral.abrirModalTBRMensal()">Cadastro TBR Mensal</a></li>
+                <li><a class="btn-submenu" href="#" onclick="menuLateral.abrirModalFraseFavorita()">Frase Favorita</a></li>
             </ul>
         </div>
 
         <div class="grupo">
             <button class="botao-menu">Consultas</button>
             <ul>
-                <li>Leituras mensais</li>
+                <li><a class="btn-submenu" href="#" onclick="menuLateral.abrirLeiturasAndamento()">Leituras em Andamento</a></li>
+                <li><a class="btn-submenu" href="#" onclick="menuLateral.abrirLeiturasMes()">Leituras do Mês</a></li>
                 <li>Leituras por ano</li>
-                <li>Leituras por Nacionalidade</li>
-                <li>Leitura por raça</li>
+                <li><a class="btn-submenu" href="#" onclick="menuLateral.abrirNacionalidade()">Livros por Nacionalidade</a></li>
+                <li><a class="btn-submenu" href="#" onclick="menuLateral.abrirRaca()">Livros por Raça</a></li>
+                <li><a class="btn-submenu" href="#" onclick="menuLateral.abrirEstatisticasLivros()">Livros e Ebooks — Estatísticas</a></li>
+                <li><a class="btn-submenu" href="#" onclick="menuLateral.abrirListaPorAutor()">Lista por Autor</a></li>
             </ul>
         </div>
 
         <div class="grupo">
             <button class="botao-menu">Desafios</button>
             <ul>
-                <li>Cadastro de desafios</li>
-                <li>Alteração desafios</li>
+                <li><a class="btn-submenu" href="#" onclick="menuLateral.abrirModalNovoDesafio()">Cadastro de desafios</a></li>
+                <li><a class="btn-submenu" href="#" onclick="menuLateral.abrirAcompanhamentoDesafios()">Acompanhamento de desafios</a></li>
+                <li><a class="btn-submenu" href="#" onclick="menuLateral.abrirDesafiosAndamento()">Desafios em andamento</a></li>
             </ul>
         </div>
 
         <div class="grupo">
             <button class="botao-menu">Gráficos</button>
             <ul>
-                <li>Geração de gráficos</li>
+                <li><a class="btn-submenu" href="#" onclick="menuLateral.abrirGraficos()">Gráficos de Leituras</a></li>
                 <li>Fazer gráfico com comandos</li>
             </ul>
         </div>

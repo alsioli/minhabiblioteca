@@ -61,52 +61,55 @@ function PostMethod() {
 
     global $result_status, $result_error, $result_data;
 
-    $data = $_POST;
+    $data          = $_POST;
+    $localCadastro = trim($data['local_cadastro'] ?? 'Biblioteca');
 
-    $requiredFields = ['codigo', 'tipo_codigo', 'titulo', 'autor'];
+    // titulo e autor são obrigatórios em todas as tabelas
+    // codigo e tipo_codigo só são obrigatórios na tabela Biblioteca (Livros)
+    $requiredFields = ['titulo', 'autor'];
+    if ($localCadastro === 'Biblioteca') {
+        $requiredFields[] = 'codigo';
+        $requiredFields[] = 'tipo_codigo';
+    }
+
     foreach ($requiredFields as $field) {
         if (!isset($data[$field]) || trim($data[$field]) === '') {
             $result_status = false;
-            $result_error = 'O campo ' . $field . ' é obrigatório.';
+            $result_error  = 'O campo ' . $field . ' é obrigatório.';
             return;
         }
     }
 
-    $codigo = isset($data['codigo']) ? trim($data['codigo']) : '';
-    $tipo_codigo = isset($data['tipo_codigo']) ? normalizeTipoCodigo($data['tipo_codigo']) : '';
-
-    $codigoColumnMap = [
-        'ASIN' => 'nASIN',
-        'ISBN-10' => 'nISBN_10',
-        'ISBN-13' => 'nISBN_13'
-    ];
-
-    if ($codigo === '' || $tipo_codigo === '' || !isset($codigoColumnMap[$tipo_codigo])) {
-        $result_status = false;
-        $result_error = 'Código e tipo de código são obrigatórios e devem ser válidos.';
-        return;
-    }
-
+    // Campos comuns a todas as tabelas
     $map = [
-        'titulo'        => 'titulo',
-        'autor'         => 'autor',
-        'sexo_autor'    => 'sexo_autor',
-        'nacionalidade' => 'nacionalidade',
-        'raca'          => 'raça',
-        'volume'        => 'volume',
-        'serie'         => 'serie',
-        'genero'        => 'genero',
-        'tema'          => 'tema',
-        'editora'       => 'editora',
-        'tipo_edicao'   => 'tipo_edicao',
-        'paginas'       => 'paginas',
-        'natureza'      => 'natureza',
-        'status'        => 'status',
-        'emprestimo'    => 'emprestimo',
-        'data_compra'   => 'data_compra',
-        'valor_compra'  => 'valor_compra',
-        'local_compra'  => 'local_compra',
-        'observacoes'   => 'observacoes'
+        'titulo'      => 'titulo',
+        'autor'       => 'autor',
+        'serie'       => 'serie',
+        'volume'      => 'volume',
+        'genero'      => 'genero',
+        'tema'        => 'tema',
+        'editora'     => 'editora',
+        'paginas'     => 'paginas',
+        'status'      => 'status',
+        'avaliacao'   => 'avaliacao',
+        'emprestimo'  => 'emprestimo',
+        // Campos exclusivos de cada tabela
+        'ku_tipo'     => 'ku_tipo',
+        'skeelo_tipo' => 'skeelo_tipo',
+        'pais'        => 'pais',
+        'tipo_midia'  => 'tipo_midia',
+        'favorito'    => 'favorito',
+        'biblion_tipo'=> 'biblion_tipo',
+        // Campos exclusivos da tabela Biblioteca (Livros)
+        'sexo_autor'  => 'sexo_autor',
+        'nacionalidade'=> 'nacionalidade',
+        'raca'        => 'raça',
+        'tipo_edicao' => 'tipo_edicao',
+        'natureza'    => 'natureza',
+        'data_compra' => 'data_compra',
+        'valor_compra'=> 'valor_compra',
+        'local_compra'=> 'local_compra',
+        'observacoes' => 'observacoes',
     ];
 
     $dadosCorrigidos = [];
@@ -116,7 +119,25 @@ function PostMethod() {
         }
     }
 
-    $dadosCorrigidos[$codigoColumnMap[$tipo_codigo]] = normalizeCodigoForStorage($tipo_codigo, $codigo);
+    // Processa codigo/tipo_codigo somente para a tabela Biblioteca
+    if ($localCadastro === 'Biblioteca') {
+        $codigo      = trim($data['codigo'] ?? '');
+        $tipo_codigo = normalizeTipoCodigo($data['tipo_codigo'] ?? '');
+
+        $codigoColumnMap = [
+            'ASIN'    => 'nASIN',
+            'ISBN-10' => 'nISBN_10',
+            'ISBN-13' => 'nISBN_13',
+        ];
+
+        if ($codigo === '' || !isset($codigoColumnMap[$tipo_codigo])) {
+            $result_status = false;
+            $result_error  = 'Código e tipo de código inválidos.';
+            return;
+        }
+
+        $dadosCorrigidos[$codigoColumnMap[$tipo_codigo]] = normalizeCodigoForStorage($tipo_codigo, $codigo);
+    }
 
     if (empty($dadosCorrigidos)) {
         $result_status = false;
@@ -127,14 +148,30 @@ function PostMethod() {
     $columns = [];
     $placeholders = [];
     $params = [];
+    $idx = 0;
 
+    // Usa índices numéricos nos parâmetros para evitar problemas com
+    // caracteres especiais em nomes de colunas (ex: "raça" → ":raça" é inválido no PDO)
     foreach ($dadosCorrigidos as $field => $value) {
-        $columns[] = "[{$field}]";
-        $placeholders[] = ":{$field}";
-        $params[":{$field}"] = $value;
+        $paramKey       = ':p' . $idx++;
+        $columns[]      = "[{$field}]";
+        $placeholders[] = $paramKey;
+        $params[$paramKey] = $value;
     }
 
-    $sqlQuery = "INSERT INTO [Biblioteca].[dbo].[Livros] (" . implode(', ', $columns) . ") VALUES (" . implode(', ', $placeholders) . ")";
+    // Redireciona para a tabela correta conforme o local selecionado (whitelist)
+    $tabelaMap = [
+        'Skeelo'            => '[Biblioteca].[dbo].[LeiturasSKEELO]',
+        'Biblion'           => '[Biblioteca].[dbo].[LivrosBiblion]',
+        'MEC_Livros'        => '[Biblioteca].[dbo].[LivrosMEC]',
+        'Audible'           => '[Biblioteca].[dbo].[LivrosAudible]',
+        'Kindle_Unlimited'  => '[Biblioteca].[dbo].[LivrosKindleUnlimited]',
+        'Biblioteca'        => '[Biblioteca].[dbo].[Livros]',
+    ];
+    $localCadastro = trim($data['local_cadastro'] ?? 'Biblioteca');
+    $tabelaDestino = $tabelaMap[$localCadastro] ?? '[Biblioteca].[dbo].[Livros]';
+
+    $sqlQuery = "INSERT INTO {$tabelaDestino} (" . implode(', ', $columns) . ") VALUES (" . implode(', ', $placeholders) . ")";
 
     try {
         $db = new DataBase();

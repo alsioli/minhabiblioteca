@@ -26,13 +26,15 @@ echo json_encode([
 function GetMethod() {
     global $result_status, $result_error, $result_data;
 
+    // Livros com avaliação 5 (ou '5F') lidos em 2025.
+    // Compatível com avaliacao armazenada como numérico (5) ou texto ('5', '5F').
     $sql = "
         SELECT
-            titulo, autor, avaliacao, mes_leitura
-        FROM [Biblioteca].[dbo].[Livros]
-        WHERE avaliacao = 5
-          AND mes_leitura LIKE '%/2025'
-        ORDER BY mes_leitura DESC
+            titulo, autor, avaliacao, mes
+        FROM [Biblioteca].[dbo].[Leituras]
+        WHERE CAST(avaliacao AS VARCHAR(10)) LIKE '5.%'
+          AND mes like '%2025-%'
+        ORDER BY mes DESC
     ";
 
     try {

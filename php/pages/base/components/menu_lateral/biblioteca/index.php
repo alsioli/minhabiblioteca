@@ -330,7 +330,7 @@
                 </div>
                 <div class="grupo">
                     <label>Raça</label>
-                    <input type="text" name="raça" id="raça_atualizar">
+                    <input type="text" name="raca" id="raça_atualizar">
                 </div>
             </div>
 

@@ -70,7 +70,11 @@
             </div>
             <div id="tbr_resultados"></div>
             <div id="tbr_nao_encontrado" class="d-none">
-              <div class="alert alert-warning py-2 mb-0">Nenhum livro encontrado.</div>
+              <div class="alert alert-warning py-2 mb-0">
+                Nenhum livro encontrado.
+                <button class="btn btn-sm btn-primary ml-2"
+                        onclick="tbr_mensal.abrirCadastroLivro()">Cadastrar livro</button>
+              </div>
             </div>
           </div>
 

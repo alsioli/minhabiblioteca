@@ -28,34 +28,34 @@ function GetMethod() {
 
     $db = new DataBase();
 
-    // Todos os livros em andamento (data_fim IS NULL) com o progresso mais recente de LeiturasEmAndamento
+    // Busca diretamente da tabela LeiturasEmAndamento,
+    // pegando o registro mais recente por id_leitura.
     $sql = "
-        SELECT
-            l.id,
-            l.titulo,
-            l.autor,
-            l.paginas,
-            l.tipo_midia,
-            l.data_inicio,
-            DATEDIFF(day, l.data_inicio, GETDATE()) AS dias_lendo,
-            la.percentual,
-            la.pagina_atual,
-            la.dt_alteracao AS ultima_atualizacao
-        FROM [Biblioteca].[dbo].[Leituras] l
-        LEFT JOIN (
-            SELECT id_leitura, percentual, pagina_atual, dt_alteracao,
+        WITH ranked AS (
+            SELECT *,
                    ROW_NUMBER() OVER (PARTITION BY id_leitura ORDER BY dt_alteracao DESC) AS rn
             FROM [Biblioteca].[dbo].[LeiturasEmAndamento]
-        ) la ON la.id_leitura = l.id AND la.rn = 1
-        WHERE l.data_fim IS NULL
-          AND l.titulo IS NOT NULL
-        ORDER BY l.data_inicio DESC
+        )
+        SELECT
+            id_leitura          AS id,
+            titulo,
+            autor,
+            paginas,
+            tipo_midia,
+            data_inicio,
+            percentual,
+            pagina_atual,
+            dt_alteracao        AS ultima_atualizacao,
+            DATEDIFF(day, data_inicio, GETDATE()) AS dias_lendo
+        FROM ranked
+        WHERE rn = 1
+        ORDER BY dt_alteracao DESC
     ";
 
     try {
         $result_data   = $db->GetMany($sql);
         $result_status = true;
     } catch (Exception $e) {
-        $result_error = 'Erro ao carregar leituras: ' . $e->getMessage();
+        $result_error = 'Erro ao carregar leituras em andamento: ' . $e->getMessage();
     }
 }

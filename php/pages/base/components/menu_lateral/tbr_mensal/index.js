@@ -147,7 +147,7 @@ let tbr_mensal = {
 
         lista.forEach((livro, idx) => {
             tabela += `
-                <tr onclick="tbr_mensal.selecionarLivro(${idx})" style="cursor:pointer">
+                <tr data-idx="${idx}" style="cursor:pointer">
                     <td style="padding:0.25rem">${livro.titulo || ''}</td>
                     <td style="padding:0.25rem">${livro.autor  || ''}</td>
                     <td style="padding:0.25rem">${livro.paginas || '—'}</td>
@@ -157,7 +157,11 @@ let tbr_mensal = {
         });
 
         tabela += '</tbody></table>';
-        $('#tbr_resultados').html(tabela);
+
+        const self = this;
+        $('#tbr_resultados').html(tabela).find('tr[data-idx]').on('click', function () {
+            self.selecionarLivro(parseInt($(this).data('idx')));
+        });
     },
 
     selecionarLivro: function (idx) {
@@ -276,6 +280,12 @@ let tbr_mensal = {
             console.error('Erro ao salvar TBR:', e);
             this._mostrarMensagem('danger', 'Erro inesperado. Tente novamente.');
         }
+    },
+
+    // ─── Cadastrar livro (quando não encontrado na busca) ────────
+    abrirCadastroLivro: function () {
+        $('#modalTBRMensal').modal('hide');
+        if (window.menuLateral) menuLateral.abrirModalNovoLivro();
     },
 
     // ─── Mensagens ───────────────────────────────────────────────

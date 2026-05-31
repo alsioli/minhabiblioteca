@@ -26,12 +26,14 @@ echo json_encode([
 function GetMethod() {
     global $result_status, $result_error, $result_data;
 
+    // Livros não lidos mais antigos da tabela Livros.
+    // Exclui: Lido, Lendo, Não quero ler.
+    // Mostra os 5 com menor id (mais antigos).
     $sql = "
         SELECT TOP 5
             id, titulo, autor, paginas, status
         FROM [Biblioteca].[dbo].[Livros]
-        WHERE id < 100
-          AND (status IS NULL OR status NOT IN ('Lido'))
+        WHERE status NOT IN ('Lido', 'Lendo', 'Não quero ler')
         ORDER BY id ASC
     ";
 

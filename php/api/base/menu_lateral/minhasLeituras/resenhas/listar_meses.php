@@ -1,6 +1,6 @@
 <?php
 
-include_once __DIR__ . "/../../../../utils/function/database.php";
+include_once __DIR__ . "/../../../../../utils/function/database.php";
 
 $result_status = false;
 $result_error  = null;
@@ -27,19 +27,22 @@ function GetMethod() {
     global $result_status, $result_error, $result_data;
 
     $sql = "
-        SELECT id, titulo, autor, paginas, tipo_midia, data_inicio,
-               ISNULL(tema, '') AS tema
-        FROM [Biblioteca].[dbo].[Leituras]
-        WHERE data_fim IS NULL
-          AND data_inicio IS NOT NULL
-        ORDER BY data_inicio DESC
+        SELECT DISTINCT mes
+        FROM Leituras
+        WHERE data_fim IS NOT NULL
+          AND bAtivo = 1
+        ORDER BY
+            TRY_CAST(SUBSTRING(mes, 4, 4) AS INT) DESC,
+            TRY_CAST(SUBSTRING(mes, 1, 2) AS INT) DESC
     ";
 
     try {
-        $db = new DataBase();
-        $result_data   = $db->GetMany($sql);
+        $db   = new DataBase();
+        $rows = $db->GetMany($sql, []);
+
         $result_status = true;
+        $result_data   = array_column($rows, 'mes');
     } catch (Exception $e) {
-        $result_error = 'Erro ao listar leituras em andamento: ' . $e->getMessage();
+        $result_error = 'Erro ao listar meses: ' . $e->getMessage();
     }
 }

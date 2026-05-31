@@ -11,23 +11,40 @@
         </div>
     </div>
 
-    <!-- ── Bloco meio: Cards de contadores ────────────────────── -->
+    <!-- ── Bloco meio: Cards maiores ──────────────────────────── -->
     <div class="bloco-meio">
         <div class="header-cards">
 
-            <div class="header-card">
-                <span class="header-card-numero" id="contador-ano-atual">—</span>
-                <span class="header-card-label">Lidos em <?php echo date('Y'); ?></span>
+            <!-- Card 1: Livros por ano -->
+            <div class="header-card header-card-lg">
+                <p class="hc-titulo">Livros por Ano</p>
+                <div class="hc-linhas-ano">
+                    <?php
+                    $anoAtual = (int)date('Y');
+                    for ($y = $anoAtual; $y >= $anoAtual - 2; $y--) {
+                        echo '<div class="hc-linha-ano">';
+                        echo '<span class="hc-ano-label">' . $y . '</span>';
+                        echo '<span class="hc-ano-valor" id="hc-ano-' . $y . '">—</span>';
+                        echo '</div>';
+                    }
+                    ?>
+                </div>
             </div>
 
-            <div class="header-card">
-                <span class="header-card-numero" id="contador-ano-anterior">—</span>
-                <span class="header-card-label" id="label-ano-anterior">Lidos em <?php echo date('Y') - 1; ?></span>
+            <!-- Card 2: Média mensal (últimos 12 meses) -->
+            <div class="header-card header-card-lg" style="align-items:center">
+                <p class="hc-titulo" style="text-align:center">Média Mensal</p>
+                <span class="header-card-numero" id="hc-media">—</span>
+                <span class="header-card-label">livros / mês</span>
+                <small class="hc-periodo" id="hc-media-periodo">últimos 12 meses</small>
             </div>
 
-            <div class="header-card">
-                <span class="header-card-numero" id="contador-mes">—</span>
-                <span class="header-card-label" id="label-ano-ant-mes">Até <?php echo date('m') . '/' . (date('Y') - 1); ?></span>
+            <!-- Card 3: Top 3 países -->
+            <div class="header-card header-card-lg">
+                <p class="hc-titulo">Top Países</p>
+                <div id="hc-top-paises" class="hc-top-lista">
+                    <span style="font-size:10px;color:rgba(255,255,255,0.5)">Carregando...</span>
+                </div>
             </div>
 
         </div>

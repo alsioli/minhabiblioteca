@@ -217,6 +217,11 @@ let minhas_leituras = {
         $('#cl_livro_raca').val('');
         $('#cl_livro_tema').val('');
 
+        // Pré-seleciona o Tipo de Mídia se o livro já tiver tipo_edicao cadastrado
+        if (livro.tipo_edicao) {
+            $('#cl_tipo_midia').val(livro.tipo_edicao);
+        }
+
         // Exibe informações
         $('#cl_titulo_display').text(livro.titulo  || '');
         $('#cl_autor_display').text(livro.autor    || '');
@@ -242,6 +247,9 @@ let minhas_leituras = {
     },
 
     abrirCadastroLivro: function () {
+        const localAtual = this._localSelecionado;
+        const tituloAtual = $('#cl_busca_titulo').val().trim();
+
         $('#modalComecarLivro').modal('hide');
 
         $.ajax({
@@ -254,9 +262,15 @@ let minhas_leituras = {
 
                 $.getScript('/php/pages/base/components/menu_lateral/biblioteca/index.js')
                     .done(function () {
-                        if (window.biblioteca && typeof biblioteca.carregarSelects === 'function') {
-                            biblioteca.carregarSelects();
-                        }
+                        biblioteca.carregarSelects().then(function () {
+                            if (localAtual) {
+                                $('#select_local_cadastro').val(localAtual);
+                                biblioteca.onLocalCadastroChange();
+                            }
+                            if (tituloAtual) {
+                                $('#livro_titulo').val(tituloAtual);
+                            }
+                        });
                     });
             }
         });
@@ -612,10 +626,21 @@ let minhas_leituras = {
 
                 Swal.fire({
                     title: 'Livro concluído! 🎉',
-                    html: `"${titulo}" foi marcado como lido.<br><small class="text-muted">Leituras e Livros atualizados automaticamente.</small>`,
+                    html: `"${titulo}" foi marcado como lido.<br>
+                           <small class="text-muted">Leituras e Livros atualizados automaticamente.</small>
+                           <br><br>
+                           <strong style="color:#6a2bbf">Lembrar de fazer a resenha!!!</strong>`,
                     icon: 'success',
-                    confirmButtonText: 'OK',
-                    confirmButtonColor: '#28a745'
+                    showCancelButton: true,
+                    confirmButtonText: 'Fazer Resenha',
+                    cancelButtonText: 'Agora não',
+                    confirmButtonColor: '#6a2bbf',
+                    cancelButtonColor: '#6c757d',
+                    reverseButtons: true
+                }).then(function (result) {
+                    if (result.isConfirmed) {
+                        menuLateral.abrirModalResenha();
+                    }
                 });
             } else {
                 Swal.fire({
@@ -658,6 +683,8 @@ let minhas_leituras = {
         $('#imp_mensagem').empty();
         $('#imp_filtro').val('');
         $('#imp_observacoes').val('');
+        $('#imp_capitulo').val('');
+        $('#imp_pagina_percentual').val('');
         $('#imp_id_leitura').val('');
 
         await this._carregarTodasLeituras();
@@ -750,10 +777,12 @@ let minhas_leituras = {
         const autor  = opt.data('autor')  || '';
 
         const body = new FormData();
-        body.append('id_leitura',  id_leitura);
-        body.append('titulo',      titulo);
-        body.append('autor',       autor);
-        body.append('observacoes', observacoes);
+        body.append('id_leitura',        id_leitura);
+        body.append('titulo',            titulo);
+        body.append('autor',             autor);
+        body.append('capitulo',          $('#imp_capitulo').val());
+        body.append('pagina_percentual', $('#imp_pagina_percentual').val());
+        body.append('observacoes',       observacoes);
 
         try {
             const resp = await fetch('/php/api/base/menu_lateral/minhasLeituras/create_impressao.php', {
@@ -806,9 +835,15 @@ let minhas_leituras = {
         $('#ff_secao_info').addClass('d-none');
         $('#ff_secao_frase').addClass('d-none');
         $('#ff_frase').val('');
+        $('#ff_capitulo').val('');
+        $('#ff_pagina_percentual').val('');
+        $('#ff_avaliacao_frase').val('');
+        $('#ff_tema_display').val('');
         $('#ff_id_leitura').val('');
         $('#ff_titulo').val('');
         $('#ff_autor').val('');
+        $('#ff_tema').val('');
+        $('#ff_mes').val('');
         $('#ff_mensagem').empty();
 
         try {
@@ -847,11 +882,20 @@ let minhas_leituras = {
         const l = this._leiturasFF[parseInt(idx)];
         if (!l) return;
 
+        // Deriva mês de referência a partir de data_inicio (YYYY-MM-DD → MM/YYYY)
+        const dataInicio = (l.data_inicio || '').split('T')[0];
+        const mes = dataInicio.length >= 7
+            ? dataInicio.substring(5, 7) + '/' + dataInicio.substring(0, 4)
+            : '';
+
         $('#ff_id_leitura').val(l.id);
         $('#ff_titulo').val(l.titulo || '');
-        $('#ff_autor').val(l.autor || '');
+        $('#ff_autor').val(l.autor  || '');
+        $('#ff_tema').val(l.tema    || '');
+        $('#ff_mes').val(mes);
+        $('#ff_tema_display').val(l.tema || '');
         $('#ff_titulo_display').text(l.titulo || '');
-        $('#ff_autor_display').text(l.autor || '—');
+        $('#ff_autor_display').text(l.autor   || '—');
 
         $('#ff_secao_info').removeClass('d-none');
         $('#ff_secao_frase').removeClass('d-none');
@@ -866,10 +910,15 @@ let minhas_leituras = {
         }
 
         const body = new FormData();
-        body.append('id_leitura', $('#ff_id_leitura').val());
-        body.append('titulo',     $('#ff_titulo').val());
-        body.append('autor',      $('#ff_autor').val());
-        body.append('frase',      frase);
+        body.append('id_leitura',        $('#ff_id_leitura').val());
+        body.append('titulo',            $('#ff_titulo').val());
+        body.append('autor',             $('#ff_autor').val());
+        body.append('tema',              $('#ff_tema').val());
+        body.append('mes',               $('#ff_mes').val());
+        body.append('capitulo',          $('#ff_capitulo').val());
+        body.append('pagina_percentual', $('#ff_pagina_percentual').val());
+        body.append('avaliacao_frase',   $('#ff_avaliacao_frase').val());
+        body.append('frases',            frase);
 
         try {
             const resp = await fetch('/php/api/base/menu_lateral/minhasLeituras/cadastrar_frase_favorita.php', {

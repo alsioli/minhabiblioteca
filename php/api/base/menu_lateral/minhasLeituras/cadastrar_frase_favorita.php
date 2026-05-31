@@ -39,28 +39,37 @@ echo json_encode([
 function PostMethod() {
     global $result_status, $result_error, $result_data;
 
-    $id_leitura = trim($_POST['id_leitura'] ?? '');
-    $titulo     = trim($_POST['titulo']     ?? '');
-    $autor      = trim($_POST['autor']      ?? '');
-    $frase      = trim($_POST['frase']      ?? '');
+    $id_leitura       = trim($_POST['id_leitura']        ?? '');
+    $titulo           = trim($_POST['titulo']            ?? '');
+    $autor            = trim($_POST['autor']             ?? '');
+    $tema             = trim($_POST['tema']              ?? '');
+    $mes              = trim($_POST['mes']               ?? '');
+    $capitulo         = trim($_POST['capitulo']          ?? '');
+    $pagina_percentual = trim($_POST['pagina_percentual'] ?? '');
+    $avaliacao_frase  = trim($_POST['avaliacao_frase']   ?? '');
+    $frases           = trim($_POST['frases']            ?? '');
 
-    if (empty($frase)) {
+    if (empty($frases)) {
         $result_error = 'A frase não pode estar em branco.';
         return;
     }
 
     $sql = "
         INSERT INTO [Biblioteca].[dbo].[FrasesFavoritas]
-            (id_leitura, titulo, autor, frase, dt_cadastro)
+            (id_leitura, titulo, autor, tema, mes, capitulo, [pagina ou percentual], frases)
         VALUES
-            (:id_leitura, :titulo, :autor, :frase, GETDATE())
+            (:id_leitura, :titulo, :autor, :tema, :mes, :capitulo, :pagina_percentual, :frases)
     ";
 
     $params = [
-        ':id_leitura' => $id_leitura !== '' ? (int)$id_leitura : null,
-        ':titulo'     => $titulo  ?: null,
-        ':autor'      => $autor   ?: null,
-        ':frase'      => $frase,
+        ':id_leitura'        => $id_leitura !== '' ? (int)$id_leitura : null,
+        ':titulo'            => $titulo           ?: null,
+        ':autor'             => $autor            ?: null,
+        ':tema'              => $tema             ?: null,
+        ':mes'               => $mes              ?: null,
+        ':capitulo'          => $capitulo         ?: null,
+        ':pagina_percentual' => $pagina_percentual ?: null,
+        ':frases'            => $frases,
     ];
 
     try {

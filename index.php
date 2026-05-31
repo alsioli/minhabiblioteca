@@ -36,7 +36,7 @@ $config->PageInfo($routes->directory_path);
 <body>
     <?php include_once 'php/pages/base/components/header/index.php' ?>
     <main>
-        <div class="d-flex justify-content-between align-items-center">
+        <div class="d-flex justify-content-between align-items-stretch">
             <link rel="stylesheet" type="text/css" href="/public/assets/css/menu_lateral.css">
                 <?php include_once 'php/pages/base/components/menu_lateral/index.php' ?>
                   

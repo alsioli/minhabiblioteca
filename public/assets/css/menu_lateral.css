@@ -4,9 +4,10 @@
     width: 260px;
     background: #f3f3f3;
     padding: 20px;
-    height: 100vh;
+    min-height: 100vh;
     border-right: 2px solid #ddd;
     overflow-y: auto;
+    flex-shrink: 0;
 }
 
 #menu_lateral {
@@ -102,7 +103,8 @@ input, select {
     font-size: 15px;
 }
 
-.btn {
+/* Botão de largura total apenas dentro de containers de formulário do menu */
+.container .btn:not(.btn-sm):not(.btn-lg):not(.close):not(.btn-outline-secondary):not(.btn-outline-primary):not(.btn-outline-dark):not(.btn-danger):not(.btn-warning):not(.btn-success) {
     width: 100%;
     padding: 12px;
     background: #4a76a8;
@@ -113,7 +115,7 @@ input, select {
     cursor: pointer;
 }
 
-.btn:hover {
+.container .btn:not(.btn-sm):not(.btn-lg):not(.close):hover {
     background: #3b5f87;
 }
 

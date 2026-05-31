@@ -2,15 +2,45 @@
 
 include_once __DIR__ . "/../../../../utils/function/database.php";
 
-// Whitelist de tabelas — chave = vTabelaVinculada do banco, valor = nome SQL completo
+/*
+ * Whitelist expandida — cobre os formatos mais comuns de vTabelaVinculada:
+ *   'dbo.Livros'  |  'Livros'  |  '[Biblioteca].[dbo].[Livros]'
+ * O valor sempre resolve para o nome SQL seguro com brackets.
+ */
 $TABELAS_PERMITIDAS = [
-    'dbo.Livros'                => '[Biblioteca].[dbo].[Livros]',
-    'dbo.LeiturasSKEELO'        => '[Biblioteca].[dbo].[LeiturasSKEELO]',
-    'dbo.LivrosBiblion'         => '[Biblioteca].[dbo].[LivrosBiblion]',
-    'dbo.LivrosMEC'             => '[Biblioteca].[dbo].[LivrosMEC]',
-    'dbo.LivrosAudible'         => '[Biblioteca].[dbo].[LivrosAudible]',
-    'dbo.LivrosKindleUnlimited' => '[Biblioteca].[dbo].[LivrosKindleUnlimited]',
+    // ── Livros (biblioteca principal) ─────────────────────────────
+    'dbo.Livros'                    => '[Biblioteca].[dbo].[Livros]',
+    'Livros'                        => '[Biblioteca].[dbo].[Livros]',
+    '[Biblioteca].[dbo].[Livros]'   => '[Biblioteca].[dbo].[Livros]',
+
+    // ── Skeelo ────────────────────────────────────────────────────
+    'dbo.LeiturasSKEELO'                    => '[Biblioteca].[dbo].[LeiturasSKEELO]',
+    'LeiturasSKEELO'                        => '[Biblioteca].[dbo].[LeiturasSKEELO]',
+    '[Biblioteca].[dbo].[LeiturasSKEELO]'   => '[Biblioteca].[dbo].[LeiturasSKEELO]',
+
+    // ── Biblion ───────────────────────────────────────────────────
+    'dbo.LivrosBiblion'                     => '[Biblioteca].[dbo].[LivrosBiblion]',
+    'LivrosBiblion'                         => '[Biblioteca].[dbo].[LivrosBiblion]',
+    '[Biblioteca].[dbo].[LivrosBiblion]'    => '[Biblioteca].[dbo].[LivrosBiblion]',
+
+    // ── MEC ───────────────────────────────────────────────────────
+    'dbo.LivrosMEC'                         => '[Biblioteca].[dbo].[LivrosMEC]',
+    'LivrosMEC'                             => '[Biblioteca].[dbo].[LivrosMEC]',
+    '[Biblioteca].[dbo].[LivrosMEC]'        => '[Biblioteca].[dbo].[LivrosMEC]',
+
+    // ── Audible ───────────────────────────────────────────────────
+    'dbo.LivrosAudible'                     => '[Biblioteca].[dbo].[LivrosAudible]',
+    'LivrosAudible'                         => '[Biblioteca].[dbo].[LivrosAudible]',
+    '[Biblioteca].[dbo].[LivrosAudible]'    => '[Biblioteca].[dbo].[LivrosAudible]',
+
+    // ── Kindle Unlimited ─────────────────────────────────────────
+    'dbo.LivrosKindleUnlimited'                     => '[Biblioteca].[dbo].[LivrosKindleUnlimited]',
+    'LivrosKindleUnlimited'                         => '[Biblioteca].[dbo].[LivrosKindleUnlimited]',
+    '[Biblioteca].[dbo].[LivrosKindleUnlimited]'    => '[Biblioteca].[dbo].[LivrosKindleUnlimited]',
 ];
+
+// Tabelas que têm colunas completas (sexo_autor, pais, natureza, tema, tipo_edicao, status)
+$TABELAS_COMPLETAS = ['[Biblioteca].[dbo].[Livros]'];
 
 $result_status = false;
 $result_error  = null;
@@ -38,7 +68,7 @@ function PostMethod(array $tabelasPermitidas) {
 
     $tabela    = trim($_POST['tabela']    ?? '');
     $titulo    = trim($_POST['titulo']    ?? '');
-    $releitura = trim($_POST['releitura'] ?? 'nao'); // 'sim' ou 'nao'
+    $releitura = trim($_POST['releitura'] ?? 'todos');
 
     if (empty($tabela) || empty($titulo)) {
         $result_error = 'Tabela e título são obrigatórios.';
@@ -46,46 +76,73 @@ function PostMethod(array $tabelasPermitidas) {
     }
 
     if (!isset($tabelasPermitidas[$tabela])) {
-        $result_error = 'Tabela não permitida.';
+        $result_error = 'Origem não reconhecida: ' . $tabela;
         return;
     }
 
     $tabelaSQL = $tabelasPermitidas[$tabela];
+    $params    = [':titulo' => '%' . $titulo . '%'];
 
-    // Tabela Livros: retorna campos completos; demais: campos básicos com NULL nos extras
-    if ($tabela === 'dbo.Livros') {
-        $campos = "id, titulo, autor, paginas, sexo_autor, pais, natureza, tema, tipo_edicao, status";
-    } else {
-        $campos = "id, titulo, autor, paginas,
-                   NULL AS sexo_autor, NULL AS pais, NULL AS natureza,
-                   NULL AS tema,       NULL AS tipo_edicao, status";
-    }
-
-    // Filtro por status conforme releitura
+    // Filtros WHERE com status (para tabelas que têm a coluna)
     if ($releitura === 'sim') {
-        // Releitura: somente livros já lidos, abandonados ou interrompidos
-        $where = "titulo LIKE :titulo
-                  AND status IN ('Lido', 'Abandonado', 'Interrompido')";
+        $whereComStatus = "titulo LIKE :titulo
+                           AND status IN ('Lido', 'Abandonado', 'Interrompido')";
+    } elseif ($releitura === 'nao') {
+        $whereComStatus = "titulo LIKE :titulo
+                           AND (status IS NULL OR status NOT IN ('Lido'))";
     } else {
-        // Sem releitura: exclui livros com status Lido
-        $where = "titulo LIKE :titulo
-                  AND (status IS NULL OR status NOT IN ('Lido'))";
+        $whereComStatus = "titulo LIKE :titulo";
     }
+    $whereSemStatus = "titulo LIKE :titulo";
 
-    $sql = "SELECT {$campos}
-            FROM   {$tabelaSQL}
-            WHERE  {$where}
-            ORDER BY titulo ASC";
+    $db = new DataBase();
 
+    // ── Tentativa 1: colunas completas + filtro de status ──────────
+    // (funciona se a tabela tiver sexo_autor, pais, natureza, tema, status)
     try {
-        $db        = new DataBase();
-        $resultado = $db->GetMany($sql, [':titulo' => '%' . $titulo . '%']);
+        $resultado = $db->GetMany(
+            "SELECT id, titulo, autor, paginas,
+                    sexo_autor, pais, natureza, tema, tipo_edicao, status
+             FROM   {$tabelaSQL}
+             WHERE  {$whereComStatus}
+             ORDER BY titulo ASC",
+            $params
+        );
+        if (!empty($resultado)) { $result_status = true; $result_data = $resultado; return; }
+        // Se vazio com status filter, tenta sem para confirmar que a tabela tem dados
+    } catch (Exception $e) { /* colunas não existem, cai para tentativa 2 */ }
 
+    // ── Tentativa 2: colunas mínimas confirmadas + filtro de status ─
+    // (funciona se a tabela tiver tipo_edicao e status, mas não as extras)
+    try {
+        $resultado = $db->GetMany(
+            "SELECT id, titulo, autor, paginas,
+                    NULL AS sexo_autor, NULL AS pais, NULL AS natureza,
+                    NULL AS tema, tipo_edicao, status
+             FROM   {$tabelaSQL}
+             WHERE  {$whereComStatus}
+             ORDER BY titulo ASC",
+            $params
+        );
+        if (!empty($resultado)) { $result_status = true; $result_data = $resultado; return; }
+    } catch (Exception $e) { /* status não existe, cai para tentativa 3 */ }
+
+    // ── Tentativa 3: mínimo absoluto sem filtro de status ──────────
+    // (garante resultado mesmo sem colunas extras ou status)
+    try {
+        $resultado = $db->GetMany(
+            "SELECT id, titulo, autor, paginas,
+                    NULL AS sexo_autor, NULL AS pais, NULL AS natureza,
+                    NULL AS tema, NULL AS tipo_edicao, NULL AS status
+             FROM   {$tabelaSQL}
+             WHERE  {$whereSemStatus}
+             ORDER BY titulo ASC",
+            $params
+        );
         if (empty($resultado)) {
             $result_error = 'Nenhum livro encontrado.';
             return;
         }
-
         $result_status = true;
         $result_data   = $resultado;
     } catch (Exception $e) {

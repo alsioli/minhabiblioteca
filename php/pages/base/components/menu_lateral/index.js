@@ -152,6 +152,30 @@ let menuLateral = {
         this._carregarMinhasLeituras('modalFraseFavorita', 'iniciarFraseFavorita');
     },
 
+    abrirModalResenha: function (mesFiltro) {
+        $('#modalMinhasResenhas').remove();
+        $.ajax({
+            url: '/php/pages/base/components/menu_lateral/minhas_resenhas/index.php',
+            method: 'GET',
+            success: function (html) {
+                $('body').append(html);
+                $('#modalMinhasResenhas').modal('show');
+                $.getScript('/php/pages/base/components/menu_lateral/minhas_resenhas/index.js')
+                    .done(function () {
+                        if (window.minhas_resenhas) {
+                            minhas_resenhas.iniciar(mesFiltro || null);
+                        }
+                    })
+                    .fail(function () {
+                        console.error('Erro ao carregar script Minhas Resenhas.');
+                    });
+            },
+            error: function () {
+                console.error('Erro ao carregar modal Minhas Resenhas.');
+            }
+        });
+    },
+
     abrirModalTBRMensal: function () {
         $('#modalTBRMensal').remove();
         $.ajax({
@@ -216,6 +240,57 @@ let menuLateral = {
         $.getScript('/php/pages/base/components/main/Leituras/index.js')
             .done(function () {
                 if (window.leituras_view) leituras_view.carregarAndamento();
+            })
+            .fail(function () {
+                console.error('Erro ao carregar script Leituras.');
+            });
+    },
+
+    abrirLeiturasAno: function () {
+        this._carregarCSSCronograma();
+        const anoAtual = new Date().getFullYear();
+        $('#mainConteudo').html(`
+            <div id="leiturasAnoContainer" class="container-fluid mt-4">
+                <h3 class="mb-3 d-flex justify-content-between align-items-center flex-wrap" style="gap:8px">
+                    Leituras do Ano
+                    <div class="d-flex flex-wrap" style="gap:6px">
+                        <span id="leiturasAnoTotal"
+                              style="background:#343a40;color:#fff;font-size:0.82rem;padding:3px 12px;border-radius:6px;font-weight:normal">
+                            —
+                        </span>
+                        <span id="leiturasAnoEbook"
+                              style="background:#17a2b8;color:#fff;font-size:0.82rem;padding:3px 12px;border-radius:6px;font-weight:normal">
+                            —
+                        </span>
+                        <span id="leiturasAnoTag"
+                              style="background:#6f42c1;color:#fff;font-size:0.82rem;padding:3px 12px;border-radius:6px;font-weight:normal">
+                            —
+                        </span>
+                        <span id="leiturasAnoFisico"
+                              style="background:#28a745;color:#fff;font-size:0.82rem;padding:3px 12px;border-radius:6px;font-weight:normal">
+                            —
+                        </span>
+                    </div>
+                </h3>
+                <div class="mb-3 d-flex align-items-center flex-wrap" style="gap:10px">
+                    <label class="mb-0 font-weight-bold">Ano:</label>
+                    <input type="number" id="leiturasAnoFiltro" class="form-control"
+                           style="width:110px" value="${anoAtual}" min="2015" max="${anoAtual + 1}"
+                           onchange="leituras_view.carregarAno(this.value)">
+                    <button class="btn btn-sm btn-outline-secondary"
+                            onclick="menuLateral.sincronizarLeituras()"
+                            id="btnSincronizar"
+                            title="Atualiza Leituras com livros concluídos e marca Livros como Lido">
+                        🔄 Sincronizar Leituras
+                    </button>
+                    <span id="sincronizarMsg" style="font-size:0.85rem"></span>
+                </div>
+                <div id="leiturasAnoTabela"></div>
+            </div>
+        `);
+        $.getScript('/php/pages/base/components/main/Leituras/index.js')
+            .done(function () {
+                if (window.leituras_view) leituras_view.carregarAno(anoAtual);
             })
             .fail(function () {
                 console.error('Erro ao carregar script Leituras.');
@@ -292,6 +367,178 @@ let menuLateral = {
             .fail(function () { console.error('Erro ao carregar script.'); });
     },
 
+    // ─── Minhas Impressões (Consulta) ────────────────────────────
+    abrirConsultaImpressoes: function () {
+        this._carregarCSSCronograma();
+        $('#mainConteudo').html(`
+            <div id="impressoesContainer" class="container-fluid mt-4">
+                <h3 class="mb-3">Minhas Impressões</h3>
+                <div class="mb-3 d-flex flex-wrap align-items-end" style="gap:8px">
+                    <div>
+                        <label class="mb-1 d-block" style="font-size:0.82rem;font-weight:600">Título / Autor</label>
+                        <input type="text" id="impBuscaTitulo" class="form-control form-control-sm"
+                               style="width:240px" placeholder="Título ou autor..."
+                               onkeydown="if(event.key==='Enter') impressoes_view.buscar()">
+                    </div>
+                    <div>
+                        <label class="mb-1 d-block" style="font-size:0.82rem;font-weight:600">Impressão</label>
+                        <input type="text" id="impBuscaTexto" class="form-control form-control-sm"
+                               style="width:240px" placeholder="Texto da impressão..."
+                               onkeydown="if(event.key==='Enter') impressoes_view.buscar()">
+                    </div>
+                    <button class="btn btn-primary btn-sm" onclick="impressoes_view.buscar()">
+                        Buscar
+                    </button>
+                </div>
+                <div id="impressoesTabela">
+                    <p class="text-muted small">Use os filtros acima para pesquisar impressões, ou clique em Buscar para ver todas.</p>
+                </div>
+            </div>
+        `);
+        $.getScript('/php/pages/base/components/main/Impressoes/index.js')
+            .done(function () {
+                if (window.impressoes_view) impressoes_view.buscar();
+            })
+            .fail(function () {
+                console.error('Erro ao carregar script Impressões.');
+            });
+    },
+
+    // ─── Minhas Citações Favoritas (Consulta) ────────────────────
+    abrirConsultaCitacoes: function () {
+        this._carregarCSSCronograma();
+        $('#mainConteudo').html(`
+            <div id="citacoesContainer" class="container-fluid mt-4">
+                <h3 class="mb-3">Minhas Citações Favoritas</h3>
+                <div class="mb-3 d-flex flex-wrap align-items-end" style="gap:8px">
+                    <div>
+                        <label class="mb-1 d-block" style="font-size:0.82rem;font-weight:600">Título / Autor</label>
+                        <input type="text" id="citBuscaTitulo" class="form-control form-control-sm"
+                               style="width:240px" placeholder="Título ou autor..."
+                               onkeydown="if(event.key==='Enter') citacoes_view.buscar()">
+                    </div>
+                    <div>
+                        <label class="mb-1 d-block" style="font-size:0.82rem;font-weight:600">Citação</label>
+                        <input type="text" id="citBuscaTexto" class="form-control form-control-sm"
+                               style="width:240px" placeholder="Texto da citação..."
+                               onkeydown="if(event.key==='Enter') citacoes_view.buscar()">
+                    </div>
+                    <button class="btn btn-primary btn-sm" onclick="citacoes_view.buscar()">
+                        Buscar
+                    </button>
+                </div>
+                <div id="citacoesTabela">
+                    <p class="text-muted small">Use os filtros acima para pesquisar citações, ou clique em Buscar para ver todas.</p>
+                </div>
+            </div>
+        `);
+        $.getScript('/php/pages/base/components/main/Citacoes/index.js')
+            .done(function () {
+                if (window.citacoes_view) citacoes_view.buscar();
+            })
+            .fail(function () {
+                console.error('Erro ao carregar script Citações.');
+            });
+    },
+
+    // ─── Minhas Resenhas (Consulta) ──────────────────────────────
+    abrirConsultaResenhas: function () {
+        this._carregarCSSCronograma();
+        $('#mainConteudo').html(`
+            <div id="resenhasContainer" class="container-fluid mt-4">
+                <h3 class="mb-3">Minhas Resenhas</h3>
+                <div class="mb-3 d-flex flex-wrap align-items-end" style="gap:8px">
+                    <div>
+                        <label class="mb-1 d-block" style="font-size:0.82rem;font-weight:600">Mês de leitura</label>
+                        <select id="resenhasMesFiltro" class="form-control form-control-sm" style="width:180px"
+                                onchange="resenhas_view.buscar()">
+                            <option value="">Carregando...</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="mb-1 d-block" style="font-size:0.82rem;font-weight:600">Título / Autor</label>
+                        <input type="text" id="resenhasBuscaTitulo" class="form-control form-control-sm"
+                               style="width:240px" placeholder="Título ou autor..."
+                               onkeydown="if(event.key==='Enter') resenhas_view.buscar()">
+                    </div>
+                    <button class="btn btn-primary btn-sm" onclick="resenhas_view.buscar()">
+                        Buscar
+                    </button>
+                </div>
+                <div id="resenhasTabela">
+                    <p class="text-muted small">Carregando...</p>
+                </div>
+            </div>
+
+            <!-- Modal: Ver Resenha Completa -->
+            <div class="modal fade" id="modalVerResenha" tabindex="-1" role="dialog" aria-hidden="true">
+              <div class="modal-dialog modal-lg modal-dialog-scrollable" role="document">
+                <div class="modal-content">
+                  <div class="modal-header" style="background:#343a40;color:#fff;padding:12px 16px">
+                    <h5 class="modal-title" id="modalResenhaLivro" style="font-size:1rem;font-weight:700"></h5>
+                    <button type="button" class="close" style="color:#fff;opacity:1" data-dismiss="modal">
+                      <span>&times;</span>
+                    </button>
+                  </div>
+                  <div class="modal-body">
+                    <div class="mb-3" style="font-size:0.88rem;color:#555;display:flex;gap:20px;flex-wrap:wrap">
+                        <span><strong>Autor:</strong> <span id="modalResenhaAutor"></span></span>
+                        <span><strong>Mês:</strong> <span id="modalResenhaMes"></span></span>
+                        <span><strong>Avaliação:</strong> <span id="modalResenhaAvaliacao"></span></span>
+                    </div>
+                    <hr style="margin:12px 0">
+                    <p id="modalResenhaTexto" style="font-size:0.88rem;line-height:1.8;white-space:pre-wrap;word-break:break-word"></p>
+                  </div>
+                  <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary btn-sm" data-dismiss="modal">Fechar</button>
+                    <button type="button" class="btn btn-outline-dark btn-sm" onclick="resenhas_view.gerarPDF()">
+                        📄 Gerar PDF
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+        `);
+        $.getScript('/php/pages/base/components/main/Resenhas/index.js')
+            .done(function () {
+                if (window.resenhas_view) {
+                    resenhas_view.init().then(function () {
+                        resenhas_view.buscar();
+                    });
+                }
+            })
+            .fail(function () {
+                console.error('Erro ao carregar script Resenhas.');
+            });
+    },
+
+    // ─── Minha TBR (Consulta) ────────────────────────────────────
+    abrirMinhaTBR: function () {
+        this._carregarCSSCronograma();
+        $('#mainConteudo').html(`
+            <div id="tbrConsultaContainer" class="container-fluid mt-4">
+                <h3 class="mb-3">Minha TBR</h3>
+                <div class="mb-3 d-flex align-items-center flex-wrap" style="gap:10px">
+                    <label class="mb-0 font-weight-bold" style="font-size:0.9rem">Mês:</label>
+                    <select id="tbrMesFiltro" class="form-control" style="width:180px"
+                            onchange="tbr_view.carregarTBR(this.value)">
+                        <option value="">Carregando...</option>
+                    </select>
+                </div>
+                <div id="tbrTabela">
+                    <p class="text-muted small">Carregando...</p>
+                </div>
+            </div>
+        `);
+        $.getScript('/php/pages/base/components/main/TBR/index.js')
+            .done(function () {
+                if (window.tbr_view) tbr_view.init();
+            })
+            .fail(function () {
+                console.error('Erro ao carregar script TBR.');
+            });
+    },
+
     sincronizarLeituras: async function () {
         const btn = $('#btnSincronizar');
         const msg = $('#sincronizarMsg');
@@ -312,10 +559,13 @@ let menuLateral = {
 
             msg.text(json.data.message).css('color', json.data.sincronizados > 0 ? '#28a745' : '#6c757d');
 
-            // Recarrega a tabela do mês atual
+            // Recarrega a tabela do mês ou do ano, dependendo da view aberta
             const mesAtual = $('#leiturasMesFiltro').val();
+            const anoAtual = $('#leiturasAnoFiltro').val();
             if (window.leituras_view && mesAtual) {
                 leituras_view.carregarMes(mesAtual);
+            } else if (window.leituras_view && anoAtual) {
+                leituras_view.carregarAno(anoAtual);
             }
         } catch (e) {
             console.error('Erro ao sincronizar:', e);
@@ -468,7 +718,7 @@ let menuLateral = {
                     <div class="col-md-3 col-sm-6 mb-3">
                         <div style="border:1px solid #e0e0e0;border-radius:8px;padding:14px;text-align:center">
                             <h6 style="font-size:0.82rem;font-weight:700;margin-bottom:4px">Livros Físicos</h6>
-                            <small class="text-muted d-block mb-8" id="graf-fisicos-total" style="margin-bottom:10px">—</small>
+                            <small class="text-muted d-block" id="graf-fisicos-total" style="margin-bottom:10px">—</small>
                             <div style="position:relative;height:210px">
                                 <canvas id="graf-fisicos"></canvas>
                             </div>
@@ -520,12 +770,15 @@ let menuLateral = {
         }
 
         _loadChartJS(function () {
-            $.getScript('/php/pages/base/components/main/graficos.js')
+            $.getScript('/php/pages/base/components/main/graficos.js?v=' + Date.now())
                 .done(function () {
                     if (window.graficos) graficos.init();
                 })
                 .fail(function () {
                     console.error('Erro ao carregar graficos.js');
+                    $('#graficosContainer').html(
+                        '<div class="alert alert-danger">Não foi possível carregar o módulo de gráficos.</div>'
+                    );
                 });
         });
     },
@@ -789,8 +1042,7 @@ let menuLateral = {
                     <label style="font-size:0.9rem;font-weight:600;display:block;margin-bottom:6px">
                         Selecione o escritor / lista
                     </label>
-                    <select id="autorSelect" class="form-control"
-                            onchange="menuLateral._autorSelecionado(this.value)">
+                    <select id="autorSelect" class="form-control">
                         <option value="">— escolha um autor —</option>
                     </select>
                 </div>
@@ -869,6 +1121,12 @@ let menuLateral = {
                 opt.value       = a.chave;
                 opt.textContent = a.label;
                 sel.appendChild(opt);
+            });
+
+            // Bind via jQuery para garantir disparo correto (evita problema com onchange inline)
+            const self = this;
+            $('#autorSelect').on('change', function () {
+                self._autorSelecionado(this.value);
             });
         } catch (e) {
             console.error('Erro ao carregar autores:', e);

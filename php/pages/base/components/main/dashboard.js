@@ -557,7 +557,7 @@ let dashboard = {
             console.error('carregarLeiturasMes:', e);
             this._erro(id, 'Erro ao carregar leituras do mês.');
         }
-    }
+    },
 
     // ─── Leituras Agrupadas (Raça / Nacionalidade / Sexo) ────────
     _agrupCfg: {

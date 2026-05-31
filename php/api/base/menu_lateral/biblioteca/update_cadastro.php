@@ -199,7 +199,7 @@ function PutMethod() {
         'autor'         => 'autor',
         'sexo_autor'    => 'sexo_autor',
         'nacionalidade' => 'nacionalidade',
-        'raca'          => 'raca',
+        'raca'          => 'raça',
         'volume'        => 'volume',
         'serie'         => 'serie',
         'genero'        => 'genero',

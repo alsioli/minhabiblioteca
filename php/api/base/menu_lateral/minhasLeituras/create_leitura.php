@@ -116,6 +116,16 @@ function PostMethod() {
 
         $db->ExecuteNonQuery($sqlLA, $paramsLA);
 
+        // Remove automaticamente da fila "Quero Ler Logo" se estiver lá
+        try {
+            $db->ExecuteNonQuery(
+                "DELETE FROM [Biblioteca].[dbo].[Quero_Ler_Logo] WHERE titulo = :titulo",
+                [':titulo' => $titulo]
+            );
+        } catch (Exception $e) {
+            // Tabela pode não existir — ignora silenciosamente
+        }
+
         $result_status = true;
         $result_data   = ['message' => 'Leitura registrada com sucesso.', 'id' => $id_leitura];
 

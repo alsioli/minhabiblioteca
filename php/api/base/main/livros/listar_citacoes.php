@@ -27,10 +27,14 @@ function GetMethod() {
     global $result_status, $result_error, $result_data;
 
     $sql = "
-        SELECT id, citacao, livro, autor
-        FROM [Biblioteca].[dbo].[Citacoes]
-        WHERE ativo = 1
-        ORDER BY id ASC
+        SELECT
+            id,
+            frases  AS citacao,
+            titulo  AS livro,
+            autor
+        FROM [Biblioteca].[dbo].[FrasesFavoritas]
+        WHERE frases IS NOT NULL AND frases <> ''
+        ORDER BY NEWID()
     ";
 
     try {

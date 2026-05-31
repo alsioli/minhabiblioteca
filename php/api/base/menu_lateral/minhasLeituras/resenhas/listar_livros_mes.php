@@ -1,6 +1,6 @@
 <?php
 
-include_once __DIR__ . "/../../../../utils/function/database.php";
+include_once __DIR__ . "/../../../../../utils/function/database.php";
 
 $result_status = false;
 $result_error  = null;
@@ -26,20 +26,29 @@ echo json_encode([
 function GetMethod() {
     global $result_status, $result_error, $result_data;
 
+    $mes = trim($_GET['mes'] ?? '');
+
+    if (empty($mes)) {
+        $result_error = 'Mês não informado.';
+        return;
+    }
+
     $sql = "
-        SELECT id, titulo, autor, paginas, tipo_midia, data_inicio,
-               ISNULL(tema, '') AS tema
-        FROM [Biblioteca].[dbo].[Leituras]
-        WHERE data_fim IS NULL
-          AND data_inicio IS NOT NULL
-        ORDER BY data_inicio DESC
+        SELECT id, titulo, autor, mes, avaliacao
+        FROM Leituras
+        WHERE mes = :mes
+          AND data_fim IS NOT NULL
+          AND bAtivo = 1
+        ORDER BY titulo
     ";
 
     try {
-        $db = new DataBase();
-        $result_data   = $db->GetMany($sql);
+        $db   = new DataBase();
+        $rows = $db->GetMany($sql, [':mes' => $mes]);
+
         $result_status = true;
+        $result_data   = $rows;
     } catch (Exception $e) {
-        $result_error = 'Erro ao listar leituras em andamento: ' . $e->getMessage();
+        $result_error = 'Erro ao listar livros: ' . $e->getMessage();
     }
 }

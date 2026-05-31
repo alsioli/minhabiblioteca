@@ -5,26 +5,29 @@
 
 let graficos = {
 
-    _instancias: {},   // guarda instâncias para destruir antes de recriar
+    _instancias: {},
 
     // ── Paleta ──────────────────────────────────────────────────
     _cores: {
-        lido:     '#28a745',
-        lendo:    '#fd7e14',
-        naoLido:  '#adb5bd',
-        bar1:     'rgba(78, 121, 167, 0.82)',
-        bar2:     'rgba(242, 142, 43, 0.82)',
-        concluida:'rgba(40, 167, 69, 0.82)',
-        andamento:'rgba(253, 126, 20, 0.82)',
-        border:   'rgba(0,0,0,0)',
+        lido:      '#28a745',
+        lendo:     '#fd7e14',
+        naoLido:   '#adb5bd',
+        bar1:      'rgba(78, 121, 167, 0.82)',
+        bar2:      'rgba(242, 142, 43, 0.82)',
+        concluida: 'rgba(40, 167, 69, 0.82)',
+        andamento: 'rgba(253, 126, 20, 0.82)',
     },
 
-    // ── Utilitário: destrói gráfico anterior se existir ─────────
+    // ── Destrói instância anterior com segurança ────────────────
     _destruir: function (id) {
-        if (this._instancias[id]) {
-            this._instancias[id].destroy();
-            delete this._instancias[id];
+        try {
+            if (this._instancias[id]) {
+                this._instancias[id].destroy();
+            }
+        } catch (e) {
+            // canvas pode ter sido removido do DOM — ignora
         }
+        delete this._instancias[id];
     },
 
     // ── Ordena meses "MM/YYYY" cronologicamente ──────────────────
@@ -33,28 +36,44 @@ let graficos = {
         return p.length === 2 ? parseInt(p[1]) * 100 + parseInt(p[0]) : 0;
     },
 
-    // ── Pivot: array [{mes, total}] → mapa {mes: total} ─────────
+    // ── Pivot: [{mes, total}] → {mes: total} ───────────────────
     _pivot: function (lista, campoMes, campoVal) {
         const map = {};
-        (lista || []).forEach(r => { map[r[campoMes]] = parseInt(r[campoVal]) || 0; });
+        (lista || []).forEach(function (r) {
+            map[r[campoMes]] = parseInt(r[campoVal]) || 0;
+        });
         return map;
+    },
+
+    // ── Exibe erro no container ──────────────────────────────────
+    _erroContainer: function (msg) {
+        const el = document.getElementById('graficosContainer');
+        if (el) el.innerHTML = '<div class="alert alert-danger mt-3">' + msg + '</div>';
     },
 
     // ── Inicializa todos os gráficos ─────────────────────────────
     init: async function () {
         try {
             const [resMes, resAcervo] = await Promise.all([
-                fetch('/php/api/base/main/livros/listar_grafico_mes.php').then(r => r.json()),
-                fetch('/php/api/base/main/livros/listar_grafico_acervo.php').then(r => r.json()),
+                fetch('/php/api/base/main/livros/listar_grafico_mes.php').then(function (r) { return r.json(); }),
+                fetch('/php/api/base/main/livros/listar_grafico_acervo.php').then(function (r) { return r.json(); }),
             ]);
 
-            if (resMes.status)    this._renderGraficosMes(resMes.data);
-            if (resAcervo.status) this._renderGraficosAcervo(resAcervo.data);
+            if (!resMes.status) {
+                console.error('Erro API gráfico mês:', resMes.error);
+            } else {
+                this._renderGraficosMes(resMes.data || {});
+            }
+
+            if (!resAcervo.status) {
+                console.error('Erro API gráfico acervo:', resAcervo.error);
+            } else {
+                this._renderGraficosAcervo(resAcervo.data || {});
+            }
 
         } catch (e) {
             console.error('Erro ao carregar gráficos:', e);
-            document.getElementById('graficosContainer').innerHTML =
-                '<div class="alert alert-danger">Erro ao carregar gráficos.</div>';
+            this._erroContainer('Erro ao carregar gráficos. Verifique a conexão com o banco de dados.');
         }
     },
 
@@ -67,28 +86,31 @@ let graficos = {
         const concluidaMap = this._pivot(data.concluidas_por_mes, 'mes', 'total');
         const andamentoMap = this._pivot(data.andamento_por_mes,  'mes', 'total');
 
-        // Coleta todos os meses presentes e ordena cronologicamente
         const todosMeses = [...new Set([
             ...Object.keys(totalMap),
             ...Object.keys(concluidaMap),
             ...Object.keys(andamentoMap),
-        ])].sort((a, b) => this._sortKey(a) - this._sortKey(b));
+        ])].sort(function (a, b) { return graficos._sortKey(a) - graficos._sortKey(b); });
+
+        const semDados = '<p class="text-muted text-center py-4">Sem dados de leituras mensais.</p>';
 
         if (todosMeses.length === 0) {
-            document.getElementById('graf-mes-total').parentElement.innerHTML =
-                '<p class="text-muted text-center py-4">Sem dados de leituras mensais.</p>';
-            document.getElementById('graf-mes-andamento').parentElement.innerHTML = '';
+            const el1 = document.getElementById('graf-mes-total');
+            const el2 = document.getElementById('graf-mes-andamento');
+            if (el1) el1.parentElement.innerHTML = semDados;
+            if (el2) el2.parentElement.innerHTML = '';
             return;
         }
 
-        const totalArr     = todosMeses.map(m => totalMap[m]     || 0);
-        const concluidaArr = todosMeses.map(m => concluidaMap[m] || 0);
-        const andamentoArr = todosMeses.map(m => andamentoMap[m] || 0);
+        const totalArr     = todosMeses.map(function (m) { return totalMap[m]     || 0; });
+        const concluidaArr = todosMeses.map(function (m) { return concluidaMap[m] || 0; });
+        const andamentoArr = todosMeses.map(function (m) { return andamentoMap[m] || 0; });
 
         // ── Gráfico 1: Total de leituras por mês ────────────────
         this._destruir('graf-mes-total');
-        const ctx1 = document.getElementById('graf-mes-total').getContext('2d');
-        this._instancias['graf-mes-total'] = new Chart(ctx1, {
+        const el1 = document.getElementById('graf-mes-total');
+        if (!el1) return;
+        this._instancias['graf-mes-total'] = new Chart(el1.getContext('2d'), {
             type: 'bar',
             data: {
                 labels: todosMeses,
@@ -106,28 +128,26 @@ let graficos = {
                 maintainAspectRatio: false,
                 plugins: {
                     legend: { position: 'top' },
-                    title:  { display: false },
                     tooltip: {
                         callbacks: {
-                            label: ctx => ` ${ctx.parsed.y} leitura${ctx.parsed.y !== 1 ? 's' : ''}`
+                            label: function (ctx) {
+                                return ' ' + ctx.parsed.y + ' leitura' + (ctx.parsed.y !== 1 ? 's' : '');
+                            }
                         }
                     }
                 },
                 scales: {
-                    y: {
-                        beginAtZero: true,
-                        ticks: { precision: 0 },
-                        grid: { color: '#f0f0f0' }
-                    },
+                    y: { beginAtZero: true, ticks: { precision: 0 }, grid: { color: '#f0f0f0' } },
                     x: { grid: { display: false } }
                 }
             }
         });
 
-        // ── Gráfico 2: Concluídas vs Em andamento por mês ───────
+        // ── Gráfico 2: Concluídas vs Em andamento ───────────────
         this._destruir('graf-mes-andamento');
-        const ctx2 = document.getElementById('graf-mes-andamento').getContext('2d');
-        this._instancias['graf-mes-andamento'] = new Chart(ctx2, {
+        const el2 = document.getElementById('graf-mes-andamento');
+        if (!el2) return;
+        this._instancias['graf-mes-andamento'] = new Chart(el2.getContext('2d'), {
             type: 'bar',
             data: {
                 labels: todosMeses,
@@ -157,16 +177,14 @@ let graficos = {
                     legend: { position: 'top' },
                     tooltip: {
                         callbacks: {
-                            label: ctx => ` ${ctx.dataset.label}: ${ctx.parsed.y}`
+                            label: function (ctx) {
+                                return ' ' + ctx.dataset.label + ': ' + ctx.parsed.y;
+                            }
                         }
                     }
                 },
                 scales: {
-                    y: {
-                        beginAtZero: true,
-                        ticks: { precision: 0 },
-                        grid: { color: '#f0f0f0' }
-                    },
+                    y: { beginAtZero: true, ticks: { precision: 0 }, grid: { color: '#f0f0f0' } },
                     x: { grid: { display: false } }
                 }
             }
@@ -178,47 +196,45 @@ let graficos = {
     // ════════════════════════════════════════════════════════════
 
     _renderGraficosAcervo: function (data) {
-        this._renderRosca('graf-fisicos', data.fisicos,
-            'Livros Físicos', '(Estante, 1a. Prateleira, Presente)');
-        this._renderRosca('graf-tag',    data.tag,
-            'Tag', '');
-        this._renderRosca('graf-ebooks', data.ebooks,
-            'Ebooks / Kindle', '');
-        this._renderGeral('graf-geral',  data.geral);
+        this._renderRosca('graf-fisicos', data.fisicos, 'Livros Físicos');
+        this._renderRosca('graf-tag',     data.tag,     'Tag');
+        this._renderRosca('graf-ebooks',  data.ebooks,  'Ebooks / Kindle');
+        this._renderGeral('graf-geral',   data.geral);
     },
 
-    _renderRosca: function (canvasId, row, titulo, subtitulo) {
+    _renderRosca: function (canvasId, row, titulo) {
         const el = document.getElementById(canvasId);
         if (!el) return;
 
-        const lidos   = parseInt(row?.lidos   || 0);
-        const lendo   = parseInt(row?.lendo   || 0);
-        const naoLido = parseInt(row?.nao_lidos || 0);
-        const total   = parseInt(row?.total   || 0);
+        const lidos   = parseInt((row && row.lidos)    || 0);
+        const lendo   = parseInt((row && row.lendo)    || 0);
+        const naoLido = parseInt((row && row.nao_lidos) || 0);
+        const total   = parseInt((row && row.total)    || 0);
 
-        // Atualiza label do card
         const labelEl = document.getElementById(canvasId + '-total');
-        if (labelEl) labelEl.textContent = total + ' livros';
+        if (labelEl) labelEl.textContent = total + ' livro' + (total !== 1 ? 's' : '');
 
         if (total === 0) {
-            el.parentElement.innerHTML = `<p class="text-muted text-center py-3" style="font-size:0.85rem">
-                Sem dados para <strong>${titulo}</strong>.</p>`;
+            el.parentElement.innerHTML =
+                '<p class="text-muted text-center py-3" style="font-size:0.85rem">' +
+                'Sem dados para <strong>' + titulo + '</strong>.</p>';
             return;
         }
 
         this._destruir(canvasId);
-        const ctx = el.getContext('2d');
+        const elAtual = document.getElementById(canvasId);
+        if (!elAtual) return;
+
+        const ctx = elAtual.getContext('2d');
+        const cores = this._cores;
+
         this._instancias[canvasId] = new Chart(ctx, {
             type: 'doughnut',
             data: {
                 labels: ['Lidos', 'Lendo', 'Não lidos'],
                 datasets: [{
                     data: [lidos, lendo, naoLido],
-                    backgroundColor: [
-                        this._cores.lido,
-                        this._cores.lendo,
-                        this._cores.naoLido,
-                    ],
+                    backgroundColor: [cores.lido, cores.lendo, cores.naoLido],
                     borderWidth: 2,
                     borderColor: '#fff',
                     hoverOffset: 8,
@@ -232,33 +248,32 @@ let graficos = {
                     legend: { position: 'bottom', labels: { font: { size: 11 } } },
                     tooltip: {
                         callbacks: {
-                            label: function (ctx) {
-                                const pct = total > 0
-                                    ? ((ctx.parsed / total) * 100).toFixed(1)
-                                    : 0;
-                                return ` ${ctx.label}: ${ctx.parsed} (${pct}%)`;
+                            label: function (c) {
+                                const pct = total > 0 ? ((c.parsed / total) * 100).toFixed(1) : 0;
+                                return ' ' + c.label + ': ' + c.parsed + ' (' + pct + '%)';
                             }
                         }
                     }
                 }
             },
             plugins: [{
-                id: 'centro',
-                afterDraw(chart) {
-                    const { width, height, ctx } = chart;
-                    ctx.restore();
-                    const pct = total > 0
-                        ? Math.round((lidos / total) * 100) + '%'
-                        : '0%';
-                    ctx.font = `bold ${Math.round(height / 6)}px sans-serif`;
-                    ctx.fillStyle = '#28a745';
-                    ctx.textAlign = 'center';
-                    ctx.textBaseline = 'middle';
-                    ctx.fillText(pct, width / 2, height / 2 - 12);
-                    ctx.font = `${Math.round(height / 12)}px sans-serif`;
-                    ctx.fillStyle = '#888';
-                    ctx.fillText('lidos', width / 2, height / 2 + 10);
-                    ctx.save();
+                id: 'centro_' + canvasId,
+                afterDraw: function (chart) {
+                    const c   = chart.ctx;
+                    const w   = chart.width;
+                    const h   = chart.height;
+                    const pct = total > 0 ? Math.round((lidos / total) * 100) + '%' : '0%';
+
+                    c.save();                           // salva estado ANTES de modificar
+                    c.font = 'bold ' + Math.round(h / 6) + 'px sans-serif';
+                    c.fillStyle    = '#28a745';
+                    c.textAlign    = 'center';
+                    c.textBaseline = 'middle';
+                    c.fillText(pct, w / 2, h / 2 - 12);
+                    c.font      = Math.round(h / 12) + 'px sans-serif';
+                    c.fillStyle = '#888';
+                    c.fillText('lidos', w / 2, h / 2 + 10);
+                    c.restore();                        // restaura estado APÓS modificar
                 }
             }]
         });
@@ -268,24 +283,26 @@ let graficos = {
         const el = document.getElementById(canvasId);
         if (!el || !geral || geral.length === 0) return;
 
-        const labels = geral.map(r => r.status);
-        const valores = geral.map(r => parseInt(r.total) || 0);
-        const total = valores.reduce((a, b) => a + b, 0);
+        const labels  = geral.map(function (r) { return r.status; });
+        const valores = geral.map(function (r) { return parseInt(r.total) || 0; });
+        const total   = valores.reduce(function (a, b) { return a + b; }, 0);
+
+        const labelEl = document.getElementById(canvasId + '-total');
+        if (labelEl) labelEl.textContent = total + ' livro' + (total !== 1 ? 's' : '');
 
         const coresGeral = [
             '#28a745', '#fd7e14', '#adb5bd',
             '#4e79a7', '#f28e2b', '#e15759', '#76b7b2', '#59a14f'
         ];
 
-        const labelEl = document.getElementById(canvasId + '-total');
-        if (labelEl) labelEl.textContent = total + ' livros';
-
         this._destruir(canvasId);
-        const ctx = el.getContext('2d');
-        this._instancias[canvasId] = new Chart(ctx, {
+        const elAtual = document.getElementById(canvasId);
+        if (!elAtual) return;
+
+        this._instancias[canvasId] = new Chart(elAtual.getContext('2d'), {
             type: 'doughnut',
             data: {
-                labels,
+                labels: labels,
                 datasets: [{
                     data: valores,
                     backgroundColor: coresGeral.slice(0, labels.length),
@@ -302,7 +319,10 @@ let graficos = {
                     legend: { position: 'bottom', labels: { font: { size: 11 } } },
                     tooltip: {
                         callbacks: {
-                            label: ctx => ` ${ctx.label}: ${ctx.parsed} (${total > 0 ? ((ctx.parsed/total)*100).toFixed(1) : 0}%)`
+                            label: function (c) {
+                                const pct = total > 0 ? ((c.parsed / total) * 100).toFixed(1) : 0;
+                                return ' ' + c.label + ': ' + c.parsed + ' (' + pct + '%)';
+                            }
                         }
                     }
                 }

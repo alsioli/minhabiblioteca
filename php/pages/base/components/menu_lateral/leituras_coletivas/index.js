@@ -142,15 +142,19 @@ let leitura_coletiva = {
                 </thead>
                 <tbody style="font-size:0.82rem">
         `;
-        lista.forEach(livro => {
-            html += `<tr style="cursor:pointer"
-                         onclick="leitura_coletiva.selecionarLivroLC('${livro.titulo.replace(/'/g, "\\'")}', ${livro.paginas || 0})">
+        lista.forEach((livro, idx) => {
+            html += `<tr data-idx="${idx}" style="cursor:pointer">
                         <td>${livro.titulo}</td>
                         <td>${livro.paginas || '—'}</td>
                     </tr>`;
         });
         html += '</tbody></table>';
-        $('#nlc_resultados').html(html);
+
+        const self = this;
+        $('#nlc_resultados').html(html).find('tr[data-idx]').on('click', function () {
+            const livro = lista[parseInt($(this).data('idx'))];
+            if (livro) self.selecionarLivroLC(livro.titulo, livro.paginas || 0);
+        });
     },
 
     // Seleciona um livro do resultado e prepara a seção de datas

@@ -72,8 +72,8 @@ function PostMethod() {
 
     $sql = "
         INSERT INTO [Biblioteca].[dbo].[CadastroLeiturasColetivas]
-        (" . implode(',', $cols) . ", created_at)
-        VALUES (" . implode(',', $vals) . ", GETDATE())
+        (" . implode(',', $cols) . ")
+        VALUES (" . implode(',', $vals) . ")
     ";
 
     try {

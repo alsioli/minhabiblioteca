@@ -55,9 +55,22 @@
         <fieldset id="imp_secao_obs" class="border rounded p-3 mb-3 d-none">
           <legend class="w-auto px-2" style="font-size:0.9rem;font-weight:bold;">Observações</legend>
 
+          <div class="row">
+            <div class="col-md-4 form-group">
+              <label>Capítulo</label>
+              <input type="text" id="imp_capitulo" class="form-control form-control-sm"
+                     placeholder="Ex: 5 ou Cap. 5">
+            </div>
+            <div class="col-md-4 form-group">
+              <label>Página ou Percentual</label>
+              <input type="text" id="imp_pagina_percentual" class="form-control form-control-sm"
+                     placeholder="Ex: 120 ou 45%">
+            </div>
+          </div>
+
           <div class="form-group mb-0">
             <label>O que você quer registrar sobre este livro? <span class="text-danger">*</span></label>
-            <textarea id="imp_observacoes" class="form-control" rows="5"
+            <textarea id="imp_observacoes" class="form-control" rows="4"
                       placeholder="Anotações, reflexões, trechos marcantes, críticas..."></textarea>
           </div>
         </fieldset>
@@ -68,8 +81,8 @@
       </div><!-- /.modal-body -->
 
       <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
-        <button type="button" class="btn btn-primary" onclick="minhas_leituras.salvarImpressao()">Salvar</button>
+        <button type="button" class="btn btn-secondary btn-sm" data-dismiss="modal">Cancelar</button>
+        <button type="button" class="btn btn-primary btn-sm" onclick="minhas_leituras.salvarImpressao()">Salvar</button>
       </div>
 
     </div>
@@ -441,13 +454,42 @@
           </div>
         </fieldset>
 
-        <!-- SEÇÃO 3: Frase (aparece após selecionar) -->
+        <!-- SEÇÃO 3: Localização na leitura -->
         <fieldset id="ff_secao_frase" class="border rounded p-3 mb-3 d-none">
           <legend class="w-auto px-2" style="font-size:0.9rem;font-weight:bold;">Citação</legend>
 
+          <div class="row mb-2">
+            <div class="col-md-3 form-group mb-2">
+              <label class="small">Capítulo</label>
+              <input type="text" id="ff_capitulo" class="form-control form-control-sm"
+                     placeholder="Ex: 5">
+            </div>
+            <div class="col-md-3 form-group mb-2">
+              <label class="small">Página ou Percentual</label>
+              <input type="text" id="ff_pagina_percentual" class="form-control form-control-sm"
+                     placeholder="Ex: 120 ou 45%">
+            </div>
+            <div class="col-md-3 form-group mb-2">
+              <label class="small">Avaliação da frase</label>
+              <select id="ff_avaliacao_frase" class="form-control form-control-sm">
+                <option value="">—</option>
+                <option value="1">⭐ 1</option>
+                <option value="2">⭐⭐ 2</option>
+                <option value="3">⭐⭐⭐ 3</option>
+                <option value="4">⭐⭐⭐⭐ 4</option>
+                <option value="5">⭐⭐⭐⭐⭐ 5</option>
+              </select>
+            </div>
+            <div class="col-md-3 form-group mb-2">
+              <label class="small">Tema</label>
+              <input type="text" id="ff_tema_display" class="form-control form-control-sm"
+                     readonly style="background:#f8f9fa">
+            </div>
+          </div>
+
           <div class="form-group mb-0">
             <label>Escreva a frase <span class="text-danger">*</span></label>
-            <textarea id="ff_frase" class="form-control" rows="5"
+            <textarea id="ff_frase" class="form-control" rows="4"
                       placeholder="Digite ou cole a citação aqui..."></textarea>
           </div>
         </fieldset>
@@ -456,14 +498,16 @@
         <input type="hidden" id="ff_id_leitura">
         <input type="hidden" id="ff_titulo">
         <input type="hidden" id="ff_autor">
+        <input type="hidden" id="ff_tema">
+        <input type="hidden" id="ff_mes">
 
         <div id="ff_mensagem" class="mt-2"></div>
 
       </div><!-- /.modal-body -->
 
       <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
-        <button type="button" class="btn btn-primary"
+        <button type="button" class="btn btn-secondary btn-sm" data-dismiss="modal">Cancelar</button>
+        <button type="button" class="btn btn-primary btn-sm"
                 onclick="minhas_leituras.salvarFraseFavorita()">Salvar</button>
       </div>
 

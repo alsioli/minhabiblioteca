@@ -86,7 +86,7 @@ let quero_ler = {
             const body = new FormData();
             body.append('tabela',    this._tabelaSelecionada);
             body.append('titulo',    titulo);
-            body.append('releitura', 'nao');
+            body.append('releitura', 'todos');
 
             const resp = await fetch('/php/api/base/menu_lateral/TBR/buscar_livro_tbr.php', {
                 method: 'POST',

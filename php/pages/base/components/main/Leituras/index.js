@@ -114,16 +114,13 @@ let leituras_view = {
     carregarMes: async function (mesISO) {
         if (!mesISO) return;
 
-        // "YYYY-MM" → "MM/YYYY"
-        const [ano, mes] = mesISO.split('-');
-        const mesFmt = `${mes}/${ano}`;
-
+        // Envia no formato YYYY-MM que listar_mes.php espera
         $('#leiturasMesTabela').html('<p class="text-muted small">Carregando...</p>');
         $('#leiturasMesBadge').text('0 livros');
 
         try {
             const resp = await fetch(
-                `/php/api/base/main/leituras/listar_mes.php?mes=${encodeURIComponent(mesFmt)}`
+                `/php/api/base/main/leituras/listar_mes.php?mes=${encodeURIComponent(mesISO)}`
             );
             const json = await resp.json();
 
@@ -181,7 +178,105 @@ let leituras_view = {
 
         html += '</tbody></table></div>';
         $('#leiturasMesTabela').html(html);
-    }
+    },
+
+    // ─────────────────────────────────────────────────────────────
+    //  LEITURAS DO ANO
+    // ─────────────────────────────────────────────────────────────
+
+    _classGrupoMidia: function (tipo) {
+        const t = (tipo || '').toLowerCase().trim();
+        if (t.includes('epub') || t.includes('ebook') || t.includes('e-book') ||
+            t.includes('kindle') || t.includes('digital')) return 'ebook';
+        if (t === 'tag') return 'tag';
+        return 'fisico';
+    },
+
+    carregarAno: async function (ano) {
+        if (!ano) return;
+
+        $('#leiturasAnoTabela').html('<p class="text-muted small">Carregando...</p>');
+        $('#leiturasAnoTotal, #leiturasAnoEbook, #leiturasAnoTag, #leiturasAnoFisico').text('—');
+
+        try {
+            const resp = await fetch(
+                `/php/api/base/main/leituras/listar_ano.php?ano=${encodeURIComponent(ano)}`
+            );
+            const json = await resp.json();
+
+            if (!json.status) {
+                $('#leiturasAnoTabela').html(
+                    `<div class="alert alert-warning">${json.error || 'Nenhum dado encontrado.'}</div>`
+                );
+                return;
+            }
+
+            const lista  = json.data || [];
+            const total  = lista.length;
+            const self   = this;
+            const ebooks = lista.filter(l => self._classGrupoMidia(l.tipo_midia) === 'ebook').length;
+            const tags   = lista.filter(l => self._classGrupoMidia(l.tipo_midia) === 'tag').length;
+            const fisico = lista.filter(l => self._classGrupoMidia(l.tipo_midia) === 'fisico').length;
+            const pct    = n => total > 0 ? ((n / total) * 100).toFixed(1) + '%' : '0%';
+
+            $('#leiturasAnoTotal').text(`${total} livro${total !== 1 ? 's' : ''}`);
+            $('#leiturasAnoEbook').text(`${ebooks} ebook${ebooks !== 1 ? 's' : ''} — ${pct(ebooks)}`);
+            $('#leiturasAnoTag').text(`${tags} TAG — ${pct(tags)}`);
+            $('#leiturasAnoFisico').text(`${fisico} físico${fisico !== 1 ? 's' : ''} — ${pct(fisico)}`);
+
+            if (total === 0) {
+                $('#leiturasAnoTabela').html('<p class="text-muted">Nenhum livro registrado neste ano.</p>');
+                return;
+            }
+
+            this._renderAno(lista);
+        } catch (e) {
+            console.error('Erro ao carregar leituras do ano:', e);
+            $('#leiturasAnoTabela').html('<div class="alert alert-danger">Erro ao carregar dados.</div>');
+        }
+    },
+
+    _renderAno: function (lista) {
+        let html = `
+            <div class="tabela-wrapper">
+            <table style="width:100%;border-collapse:collapse;table-layout:auto">
+                <thead style="background:#f8f9fa;position:sticky;top:0;z-index:1">
+                    <tr style="font-size:0.82rem">
+                        <th style="padding:6px 8px;text-align:center;border-bottom:2px solid #dee2e6;width:30px">#</th>
+                        <th style="padding:6px 8px;text-align:left;border-bottom:2px solid #dee2e6">Título</th>
+                        <th style="padding:6px 8px;text-align:left;border-bottom:2px solid #dee2e6">Autor</th>
+                        <th style="padding:6px 8px;text-align:left;border-bottom:2px solid #dee2e6">Natureza</th>
+                        <th style="padding:6px 8px;text-align:left;border-bottom:2px solid #dee2e6">Mídia</th>
+                        <th style="padding:6px 8px;text-align:center;border-bottom:2px solid #dee2e6">Páginas</th>
+                        <th style="padding:6px 8px;text-align:center;border-bottom:2px solid #dee2e6">Avaliação</th>
+                        <th style="padding:6px 8px;text-align:center;border-bottom:2px solid #dee2e6">Início</th>
+                        <th style="padding:6px 8px;text-align:center;border-bottom:2px solid #dee2e6">Fim</th>
+                        <th style="padding:6px 8px;text-align:center;border-bottom:2px solid #dee2e6">Tempo</th>
+                    </tr>
+                </thead>
+                <tbody style="font-size:0.83rem">
+        `;
+
+        lista.forEach((l, idx) => {
+            html += `
+                <tr style="border-bottom:1px solid #dee2e6">
+                    <td style="padding:5px 8px;text-align:center;color:#999;font-size:0.78rem">${idx + 1}</td>
+                    <td style="padding:5px 8px;white-space:normal;word-break:break-word;max-width:260px">${l.titulo || ''}</td>
+                    <td style="padding:5px 8px;white-space:normal;max-width:160px">${l.autor || '—'}</td>
+                    <td style="padding:5px 8px;white-space:nowrap">${l.natureza || '—'}</td>
+                    <td style="padding:5px 8px;white-space:nowrap">${l.tipo_midia || '—'}</td>
+                    <td style="padding:5px 8px;text-align:center">${l.paginas || '—'}</td>
+                    <td style="padding:5px 8px;text-align:center">${this._estrelas(l.avaliacao)}</td>
+                    <td style="padding:5px 8px;text-align:center;white-space:nowrap">${this._fmtData(l.data_inicio)}</td>
+                    <td style="padding:5px 8px;text-align:center;white-space:nowrap">${this._fmtData(l.data_fim)}</td>
+                    <td style="padding:5px 8px;text-align:center">${l.tempo_dias != null ? l.tempo_dias + 'd' : '—'}</td>
+                </tr>
+            `;
+        });
+
+        html += '</tbody></table></div>';
+        $('#leiturasAnoTabela').html(html);
+    },
 
     // ─────────────────────────────────────────────────────────────
     //  LIVROS POR NACIONALIDADE

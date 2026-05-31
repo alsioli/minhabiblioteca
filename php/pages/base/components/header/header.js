@@ -64,17 +64,40 @@
 
             const d = json.data;
 
-            const elAnoAtual = document.getElementById('contador-ano-atual');
-            const elAnoAnt   = document.getElementById('contador-ano-anterior');
-            const elMes      = document.getElementById('contador-mes');
-            const elLblAnt   = document.getElementById('label-ano-anterior');
-            const elLblMes   = document.getElementById('label-ano-ant-mes');
+            // Card 1: Livros por ano
+            if (d.anos) {
+                Object.keys(d.anos).forEach(function (ano) {
+                    const el = document.getElementById('hc-ano-' + ano);
+                    if (el) el.textContent = d.anos[ano];
+                });
+            }
 
-            if (elAnoAtual) elAnoAtual.textContent = d.lidos_ano_atual    ?? '—';
-            if (elAnoAnt)   elAnoAnt.textContent   = d.lidos_ano_anterior ?? '—';
-            if (elMes)      elMes.textContent       = d.lidos_ano_ant_mes ?? '—';
-            if (elLblAnt)   elLblAnt.textContent    = 'Lidos em ' + d.ano_anterior;
-            if (elLblMes)   elLblMes.textContent    = 'Lidos em ' + d.mes_ref_fmt;
+            // Card 2: Média mensal
+            const elMedia   = document.getElementById('hc-media');
+            const elPeriodo = document.getElementById('hc-media-periodo');
+            if (elMedia) {
+                elMedia.textContent = d.media_mensal != null
+                    ? parseFloat(d.media_mensal).toFixed(1)
+                    : '—';
+            }
+            if (elPeriodo && d.periodo_media_fmt) {
+                elPeriodo.textContent = d.periodo_media_fmt;
+            }
+
+            // Card 3: Top países
+            const elTop = document.getElementById('hc-top-paises');
+            if (elTop && d.top_paises && d.top_paises.length > 0) {
+                const medals = ['🥇', '🥈', '🥉'];
+                elTop.innerHTML = d.top_paises.map(function (p, i) {
+                    return '<div class="hc-top-item">' +
+                        '<span class="hc-top-medal">' + (medals[i] || (i + 1) + '.') + '</span>' +
+                        '<span class="hc-top-pais">' + (p.pais || '—') + '</span>' +
+                        '<span class="hc-top-count">' + p.total + '</span>' +
+                        '</div>';
+                }).join('');
+            } else if (elTop) {
+                elTop.innerHTML = '<span style="font-size:10px;color:rgba(255,255,255,0.5)">Sem dados</span>';
+            }
 
         } catch (e) {
             console.error('Erro ao carregar contadores do header:', e);

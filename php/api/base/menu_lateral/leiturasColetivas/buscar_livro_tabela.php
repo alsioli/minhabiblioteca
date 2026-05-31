@@ -6,15 +6,41 @@ $result_status = false;
 $result_error  = null;
 $result_data   = null;
 
-// Whitelist de tabelas permitidas — impede SQL injection via nome de tabela
+// Whitelist expandida — cobre múltiplos formatos possíveis de vTabelaVinculada
 $TABELAS_PERMITIDAS = [
-    'dbo.LeiturasSKEELO'        => '[Biblioteca].[dbo].[LeiturasSKEELO]',
-    'dbo.LivrosBiblion'         => '[Biblioteca].[dbo].[LivrosBiblion]',
-    'dbo.LivrosMEC'             => '[Biblioteca].[dbo].[LivrosMEC]',
-    'dbo.LivrosAudible'         => '[Biblioteca].[dbo].[LivrosAudible]',
-    'dbo.LivrosKindleUnlimited' => '[Biblioteca].[dbo].[LivrosKindleUnlimited]',
-    'dbo.Livros'                => '[Biblioteca].[dbo].[Livros]',
+    // ── Livros ────────────────────────────────────────────────────
+    'dbo.Livros'                    => '[Biblioteca].[dbo].[Livros]',
+    'Livros'                        => '[Biblioteca].[dbo].[Livros]',
+    '[Biblioteca].[dbo].[Livros]'   => '[Biblioteca].[dbo].[Livros]',
+
+    // ── Skeelo ────────────────────────────────────────────────────
+    'dbo.LeiturasSKEELO'                    => '[Biblioteca].[dbo].[LeiturasSKEELO]',
+    'LeiturasSKEELO'                        => '[Biblioteca].[dbo].[LeiturasSKEELO]',
+    '[Biblioteca].[dbo].[LeiturasSKEELO]'   => '[Biblioteca].[dbo].[LeiturasSKEELO]',
+
+    // ── Biblion ───────────────────────────────────────────────────
+    'dbo.LivrosBiblion'                     => '[Biblioteca].[dbo].[LivrosBiblion]',
+    'LivrosBiblion'                         => '[Biblioteca].[dbo].[LivrosBiblion]',
+    '[Biblioteca].[dbo].[LivrosBiblion]'    => '[Biblioteca].[dbo].[LivrosBiblion]',
+
+    // ── MEC ───────────────────────────────────────────────────────
+    'dbo.LivrosMEC'                         => '[Biblioteca].[dbo].[LivrosMEC]',
+    'LivrosMEC'                             => '[Biblioteca].[dbo].[LivrosMEC]',
+    '[Biblioteca].[dbo].[LivrosMEC]'        => '[Biblioteca].[dbo].[LivrosMEC]',
+
+    // ── Audible ───────────────────────────────────────────────────
+    'dbo.LivrosAudible'                     => '[Biblioteca].[dbo].[LivrosAudible]',
+    'LivrosAudible'                         => '[Biblioteca].[dbo].[LivrosAudible]',
+    '[Biblioteca].[dbo].[LivrosAudible]'    => '[Biblioteca].[dbo].[LivrosAudible]',
+
+    // ── Kindle Unlimited ─────────────────────────────────────────
+    'dbo.LivrosKindleUnlimited'                     => '[Biblioteca].[dbo].[LivrosKindleUnlimited]',
+    'LivrosKindleUnlimited'                         => '[Biblioteca].[dbo].[LivrosKindleUnlimited]',
+    '[Biblioteca].[dbo].[LivrosKindleUnlimited]'    => '[Biblioteca].[dbo].[LivrosKindleUnlimited]',
 ];
+
+// Tabela Livros: tem tipo_edicao e status; demais podem não ter essas colunas
+const TABELA_SQL_LIVROS = '[Biblioteca].[dbo].[Livros]';
 
 switch ($_SERVER['REQUEST_METHOD']) {
     case 'POST':
@@ -31,7 +57,7 @@ echo json_encode([
     'status' => $result_status,
     'error'  => $result_error,
     'data'   => $result_data,
-]);
+], JSON_UNESCAPED_UNICODE);
 
 function PostMethod(array $tabelasPermitidas) {
     global $result_status, $result_error, $result_data;
@@ -45,16 +71,26 @@ function PostMethod(array $tabelasPermitidas) {
     }
 
     if (!isset($tabelasPermitidas[$tabela])) {
-        $result_error = 'Tabela não permitida.';
+        $result_error = 'Origem não reconhecida: ' . $tabela;
         return;
     }
 
-    $tabelaSQL = $tabelasPermitidas[$tabela];
+    $tabelaSQL  = $tabelasPermitidas[$tabela];
+    $ehLivros   = ($tabelaSQL === TABELA_SQL_LIVROS);
 
-    $sql = "SELECT id, titulo, autor, paginas FROM {$tabelaSQL} WHERE titulo LIKE :titulo AND (status IS NULL OR status <> 'Lido') ORDER BY titulo ASC";
+    // Livros tem tipo_edicao e status; outras tabelas retornam NULL nesses campos
+    if ($ehLivros) {
+        $campos = "id, titulo, autor, paginas, tipo_edicao";
+        $where  = "titulo LIKE :titulo AND (status IS NULL OR status <> 'Lido')";
+    } else {
+        $campos = "id, titulo, autor, paginas, NULL AS tipo_edicao";
+        $where  = "titulo LIKE :titulo";
+    }
+
+    $sql = "SELECT {$campos} FROM {$tabelaSQL} WHERE {$where} ORDER BY titulo ASC";
 
     try {
-        $db = new DataBase();
+        $db        = new DataBase();
         $resultado = $db->GetMany($sql, [':titulo' => '%' . $titulo . '%']);
 
         if (empty($resultado)) {

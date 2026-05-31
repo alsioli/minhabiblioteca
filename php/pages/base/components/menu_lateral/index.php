@@ -32,18 +32,23 @@
             <ul>
                 <li><a class="btn-submenu" href="#" onclick="menuLateral.abrirModalComecarLivro()">Começando um livro</a></li>
                 <li><a class="btn-submenu" href="#" onclick="menuLateral.abrirModalAtualizandoLeitura()">Atualizando a leitura atual</a></li>
-                <li><a class="btn-submenu" href="#" onclick="menuLateral.abrirModalMinhasImpressoes()">Minhas Impressões</a></li>
+                <li><a class="btn-submenu" href="#" onclick="menuLateral.abrirModalMinhasImpressoes()">Incluir Minhas Impressões</a></li>
                 <li><a class="btn-submenu" href="#" onclick="menuLateral.abrirModalTBRMensal()">Cadastro TBR Mensal</a></li>
-                <li><a class="btn-submenu" href="#" onclick="menuLateral.abrirModalFraseFavorita()">Frase Favorita</a></li>
+                <li><a class="btn-submenu" href="#" onclick="menuLateral.abrirModalFraseFavorita()">Incluir Citações Favoritas</a></li>
+                <li><a class="btn-submenu" href="#" onclick="menuLateral.abrirModalResenha()">Incluir Minhas Resenhas</a></li>
             </ul>
         </div>
 
         <div class="grupo">
             <button class="botao-menu">Consultas</button>
             <ul>
+                <li><a class="btn-submenu" href="#" onclick="menuLateral.abrirConsultaImpressoes()">Minhas Impressões</a></li>
+                <li><a class="btn-submenu" href="#" onclick="menuLateral.abrirConsultaCitacoes()">Minhas Citações Favoritas</a></li>
+                <li><a class="btn-submenu" href="#" onclick="menuLateral.abrirConsultaResenhas()">Minhas Resenhas</a></li>
+                <li><a class="btn-submenu" href="#" onclick="menuLateral.abrirMinhaTBR()">Minha TBR</a></li>
                 <li><a class="btn-submenu" href="#" onclick="menuLateral.abrirLeiturasAndamento()">Leituras em Andamento</a></li>
                 <li><a class="btn-submenu" href="#" onclick="menuLateral.abrirLeiturasMes()">Leituras do Mês</a></li>
-                <li>Leituras por ano</li>
+                <li><a class="btn-submenu" href="#" onclick="menuLateral.abrirLeiturasAno()">Leituras por Ano</a></li>
                 <li><a class="btn-submenu" href="#" onclick="menuLateral.abrirNacionalidade()">Livros por Nacionalidade</a></li>
                 <li><a class="btn-submenu" href="#" onclick="menuLateral.abrirRaca()">Livros por Raça</a></li>
                 <li><a class="btn-submenu" href="#" onclick="menuLateral.abrirEstatisticasLivros()">Livros e Ebooks — Estatísticas</a></li>
@@ -67,23 +72,6 @@
                 <li>Fazer gráfico com comandos</li>
             </ul>
         </div>
-
-        <div class="grupo">
-            <button class="botao-menu">Lista de desejos</button>
-            <ul>
-                <li>WishList Amazon</li>
-            </ul>
-        </div>
-
-        <div class="grupo">
-            <button class="botao-menu">Listas por autor</button>
-            <ul>
-                <li>Cadastrar listas - modal</li>
-                <li>Listas autores</li>
-                <li>Alterar dados</li>
-            </ul>
-        </div>
-
     </nav>
 </aside>
 

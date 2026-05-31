@@ -73,17 +73,19 @@
 
 /* ── Bloco meio: Cards de contadores ────────────────────── */
 .bloco-meio {
-    width: 36%;
+    flex: 1;
     display: flex;
     align-items: center;
     justify-content: center;
+    min-width: 0;
 }
 
 .header-cards {
     display: flex;
-    gap: 12px;
-    flex-wrap: wrap;
+    gap: 10px;
+    flex-wrap: nowrap;
     justify-content: center;
+    width: 100%;
 }
 
 .header-card {
@@ -92,17 +94,65 @@
     padding: 10px 16px;
     display: flex;
     flex-direction: column;
-    align-items: center;
     min-width: 90px;
     backdrop-filter: blur(4px);
     border: 1px solid rgba(255, 255, 255, 0.18);
 }
 
+/* Card maior — usado pelos 3 novos cards */
+.header-card-lg {
+    min-width: 130px;
+    flex: 1;
+    max-width: 180px;
+    padding: 10px 14px;
+}
+
+/* Título do card */
+.hc-titulo {
+    font-size: 9px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: rgba(255, 255, 255, 0.65);
+    margin: 0 0 7px 0;
+    width: 100%;
+}
+
+/* Card 1: linhas de ano */
+.hc-linhas-ano {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.hc-linha-ano {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 8px;
+}
+
+.hc-ano-label {
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.70);
+    font-weight: 600;
+}
+
+.hc-ano-valor {
+    font-size: 20px;
+    font-weight: 800;
+    color: #ff9d4d;
+    text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.6);
+    line-height: 1;
+}
+
+/* Card 2: média mensal */
 .header-card-numero {
     font-size: 28px;
     font-weight: 800;
     color: #ff9d4d;
-    text-shadow: 1px 1px 3px rgba(0,0,0,0.6);
+    text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.6);
     line-height: 1;
 }
 
@@ -110,10 +160,57 @@
     font-size: 10px;
     font-weight: 600;
     color: #fff;
-    text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
     text-align: center;
     margin-top: 4px;
     white-space: nowrap;
+}
+
+.hc-periodo {
+    font-size: 9px;
+    color: rgba(255, 255, 255, 0.55);
+    margin-top: 5px;
+    display: block;
+    text-align: center;
+    white-space: nowrap;
+}
+
+/* Card 3: top países */
+.hc-top-lista {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.hc-top-item {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.hc-top-medal {
+    font-size: 12px;
+    line-height: 1;
+    flex-shrink: 0;
+}
+
+.hc-top-pais {
+    flex: 1;
+    font-size: 10px;
+    color: rgba(255, 255, 255, 0.85);
+    font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.hc-top-count {
+    font-size: 13px;
+    font-weight: 800;
+    color: #ff9d4d;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+    flex-shrink: 0;
 }
 
 /* ── Bloco direita: Título ───────────────────────────────── */

@@ -39,10 +39,12 @@ echo json_encode([
 function PostMethod() {
     global $result_status, $result_error, $result_data;
 
-    $id_leitura  = trim($_POST['id_leitura']  ?? '');
-    $titulo      = trim($_POST['titulo']      ?? '');
-    $autor       = trim($_POST['autor']       ?? '');
-    $observacoes = trim($_POST['observacoes'] ?? '');
+    $id_leitura       = trim($_POST['id_leitura']        ?? '');
+    $titulo           = trim($_POST['titulo']            ?? '');
+    $autor            = trim($_POST['autor']             ?? '');
+    $capitulo         = trim($_POST['capitulo']          ?? '');
+    $pagina_percentual = trim($_POST['pagina_percentual'] ?? '');
+    $observacoes      = trim($_POST['observacoes']       ?? '');
 
     if (empty($id_leitura)) {
         $result_error = 'Selecione uma leitura.';
@@ -56,16 +58,18 @@ function PostMethod() {
 
     $sql = "
         INSERT INTO [Biblioteca].[dbo].[ImpressoesLeituras]
-            (id_leitura, titulo, autor, data_inclusao, observacoes)
+            (id_leitura, titulo, autor, data_inclusao, [capítulo], [página ou  percentual], observacoes)
         VALUES
-            (:p0, :p1, :p2, GETDATE(), :p3)
+            (:p0, :p1, :p2, GETDATE(), :p3, :p4, :p5)
     ";
 
     $params = [
         ':p0' => (int)$id_leitura,
-        ':p1' => $titulo      ?: null,
-        ':p2' => $autor       ?: null,
-        ':p3' => $observacoes,
+        ':p1' => $titulo            ?: null,
+        ':p2' => $autor             ?: null,
+        ':p3' => $capitulo          ?: null,
+        ':p4' => $pagina_percentual ?: null,
+        ':p5' => $observacoes,
     ];
 
     try {

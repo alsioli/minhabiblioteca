@@ -83,7 +83,8 @@ if ($acao === 'livros') {
         $sql = $cfg['sql_select'];
     } else {
         $tabela = $cfg['tabela'];
-        $cols   = array_map(fn($c) => "[{$c}]", $cfg['colunas']);
+        // Usa aliases explícitos em minúscula para garantir que o JS encontre as chaves
+        $cols   = array_map(fn($c) => "[{$c}] AS {$c}", $cfg['colunas']);
         $sql    = "SELECT " . implode(', ', $cols) .
                   " FROM [Biblioteca].[dbo].[{$tabela}] ORDER BY titulo ASC";
     }

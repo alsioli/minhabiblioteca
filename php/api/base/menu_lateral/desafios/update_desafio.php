@@ -34,6 +34,7 @@ function PostMethod() {
     $situacao    = trim($_POST['situacao']    ?? '');
     $data_inicio = trim($_POST['data_inicio'] ?? '');
     $data_fim    = trim($_POST['data_fim']    ?? '');
+    $bAtivo      = isset($_POST['bAtivo']) ? (int)$_POST['bAtivo'] : 1;
 
     if (empty($id) || !is_numeric($id)) {
         $result_error = 'ID inválido.';
@@ -53,14 +54,15 @@ function PostMethod() {
     try {
         $db = new DataBase();
         $db->ExecuteNonQuery("
-            UPDATE [Biblioteca].[dbo].[Desafios]
+            UPDATE [Biblioteca].[dbo].[ListaDesafios]
             SET tematica    = :p0,
                 descricao   = :p1,
                 ano         = :p2,
                 meta_livros = :p3,
                 situacao    = :p4,
                 data_inicio = :p5,
-                data_fim    = :p6
+                data_fim    = :p6,
+                bAtivo      = :p8
             WHERE id = :p7
         ", [
             ':p0' => $tematica,
@@ -71,6 +73,7 @@ function PostMethod() {
             ':p5' => $data_inicio !== '' ? $data_inicio : null,
             ':p6' => $data_fim    !== '' ? $data_fim    : null,
             ':p7' => (int)$id,
+            ':p8' => $bAtivo,
         ]);
 
         $result_status = true;

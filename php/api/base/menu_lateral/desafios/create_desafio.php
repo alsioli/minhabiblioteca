@@ -63,10 +63,10 @@ function PostMethod() {
     try {
         $db = new DataBase();
         $db->ExecuteNonQuery("
-            INSERT INTO [Biblioteca].[dbo].[Desafios]
-                (tematica, descricao, ano, meta_livros, situacao, data_inicio, data_fim)
+            INSERT INTO [Biblioteca].[dbo].[ListaDesafios]
+                (tematica, descricao, ano, meta_livros, situacao, data_inicio, data_fim, bAtivo)
             VALUES
-                (:p0, :p1, :p2, :p3, :p4, :p5, :p6)
+                (:p0, :p1, :p2, :p3, :p4, :p5, :p6, 1)
         ", [
             ':p0' => $tematica,
             ':p1' => $descricao  !== '' ? $descricao  : null,

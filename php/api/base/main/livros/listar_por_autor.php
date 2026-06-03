@@ -34,12 +34,12 @@ $CONFIG = [
     'jo_nesbo_tess' => [
         'label'   => 'Jo Nesbo / Tess Gerritsen',
         'tabela'  => 'ListaJoNesboTess',
-        'colunas' => ['autor', 'titulo', 'status', 'created_at'],
+        'colunas' => ['autor', 'titulo', 'status'],
     ],
     'king' => [
         'label'   => 'Stephen King',
         'tabela'  => 'King',
-        'colunas' => ['autor', 'titulo', 'data_lancamento', 'serie', 'seq', 'situacao', 'data_registro', 'created_at'],
+        'colunas' => ['autor', 'titulo', 'data_lancamento', 'serie', 'seq', 'situacao', 'data_registro'],
     ],
 ];
 

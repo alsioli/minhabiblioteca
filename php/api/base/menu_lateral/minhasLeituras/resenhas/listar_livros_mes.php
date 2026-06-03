@@ -28,23 +28,30 @@ function GetMethod() {
 
     $mes = trim($_GET['mes'] ?? '');
 
-    if (empty($mes)) {
-        $result_error = 'Mês não informado.';
+    if (empty($mes) || !preg_match('/^\d{2}\/\d{4}$/', $mes)) {
+        $result_error = 'Mês não informado ou inválido (formato esperado: MM/yyyy).';
         return;
     }
 
+    [$mm, $yyyy] = explode('/', $mes);
+    $mes_num = (int)$mm;
+    $ano     = (int)$yyyy;
+
     $sql = "
-        SELECT id, titulo, autor, mes, avaliacao
+        SELECT id, titulo, autor, avaliacao
         FROM Leituras
-        WHERE mes = :mes
-          AND data_fim IS NOT NULL
-          AND bAtivo = 1
+        WHERE data_fim IS NOT NULL
+          AND YEAR(data_fim)  = :ano
+          AND MONTH(data_fim) = :mes_num
+          AND NOT EXISTS (
+              SELECT 1 FROM Resenhas r WHERE r.id_leitura = Leituras.id
+          )
         ORDER BY titulo
     ";
 
     try {
         $db   = new DataBase();
-        $rows = $db->GetMany($sql, [':mes' => $mes]);
+        $rows = $db->GetMany($sql, [':ano' => $ano, ':mes_num' => $mes_num]);
 
         $result_status = true;
         $result_data   = $rows;

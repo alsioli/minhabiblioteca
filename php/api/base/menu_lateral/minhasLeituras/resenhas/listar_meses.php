@@ -27,13 +27,19 @@ function GetMethod() {
     global $result_status, $result_error, $result_data;
 
     $sql = "
-        SELECT DISTINCT mes
-        FROM Leituras
-        WHERE data_fim IS NOT NULL
-          AND bAtivo = 1
-        ORDER BY
-            TRY_CAST(SUBSTRING(mes, 4, 4) AS INT) DESC,
-            TRY_CAST(SUBSTRING(mes, 1, 2) AS INT) DESC
+        SELECT mes
+        FROM (
+            SELECT DISTINCT
+                FORMAT(data_fim, 'MM/yyyy') AS mes,
+                YEAR(data_fim)              AS ano,
+                MONTH(data_fim)             AS mes_num
+            FROM Leituras
+            WHERE data_fim IS NOT NULL
+              AND NOT EXISTS (
+                  SELECT 1 FROM Resenhas r WHERE r.id_leitura = Leituras.id
+              )
+        ) AS t
+        ORDER BY ano DESC, mes_num DESC
     ";
 
     try {

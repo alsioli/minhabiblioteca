@@ -137,10 +137,12 @@ let desafios = {
         `;
 
         lista.forEach((d, idx) => {
+            const ativo  = parseInt(d.bAtivo) === 1;
             const meta   = parseInt(d.meta_livros) || 0;
             const lidos  = parseInt(d.livros_lidos) || 0;
             const pct    = meta > 0 ? Math.min((lidos / meta) * 100, 100).toFixed(1) : null;
             const cores  = corSituacao[d.situacao] || { bg: '#f5f5f5', cor: '#555' };
+            const rowStyle = ativo ? '' : 'opacity:0.5;background:#fafafa';
 
             const progressBar = pct !== null
                 ? `<div style="display:flex;align-items:center;gap:5px">
@@ -152,9 +154,10 @@ let desafios = {
                 : '—';
 
             html += `
-                <tr style="border-bottom:1px solid #dee2e6">
+                <tr style="border-bottom:1px solid #dee2e6;${rowStyle}">
                     <td style="padding:6px 10px;font-weight:500;max-width:240px;word-break:break-word">
                         ${d.tematica || ''}
+                        ${!ativo ? '<br><span style="font-size:0.72rem;background:#f8d7da;color:#842029;padding:1px 6px;border-radius:8px">Inativa</span>' : ''}
                         ${d.descricao ? `<br><small class="text-muted">${d.descricao}</small>` : ''}
                     </td>
                     <td style="padding:6px 10px;text-align:center">${d.ano || '—'}</td>
@@ -198,6 +201,7 @@ let desafios = {
         $('#ed_situacao').val(d.situacao || 'Em andamento');
         $('#ed_data_inicio').val(d.data_inicio ? String(d.data_inicio).slice(0, 10) : '');
         $('#ed_data_fim').val(d.data_fim ? String(d.data_fim).slice(0, 10) : '');
+        $('#ed_bAtivo').val(String(parseInt(d.bAtivo) === 1 ? '1' : '0'));
         $('#ed_mensagem').empty();
 
         $('#modalEditarDesafio').modal('show');
@@ -219,6 +223,7 @@ let desafios = {
         body.append('situacao',    $('#ed_situacao').val());
         body.append('data_inicio', $('#ed_data_inicio').val());
         body.append('data_fim',    $('#ed_data_fim').val());
+        body.append('bAtivo',      $('#ed_bAtivo').val());
 
         try {
             const resp = await fetch('/php/api/base/menu_lateral/desafios/update_desafio.php', {
@@ -257,7 +262,7 @@ let desafios = {
         el.innerHTML = '<p class="text-muted small" style="margin:6px 0">Carregando...</p>';
 
         try {
-            const resp = await fetch('/php/api/base/menu_lateral/desafios/listar_desafios.php');
+            const resp = await fetch('/php/api/base/menu_lateral/desafios/listar_desafios.php?ativos=1');
             const json = await resp.json();
 
             const lista = (json.status ? json.data : []).filter(d => d.situacao === 'Em andamento');

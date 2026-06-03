@@ -52,7 +52,6 @@ function GetMethod() {
             frases,
             capitulo,
             [pagina ou percentual]  AS pagina_percentual,
-            avaliacao_livro,
             avaliacao_frase,
             tema,
             mes

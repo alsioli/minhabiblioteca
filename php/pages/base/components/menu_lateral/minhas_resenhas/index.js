@@ -1,130 +1,169 @@
 let minhas_resenhas = {
 
     _livros: [],
+    _mes: '',
 
-    iniciar: async function (mesFiltro) {
-        $('#res_secao_livro').addClass('d-none');
-        $('#res_secao_resenha').addClass('d-none');
-        $('#res_mensagem').empty();
-        $('#res_livro').html('<option value="">Selecione o livro...</option>');
-        $('#res_id_leitura').val('');
-        $('#res_resenha').val('');
+ iniciar: async function (mesFiltro) {
+    $('#res_secao_livros').addClass('d-none');
+    $('#res_lista_livros').empty();
+    $('#res_mensagem').empty();
 
-        const sel = $('#res_mes');
-        sel.html('<option value="">Carregando...</option>');
+    const sel = $('#res_mes');
+    sel.html('<option value="">Carregando...</option>');
 
-        try {
-            const resp = await fetch('/php/api/base/menu_lateral/minhasLeituras/resenhas/listar_meses.php');
-            const json = await resp.json();
+    try {
+        const resp = await fetch('/php/api/base/menu_lateral/minhasLeituras/resenhas/listar_meses.php');
+        const json = await resp.json();
 
-            if (!json.status || !json.data || json.data.length === 0) {
-                sel.html('<option value="">Nenhum mês com leituras encerradas</option>');
-                return;
-            }
-
-            sel.html('<option value="">Selecione o mês...</option>');
-            json.data.forEach(function (mes) {
-                const opt = $('<option>').val(mes).text(mes);
-                sel.append(opt);
-            });
-
-            if (mesFiltro) {
-                sel.val(mesFiltro);
-                if (sel.val() === mesFiltro) {
-                    this.onMesChange();
-                }
-            }
-        } catch (e) {
-            console.error('Erro ao carregar meses:', e);
+        if (!json.status) {
             sel.html('<option value="">Erro ao carregar meses</option>');
-        }
-    },
-
-    onMesChange: async function () {
-        const mes = $('#res_mes').val();
-
-        $('#res_secao_livro').addClass('d-none');
-        $('#res_secao_resenha').addClass('d-none');
-        $('#res_mensagem').empty();
-        $('#res_id_leitura').val('');
-        $('#res_resenha').val('');
-
-        if (!mes) return;
-
-        const sel = $('#res_livro');
-        sel.html('<option value="">Carregando...</option>');
-        $('#res_secao_livro').removeClass('d-none');
-
-        try {
-            const resp = await fetch('/php/api/base/menu_lateral/minhasLeituras/resenhas/listar_livros_mes.php?mes=' + encodeURIComponent(mes));
-            const json = await resp.json();
-
-            if (!json.status || !json.data || json.data.length === 0) {
-                sel.html('<option value="">Nenhum livro encerrado neste mês</option>');
-                return;
-            }
-
-            this._livros = json.data;
-            sel.html('<option value="">Selecione o livro...</option>');
-            json.data.forEach(function (l) {
-                const opt = $('<option>').val(l.id).text(l.titulo + (l.autor ? ' — ' + l.autor : ''));
-                sel.append(opt);
-            });
-        } catch (e) {
-            console.error('Erro ao carregar livros:', e);
-            sel.html('<option value="">Erro ao carregar livros</option>');
-        }
-    },
-
-    onLivroChange: async function () {
-        const id = $('#res_livro').val();
-
-        $('#res_secao_resenha').addClass('d-none');
-        $('#res_mensagem').empty();
-        $('#res_resenha').val('');
-
-        if (!id) return;
-
-        const livro = this._livros.find(function (l) { return String(l.id) === String(id); });
-        if (!livro) return;
-
-        $('#res_id_leitura').val(livro.id);
-        $('#res_avaliacao').val(livro.avaliacao ?? '');
-        $('#res_titulo_display').text(livro.titulo || '');
-        $('#res_autor_display').text(livro.autor || '');
-        $('#res_secao_resenha').removeClass('d-none');
-
-        // Carrega resenha existente, se houver
-        try {
-            const resp = await fetch('/php/api/base/menu_lateral/minhasLeituras/resenhas/listar_livros_mes.php?id_leitura=' + encodeURIComponent(id));
-            // Reutilizamos o endpoint de livros só para buscar; a resenha vem do create_resenha via GET se implementado.
-            // Por simplicidade, deixamos a textarea em branco para nova resenha.
-        } catch (e) { /* silencioso */ }
-    },
-
-    salvar: async function () {
-        const id_leitura  = $('#res_id_leitura').val();
-        const mes_leitura = $('#res_mes').val();
-        const resenha     = $('#res_resenha').val().trim();
-        const titulo      = $('#res_titulo_display').text();
-        const autor       = $('#res_autor_display').text();
-        const avaliacao   = $('#res_avaliacao').val();
-
-        if (!id_leitura) {
-            this._mostrarMensagem('warning', 'Selecione um livro antes de salvar.');
+            this._mostrarMensagem('danger', 'Erro API meses: ' + (json.error || 'desconhecido'));
             return;
         }
+        if (!json.data || json.data.length === 0) {
+            sel.html('<option value="">Nenhum mês com leituras sem resenha</option>');
+            return;
+        }
+
+        sel.html('<option value="">Selecione o mês...</option>');
+
+        json.data.forEach(function (mes) {
+            sel.append($('<option>').val(mes).text(mes));
+        });
+
+        if (mesFiltro) {
+            sel.val(mesFiltro);
+            if (sel.val() === mesFiltro) {
+                this.onMesChange();
+            }
+        }
+    } catch (e) {
+        console.error('Erro ao carregar meses:', e);
+        sel.html('<option value="">Erro ao carregar meses</option>');
+    }
+},
+
+
+    onMesChange: async function () {
+    let mes = $('#res_mes').val(); // MM/yyyy — igual ao valor armazenado na tabela
+
+    $('#res_secao_livros').addClass('d-none');
+    $('#res_lista_livros').empty();
+    $('#res_mensagem').empty();
+
+    if (!mes) return;
+
+    this._mes = mes;
+    $('#res_lista_livros').html('<p class="text-muted mb-0">Carregando...</p>');
+    $('#res_secao_livros').removeClass('d-none');
+
+    try {
+        const resp = await fetch('/php/api/base/menu_lateral/minhasLeituras/resenhas/listar_livros_mes.php?mes=' + encodeURIComponent(mes));
+
+        if (!resp.ok) {
+            throw new Error("Erro HTTP: " + resp.status);
+        }
+
+        const json = await resp.json();
+
+        if (!json.status) {
+            $('#res_lista_livros').html('<p class="text-danger mb-0">Erro: ' + (json.error || 'falha ao carregar livros') + '</p>');
+            return;
+        }
+        if (!json.data || json.data.length === 0) {
+            $('#res_lista_livros').html('<p class="text-muted mb-0">Nenhum livro sem resenha neste mês.</p>');
+            return;
+        }
+
+        this._livros = json.data;
+        this._renderTabela(json.data);
+    } catch (e) {
+        console.error('Erro ao carregar livros:', e);
+        $('#res_lista_livros').html('<p class="text-danger mb-0">Erro ao carregar livros.</p>');
+    }
+},
+
+
+    _renderTabela: function (livros) {
+        let html = '<table class="table table-sm table-bordered mb-0">';
+        html += '<thead class="thead-light"><tr>'
+              + '<th>Título</th>'
+              + '<th>Autor</th>'
+              + '<th class="text-center" style="width:90px;">Ação</th>'
+              + '</tr></thead><tbody>';
+
+        livros.forEach(function (l) {
+            const id = l.id;
+            const titulo = $('<span>').text(l.titulo || '').html();
+            const autor  = $('<span>').text(l.autor  || '').html();
+
+            html += `<tr id="res_row_${id}">
+                <td>${titulo}</td>
+                <td>${autor}</td>
+                <td class="text-center">
+                    <button class="btn btn-outline-primary btn-xs py-0 px-2"
+                            onclick="minhas_resenhas.abrirEditar(${id})">
+                        Editar
+                    </button>
+                </td>
+            </tr>
+            <tr id="res_edit_${id}" class="d-none bg-light">
+                <td colspan="3" class="p-2">
+                    <textarea id="res_texto_${id}" class="form-control mb-2" rows="5"
+                              placeholder="Escreva sua resenha..."></textarea>
+                    <div class="d-flex justify-content-end">
+                        <button class="btn btn-secondary btn-sm mr-2"
+                                onclick="minhas_resenhas.fecharEditar(${id})">
+                            Cancelar
+                        </button>
+                        <button class="btn btn-primary btn-sm"
+                                onclick="minhas_resenhas.salvar(${id})">
+                            Salvar
+                        </button>
+                    </div>
+                </td>
+            </tr>`;
+        });
+
+        html += '</tbody></table>';
+        $('#res_lista_livros').html(html);
+    },
+
+    abrirEditar: function (id) {
+        // Fecha qualquer outro editor aberto
+        this._livros.forEach(function (l) {
+            if (String(l.id) !== String(id)) {
+                $('#res_edit_' + l.id).addClass('d-none');
+            }
+        });
+        $('#res_edit_' + id).toggleClass('d-none');
+        if (!$('#res_edit_' + id).hasClass('d-none')) {
+            $('#res_texto_' + id).focus();
+        }
+    },
+
+    fecharEditar: function (id) {
+        $('#res_edit_' + id).addClass('d-none');
+        $('#res_texto_' + id).val('');
+    },
+
+    salvar: async function (id) {
+        const resenha = $('#res_texto_' + id).val().trim();
+
         if (!resenha) {
             this._mostrarMensagem('warning', 'A resenha não pode estar em branco.');
             return;
         }
 
+        const livro = this._livros.find(function (l) { return String(l.id) === String(id); });
+        if (!livro) return;
+
         const body = new FormData();
-        body.append('id_leitura',  id_leitura);
-        body.append('nome_livro',  titulo);
-        body.append('autor',       autor);
-        body.append('mes_leitura', mes_leitura);
-        body.append('avaliacao',   avaliacao);
+        body.append('id_leitura',  id);
+        body.append('nome_livro',  livro.titulo  || '');
+        body.append('autor',       livro.autor   || '');
+        body.append('mes_leitura', this._mes);
+        body.append('avaliacao',   livro.avaliacao ?? '');
         body.append('resenha',     resenha);
 
         try {
@@ -139,15 +178,21 @@ let minhas_resenhas = {
                 return;
             }
 
-            $('#modalMinhasResenhas').modal('hide');
+            // Remove as linhas do livro salvo da tabela
+            $('#res_row_' + id).remove();
+            $('#res_edit_' + id).remove();
 
-            Swal.fire({
-                title: 'Resenha salva!',
-                text: json.data.message,
-                icon: 'success',
-                confirmButtonText: 'OK',
-                confirmButtonColor: '#6a2bbf'
-            });
+            // Remove da lista interna
+            this._livros = this._livros.filter(function (l) { return String(l.id) !== String(id); });
+
+            // Se não restar livros, atualiza o select de meses e oculta a seção
+            if (this._livros.length === 0) {
+                $('#res_secao_livros').addClass('d-none');
+                $('#res_lista_livros').empty();
+                await this.iniciar();
+            }
+
+            this._mostrarMensagem('success', json.data.message || 'Resenha salva com sucesso.');
 
         } catch (e) {
             console.error('Erro ao salvar resenha:', e);

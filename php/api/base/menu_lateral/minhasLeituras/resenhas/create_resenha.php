@@ -61,13 +61,13 @@ function PostMethod() {
         $db = new DataBase();
 
         $existe = $db->GetOne(
-            "SELECT id FROM Resenhas WHERE id_leitura = :id",
+            "SELECT TOP 1 id_leitura FROM Resenhas WHERE id_leitura = :id",
             [':id' => (int)$id_leitura]
         );
 
         if ($existe) {
             $db->ExecuteNonQuery(
-                "UPDATE Resenhas SET resenha = :resenha, avaliacao = :avaliacao WHERE id_leitura = :id",
+                "UPDATE Resenhas SET resenhas = :resenha, avaliacao = :avaliacao WHERE id_leitura = :id",
                 [
                     ':resenha'   => $resenha,
                     ':avaliacao' => $avaliacao !== '' ? (float)$avaliacao : null,
@@ -77,7 +77,7 @@ function PostMethod() {
             $result_data = ['message' => 'Resenha atualizada com sucesso.'];
         } else {
             $db->ExecuteNonQuery(
-                "INSERT INTO Resenhas (id_leitura, nome_livro, autor, mes_leitura, avaliacao, resenha, created_at)
+                "INSERT INTO Resenhas (id_leitura, nome_livro, autor, mes_leitura, avaliacao, resenhas, created_at)
                  VALUES (:id, :nome, :autor, :mes, :avaliacao, :resenha, GETDATE())",
                 [
                     ':id'       => (int)$id_leitura,
@@ -89,6 +89,15 @@ function PostMethod() {
                 ]
             );
             $result_data = ['message' => 'Resenha salva com sucesso.'];
+        }
+
+        try {
+            $db->ExecuteNonQuery(
+                "UPDATE Leituras SET resenhas = 'sim' WHERE id = :id",
+                [':id' => (int)$id_leitura]
+            );
+        } catch (Exception $ignored) {
+            // Coluna resenhas pode não existir — não bloqueia o salvamento
         }
 
         $result_status = true;

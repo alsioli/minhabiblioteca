@@ -29,19 +29,17 @@ function GetMethod() {
     try {
         $db = new DataBase();
 
-        // ── Total de leituras por mês (coluna mes da tabela Leituras) ──
+        // ── Total de leituras concluídas por mês (via data_fim) ──────
         $sqlTotal = "
             SELECT
-                mes,
-                CAST(RIGHT(mes, 4) AS INT)  AS ano,
-                CAST(LEFT(mes, 2)  AS INT)  AS mes_num,
-                COUNT(*) AS total
+                FORMAT(data_fim, 'MM/yyyy') AS mes,
+                YEAR(data_fim)              AS ano,
+                MONTH(data_fim)             AS mes_num,
+                COUNT(*)                    AS total
             FROM [Biblioteca].[dbo].[Leituras]
-            WHERE mes IS NOT NULL AND mes <> ''
-            GROUP BY mes
-            ORDER BY
-                CAST(RIGHT(mes, 4) AS INT) ASC,
-                CAST(LEFT(mes, 2)  AS INT) ASC
+            WHERE data_fim IS NOT NULL
+            GROUP BY FORMAT(data_fim, 'MM/yyyy'), YEAR(data_fim), MONTH(data_fim)
+            ORDER BY YEAR(data_fim) ASC, MONTH(data_fim) ASC
         ";
 
         // ── Leituras concluídas por mês (mês de data_fim) ─────────────

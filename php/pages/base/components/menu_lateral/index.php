@@ -69,7 +69,6 @@
             <button class="botao-menu">Gráficos</button>
             <ul>
                 <li><a class="btn-submenu" href="#" onclick="menuLateral.abrirGraficos()">Gráficos de Leituras</a></li>
-                <li>Fazer gráfico com comandos</li>
             </ul>
         </div>
     </nav>

@@ -684,13 +684,27 @@ let menuLateral = {
             <div class="container-fluid mt-4 pb-4" id="graficosContainer">
                 <h3 class="mb-4">Gráficos de Leituras</h3>
 
-                <!-- Linha 1: Gráficos de mês -->
+                <!-- Linha 1: TBR vs Leituras Concluídas -->
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <div style="border:1px solid #e0e0e0;border-radius:8px;padding:16px">
+                            <h6 style="font-size:0.88rem;font-weight:700;margin-bottom:12px;color:#333">
+                                TBR Planejado vs Leituras Concluídas por Mês
+                            </h6>
+                            <div style="position:relative;height:280px">
+                                <canvas id="graf-tbr-vs-leituras"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Linha 2: Gráficos de mês -->
                 <div class="row mb-4">
 
                     <div class="col-md-6 mb-3">
                         <div style="border:1px solid #e0e0e0;border-radius:8px;padding:16px">
                             <h6 style="font-size:0.88rem;font-weight:700;margin-bottom:12px;color:#333">
-                                Total de Leituras por Mês
+                                Total de Leituras Concluídas por Mês
                             </h6>
                             <div style="position:relative;height:260px">
                                 <canvas id="graf-mes-total"></canvas>
@@ -1313,7 +1327,11 @@ let menuLateral = {
             const resp = await fetch('/php/api/base/main/livros/listar_por_autor.php?acao=livros&chave=' + chave);
             const json = await resp.json();
 
-            if (!json.status || !json.data || json.data.length === 0) {
+            if (!json.status) {
+                box.innerHTML = '<div class="alert alert-danger py-2 mb-0" style="font-size:0.85rem">' + (json.error || 'Erro ao carregar dados.') + '</div>';
+                return;
+            }
+            if (!json.data || json.data.length === 0) {
                 box.innerHTML = '<p class="text-muted small">Nenhum livro encontrado para este autor.</p>';
                 return;
             }

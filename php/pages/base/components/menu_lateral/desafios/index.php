@@ -152,6 +152,18 @@
           </div>
         </fieldset>
 
+        <fieldset class="border rounded p-3 mb-3">
+          <legend class="w-auto px-2" style="font-size:0.9rem;font-weight:bold;">Status do Registro</legend>
+          <div class="form-group mb-0">
+            <label>Ativo</label>
+            <select id="ed_bAtivo" class="form-control">
+              <option value="1">Ativa</option>
+              <option value="0">Inativa</option>
+            </select>
+            <small class="text-muted">Registros inativos não aparecem no painel de acompanhamento.</small>
+          </div>
+        </fieldset>
+
         <div id="ed_mensagem" class="mt-2"></div>
 
       </div><!-- /.modal-body -->

@@ -54,9 +54,10 @@ let graficos = {
     // ── Inicializa todos os gráficos ─────────────────────────────
     init: async function () {
         try {
-            const [resMes, resAcervo] = await Promise.all([
+            const [resMes, resAcervo, resTBR] = await Promise.all([
                 fetch('/php/api/base/main/livros/listar_grafico_mes.php').then(function (r) { return r.json(); }),
                 fetch('/php/api/base/main/livros/listar_grafico_acervo.php').then(function (r) { return r.json(); }),
+                fetch('/php/api/base/main/livros/listar_grafico_tbr_vs_leituras.php').then(function (r) { return r.json(); }),
             ]);
 
             if (!resMes.status) {
@@ -69,6 +70,12 @@ let graficos = {
                 console.error('Erro API gráfico acervo:', resAcervo.error);
             } else {
                 this._renderGraficosAcervo(resAcervo.data || {});
+            }
+
+            if (!resTBR.status) {
+                console.error('Erro API gráfico TBR:', resTBR.error);
+            } else {
+                this._renderTBRvsLeituras(resTBR.data || {});
             }
 
         } catch (e) {
@@ -276,6 +283,79 @@ let graficos = {
                     c.restore();                        // restaura estado APÓS modificar
                 }
             }]
+        });
+    },
+
+    // ════════════════════════════════════════════════════════════
+    //  GRÁFICO: TBR PLANEJADO vs LEITURAS CONCLUÍDAS POR MÊS
+    // ════════════════════════════════════════════════════════════
+
+    _renderTBRvsLeituras: function (data) {
+        const tbrMap   = this._pivot(data.tbr_por_mes,   'mes', 'total');
+        const lidasMap = this._pivot(data.lidas_por_mes, 'mes', 'total');
+
+        const todosMeses = [...new Set([
+            ...Object.keys(tbrMap),
+            ...Object.keys(lidasMap),
+        ])].sort(function (a, b) { return graficos._sortKey(a) - graficos._sortKey(b); });
+
+        const el = document.getElementById('graf-tbr-vs-leituras');
+        if (!el) return;
+
+        if (todosMeses.length === 0) {
+            el.parentElement.innerHTML =
+                '<p class="text-muted text-center py-4">Sem dados de TBR ou leituras para comparar.</p>';
+            return;
+        }
+
+        const tbrArr   = todosMeses.map(function (m) { return tbrMap[m]   || 0; });
+        const lidasArr = todosMeses.map(function (m) { return lidasMap[m] || 0; });
+
+        this._destruir('graf-tbr-vs-leituras');
+        const elAtual = document.getElementById('graf-tbr-vs-leituras');
+        if (!elAtual) return;
+
+        this._instancias['graf-tbr-vs-leituras'] = new Chart(elAtual.getContext('2d'), {
+            type: 'bar',
+            data: {
+                labels: todosMeses,
+                datasets: [
+                    {
+                        label: 'TBR Planejado',
+                        data: tbrArr,
+                        backgroundColor: 'rgba(108, 117, 125, 0.75)',
+                        borderColor: 'rgba(108,117,125,1)',
+                        borderWidth: 1,
+                        borderRadius: 4,
+                    },
+                    {
+                        label: 'Leituras Concluídas',
+                        data: lidasArr,
+                        backgroundColor: 'rgba(40, 167, 69, 0.82)',
+                        borderColor: 'rgba(40,167,69,1)',
+                        borderWidth: 1,
+                        borderRadius: 4,
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'top' },
+                    tooltip: {
+                        callbacks: {
+                            label: function (ctx) {
+                                return ' ' + ctx.dataset.label + ': ' + ctx.parsed.y + ' livro' + (ctx.parsed.y !== 1 ? 's' : '');
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: { beginAtZero: true, ticks: { precision: 0 }, grid: { color: '#f0f0f0' } },
+                    x: { grid: { display: false } }
+                }
+            }
         });
     },
 

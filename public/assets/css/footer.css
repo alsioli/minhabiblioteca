@@ -1,7 +1,35 @@
 /* Rodapé */
 .rodape {
-    text-align: left;
-    padding: 20px;
-    background: #eee;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 20px;
+    background: #e8f0e9;
     margin-top: 20px;
+}
+
+.rodape-contato {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    text-decoration: none;
+    color: #3a6b3e;
+    font-size: 0.85rem;
+    font-weight: 500;
+    transition: opacity 0.2s;
+}
+
+.rodape-contato:hover {
+    opacity: 0.7;
+    text-decoration: none;
+    color: #3a6b3e;
+}
+
+.rodape-contato .material-icons {
+    font-size: 1.3rem;
+}
+
+.rodape-conteudo {
+    text-align: right;
+    color: #555;
 }

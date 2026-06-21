@@ -1,6 +1,7 @@
 let desafios = {
 
-    _lista: [],   // cache da lista atual
+    _lista: [],               // cache da lista atual
+    _livrosDesafioCache: {},  // cache livros por local
 
     // ─── Formata data ISO → DD/MM/YYYY ───────────────────────────
     _fmtData: function (val) {
@@ -424,7 +425,142 @@ let desafios = {
             console.error('Erro ao carregar desafios em andamento:', e);
             el.innerHTML = '<div class="alert alert-danger py-1 mb-0" style="font-size:0.82rem">Erro ao carregar.</div>';
         }
-    }
+    },
+
+    // ─── INCLUIR LIVRO NO DESAFIO ────────────────────────────────
+
+    iniciarModalLivroDesafio: function () {
+        $('#ld_local').val('');
+        $('#ld_livro').val('').prop('disabled', true)
+            .html('<option value="">— Selecione o local primeiro —</option>');
+        $('#ld_painel_dados').hide();
+        $('#ld_autor, #ld_sexo, #ld_paginas, #ld_nacionalidade, #ld_tema, #ld_mes').val('');
+        const seq = $('#ld_sequencia').empty().append('<option value="">—</option>');
+        for (let i = 1; i <= 60; i++) seq.append(`<option value="${i}">${i}</option>`);
+        $('#ld_natureza').val('');
+        $('#ld_mensagem').empty();
+        this.carregarDesafiosSelect();
+    },
+
+    carregarDesafiosSelect: async function () {
+        try {
+            const resp = await fetch('/php/api/base/menu_lateral/desafios/listar_desafios.php?ativos=1');
+            const json = await resp.json();
+            const lista = json.status ? (json.data || []) : [];
+            const sel = $('#ld_nome_desafio').html('<option value="">— Selecione —</option>');
+            lista.forEach(d => {
+                sel.append(`<option value="${d.tematica}">${d.tematica}${d.ano ? ' (' + d.ano + ')' : ''}</option>`);
+            });
+        } catch (e) {
+            console.error('Erro ao carregar desafios:', e);
+        }
+    },
+
+    carregarLivrosPorLocal: async function () {
+        const local = $('#ld_local').val();
+        const sel   = $('#ld_livro');
+
+        sel.prop('disabled', true).html('<option value="">Carregando...</option>');
+        $('#ld_painel_dados').hide();
+        $('#ld_autor, #ld_sexo, #ld_paginas, #ld_nacionalidade, #ld_tema, #ld_mes').val('');
+
+        if (!local) {
+            sel.html('<option value="">— Selecione o local primeiro —</option>');
+            return;
+        }
+
+        if (this._livrosDesafioCache[local]) {
+            this._popularSelectLivros(sel, this._livrosDesafioCache[local]);
+            return;
+        }
+
+        try {
+            const resp = await fetch(
+                '/php/api/base/menu_lateral/desafios/buscar_leituras_desafio.php?local_leitura=' +
+                encodeURIComponent(local)
+            );
+            const json = await resp.json();
+
+            if (!json.status) {
+                sel.html('<option value="">Erro ao carregar</option>');
+                return;
+            }
+
+            this._livrosDesafioCache[local] = json.data || [];
+            this._popularSelectLivros(sel, this._livrosDesafioCache[local]);
+        } catch (e) {
+            console.error('Erro ao carregar livros:', e);
+            sel.html('<option value="">Erro ao carregar</option>');
+        }
+    },
+
+    _popularSelectLivros: function (sel, lista) {
+        sel.html('<option value="">— Selecione —</option>');
+        lista.forEach(l => {
+            sel.append(`<option value="${l.id}">${l.titulo}${l.autor ? ' — ' + l.autor : ''}</option>`);
+        });
+        sel.prop('disabled', false);
+    },
+
+    preencherDadosLivro: function () {
+        const local = $('#ld_local').val();
+        const id    = parseInt($('#ld_livro').val());
+        const lista = this._livrosDesafioCache[local] || [];
+        const livro = lista.find(l => parseInt(l.id) === id);
+
+        if (!livro) { $('#ld_painel_dados').hide(); return; }
+
+        $('#ld_autor').val(livro.autor || '');
+        $('#ld_sexo').val(livro.sexo_autor || '');
+        $('#ld_paginas').val(livro.paginas || '');
+        $('#ld_nacionalidade').val(livro.nacionalidade || '');
+        $('#ld_tema').val(livro.tema || '');
+        $('#ld_mes').val(livro.mes || '');
+        $('#ld_painel_dados').show();
+    },
+
+    salvarLivroDesafio: async function () {
+        const id_leitura   = $('#ld_livro').val();
+        const nome_desafio = $('#ld_nome_desafio').val();
+        const sequencia    = $('#ld_sequencia').val();
+
+        if (!id_leitura)   { this._msg('ld', 'danger', 'Selecione um livro.'); return; }
+        if (!nome_desafio) { this._msg('ld', 'danger', 'Selecione o nome do desafio.'); return; }
+        if (!sequencia)    { this._msg('ld', 'danger', 'Selecione a sequência.'); return; }
+
+        const body = new FormData();
+        body.append('id_leitura',       id_leitura);
+        body.append('local_leitura',    $('#ld_local').val());
+        body.append('nome_desafio',     nome_desafio);
+        body.append('sequencia',        sequencia);
+        body.append('natureza_desafio', $('#ld_natureza').val().trim());
+
+        try {
+            const resp = await fetch('/php/api/base/menu_lateral/desafios/create_desafio_leitura.php', {
+                method: 'POST', body
+            });
+            const json = await resp.json();
+
+            if (!json.status) {
+                this._msg('ld', 'danger', json.error || 'Erro ao incluir.');
+                return;
+            }
+
+            $('#modalLivroDesafio').modal('hide');
+            Swal.fire({
+                title: 'Incluído!',
+                text: 'Livro incluído no desafio com sucesso.',
+                icon: 'success',
+                confirmButtonText: 'OK',
+                confirmButtonColor: '#28a745'
+            }).then(() => {
+                if ($('#livrosDesafiosContainer').length) desafios.carregarLivrosDesafios();
+            });
+        } catch (e) {
+            console.error('Erro ao incluir livro no desafio:', e);
+            this._msg('ld', 'danger', 'Erro inesperado. Tente novamente.');
+        }
+    },
 
 };
 

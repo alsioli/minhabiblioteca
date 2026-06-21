@@ -129,13 +129,39 @@ function PostMethod() {
 
     try {
         $db = new DataBase();
+
+        // Bloqueia se a leitura já foi finalizada em Leituras
+        $jaFinalizada = $db->GetOne(
+            "SELECT id FROM [Biblioteca].[dbo].[Leituras] WHERE id = :id AND data_fim IS NOT NULL",
+            [':id' => (int)$id_leitura]
+        );
+        if ($jaFinalizada) {
+            $result_error = 'Esta leitura já foi finalizada e não aceita novas atualizações.';
+            return;
+        }
+
+        // Calcula conclusão antes do INSERT para poder checar duplicata
+        $pctFinal  = $percentual !== '' ? (float)$percentual : 0;
+        $pagFinal  = $pagina_atual !== '' ? (int)$pagina_atual : 0;
+        $pagTotal  = $paginas !== '' ? (int)$paginas : 0;
+        $concluido = $pctFinal >= 100 || ($pagTotal > 0 && $pagFinal >= $pagTotal);
+
+        // Bloqueia duplicata de conclusão (100% ou total de páginas)
+        if ($concluido) {
+            $jaConcluido = $db->GetOne(
+                "SELECT TOP 1 id FROM [Biblioteca].[dbo].[LeiturasEmAndamento]
+                 WHERE id_leitura = :id
+                   AND (percentual >= 100 OR (paginas > 0 AND pagina_atual >= paginas))",
+                [':id' => (int)$id_leitura]
+            );
+            if ($jaConcluido) {
+                $result_error = 'Já existe uma atualização de conclusão registrada para esta leitura.';
+                return;
+            }
+        }
+
         $db->ExecuteNonQuery($sql, $params);
 
-        // Determina o status a propagar para a tabela correspondente
-        $pctFinal = $percentual !== '' ? (float)$percentual : 0;
-        $pagFinal = $pagina_atual !== '' ? (int)$pagina_atual : 0;
-        $pagTotal = $paginas !== '' ? (int)$paginas : 0;
-        $concluido = $pctFinal >= 100 || ($pagTotal > 0 && $pagFinal >= $pagTotal);
         $statusTabela = $pctFinal > 0.1 ? ($concluido ? 'Lido' : 'Lendo') : null;
 
         if ($statusTabela !== null) {

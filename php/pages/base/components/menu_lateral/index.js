@@ -1670,6 +1670,15 @@ let menuLateral = {
             .fail(function () { console.error('Erro ao carregar script Desafios.'); });
     },
 
+    abrirModalLivroDesafio: function () {
+        this._carregarDesafiosScript(function () {
+            if (window.desafios) {
+                desafios.iniciarModalLivroDesafio();
+                $('#modalLivroDesafio').modal('show');
+            }
+        });
+    },
+
     abrirDesafiosAndamento: function () {
         this._carregarCSSCronograma();
         $('#mainConteudo').html(`

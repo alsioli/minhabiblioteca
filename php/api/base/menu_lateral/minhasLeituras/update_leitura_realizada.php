@@ -104,6 +104,24 @@ function PostMethod() {
         } else {
             // ── INSERT — livro ainda não existe em Leituras ──────────
 
+            // Evita duplicata: mesmo título + autor + data_fim já registrado
+            if ($fim !== null) {
+                $autorWhere = $autor !== '' ? "AND LOWER(ISNULL(autor,'')) = LOWER(:autor_chk)" : '';
+                $paramsChk  = [':titulo_chk' => $titulo, ':fim_chk' => $fim];
+                if ($autor !== '') $paramsChk[':autor_chk'] = $autor;
+                $jaExiste = $db->GetOne(
+                    "SELECT TOP 1 id FROM [Biblioteca].[dbo].[Leituras]
+                     WHERE LOWER(titulo) = LOWER(:titulo_chk)
+                       AND data_fim = :fim_chk
+                       {$autorWhere}",
+                    $paramsChk
+                );
+                if ($jaExiste) {
+                    $result_error = 'Já existe uma leitura com mesmo título, autor e data de conclusão.';
+                    return;
+                }
+            }
+
             // Campos base (sempre existem)
             $camposBase = ['titulo', 'autor', 'mes', 'data_inicio'];
             $valsBase   = [$titulo, $autor !== '' ? $autor : null, $mes, $data_inicio];

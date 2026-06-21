@@ -138,9 +138,9 @@ function PostMethod() {
     if ($local === 'Biblioteca') {
         $mesLeitura = trim($data['mes_leitura'] ?? '');
         if ($mesLeitura !== '' && preg_match('/^(\d{4})-(\d{2})$/', $mesLeitura, $ml)) {
-            $dadosCorrigidos['mes_leitura'] = $mesLeitura;
-            $dadosCorrigidos['ano']         = (int) $ml[1];
-            $dadosCorrigidos['mes']         = (int) $ml[2];
+            $dadosCorrigidos['mes_leitura']     = $mesLeitura;
+            $dadosCorrigidos['ano_leitura']     = (int) $ml[1];
+            $dadosCorrigidos['mes_ano_leitura'] = $ml[2] . '/' . $ml[1];
         }
     }
 

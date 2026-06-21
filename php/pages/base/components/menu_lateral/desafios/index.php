@@ -176,3 +176,115 @@
     </div>
   </div>
 </div>
+
+<!-- =============================================
+     Modal: Incluir Livro no Desafio
+     ============================================= -->
+<div class="modal fade" id="modalLivroDesafio" tabindex="-1" role="dialog"
+     aria-labelledby="modalLivroDesafioLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable" role="document">
+    <div class="modal-content">
+
+      <div class="cabecalho-biblioteca-modal modal-header">
+        <h5 class="modal-title" id="modalLivroDesafioLabel">Incluir Livro no Desafio</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Fechar">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+
+      <div class="modal-body">
+
+        <fieldset class="border rounded p-3 mb-3">
+          <legend class="w-auto px-2" style="font-size:0.9rem;font-weight:bold;">Selecionar Livro</legend>
+
+          <div class="row">
+            <div class="col-md-5 form-group">
+              <label>Local de Leitura <span class="text-danger">*</span></label>
+              <select id="ld_local" class="form-control" onchange="desafios.carregarLivrosPorLocal()">
+                <option value="">— Selecione —</option>
+                <option value="Biblioteca">Biblioteca</option>
+                <option value="Skeelo">Skeelo</option>
+                <option value="Kindle_Unlimited">Kindle Unlimited</option>
+                <option value="Audible">Audible</option>
+                <option value="Biblion">Biblion</option>
+                <option value="MEC_Livros">MEC Livros</option>
+              </select>
+            </div>
+            <div class="col-md-7 form-group">
+              <label>Livro <span class="text-danger">*</span></label>
+              <select id="ld_livro" class="form-control" onchange="desafios.preencherDadosLivro()" disabled>
+                <option value="">— Selecione o local primeiro —</option>
+              </select>
+            </div>
+          </div>
+        </fieldset>
+
+        <fieldset class="border rounded p-3 mb-3" id="ld_painel_dados" style="display:none">
+          <legend class="w-auto px-2" style="font-size:0.9rem;font-weight:bold;">Dados do Livro</legend>
+
+          <div class="row">
+            <div class="col-md-6 form-group">
+              <label>Autor</label>
+              <input type="text" id="ld_autor" class="form-control" readonly>
+            </div>
+            <div class="col-md-3 form-group">
+              <label>Sexo</label>
+              <input type="text" id="ld_sexo" class="form-control" readonly>
+            </div>
+            <div class="col-md-3 form-group">
+              <label>Páginas</label>
+              <input type="text" id="ld_paginas" class="form-control" readonly>
+            </div>
+          </div>
+
+          <div class="row mb-0">
+            <div class="col-md-5 form-group mb-0">
+              <label>Nacionalidade</label>
+              <input type="text" id="ld_nacionalidade" class="form-control" readonly>
+            </div>
+            <div class="col-md-4 form-group mb-0">
+              <label>Tema</label>
+              <input type="text" id="ld_tema" class="form-control" readonly>
+            </div>
+            <div class="col-md-3 form-group mb-0">
+              <label>Mês de Leitura</label>
+              <input type="text" id="ld_mes" class="form-control" readonly>
+            </div>
+          </div>
+        </fieldset>
+
+        <fieldset class="border rounded p-3 mb-3">
+          <legend class="w-auto px-2" style="font-size:0.9rem;font-weight:bold;">Dados do Desafio</legend>
+
+          <div class="row">
+            <div class="col-md-6 form-group">
+              <label>Nome do Desafio <span class="text-danger">*</span></label>
+              <select id="ld_nome_desafio" class="form-control">
+                <option value="">— Selecione —</option>
+              </select>
+            </div>
+            <div class="col-md-2 form-group">
+              <label>Sequência <span class="text-danger">*</span></label>
+              <select id="ld_sequencia" class="form-control">
+                <option value="">—</option>
+              </select>
+            </div>
+            <div class="col-md-4 form-group">
+              <label>Natureza Desafio</label>
+              <input type="text" id="ld_natureza" class="form-control" placeholder="Ex: Releitura, Maratona...">
+            </div>
+          </div>
+        </fieldset>
+
+        <div id="ld_mensagem" class="mt-2"></div>
+
+      </div><!-- /.modal-body -->
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
+        <button type="button" class="btn btn-primary" onclick="desafios.salvarLivroDesafio()">Incluir</button>
+      </div>
+
+    </div>
+  </div>
+</div>

@@ -70,6 +70,7 @@
             <button class="botao-menu">Desafios</button>
             <ul>
                 <li><a class="btn-submenu" href="#" onclick="menuLateral.abrirModalNovoDesafio()">Cadastro de desafios</a></li>
+                <li><a class="btn-submenu" href="#" onclick="menuLateral.abrirModalLivroDesafio()">Incluir livro no desafio</a></li>
                 <li><a class="btn-submenu" href="#" onclick="menuLateral.abrirAcompanhamentoDesafios()">Acompanhamento de desafios</a></li>
                 <li><a class="btn-submenu" href="#" onclick="menuLateral.abrirDesafiosAndamento()">Desafios em andamento</a></li>
                 <li><a class="btn-submenu" href="#" onclick="menuLateral.abrirLivrosDesafios()">Livros dos desafios</a></li>

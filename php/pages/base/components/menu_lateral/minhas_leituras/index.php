@@ -149,6 +149,17 @@
             </div>
           </div>
 
+          <!-- Quer abandonar? -->
+          <div class="form-group mt-2">
+            <label>Quer abandonar?</label>
+            <select id="al_abandonar" class="form-control"
+                    onchange="minhas_leituras.onAbandonarChange()">
+              <option value="">— Não (continuar leitura)</option>
+              <option value="Interrompido">Interrompido</option>
+              <option value="Abandonado">Abandonado</option>
+            </select>
+          </div>
+
           <!-- Tipo de input -->
           <div class="form-group">
             <label>Registrar por <span class="text-danger">*</span></label>
@@ -404,6 +415,157 @@
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
         <button type="button" class="btn btn-primary" onclick="minhas_leituras.salvarLeitura()">Salvar</button>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Atualizar Leituras Realizadas -->
+<div class="modal fade" id="modalAtualizarLeituras" tabindex="-1" role="dialog" aria-labelledby="modalAtualizarLeiturasLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable" role="document">
+    <div class="modal-content">
+
+      <div class="cabecalho-biblioteca-modal modal-header">
+        <h5 class="modal-title" id="modalAtualizarLeiturasLabel">Atualizar Leituras</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Fechar">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+
+      <div class="modal-body">
+
+        <!-- SEÇÃO 1: Local de Leitura -->
+        <fieldset class="border rounded p-3 mb-3">
+          <legend class="w-auto px-2" style="font-size:0.9rem;font-weight:bold;">Local de Leitura</legend>
+          <div class="form-group mb-0">
+            <label>Local</label>
+            <select id="ulr_local" class="form-control" onchange="minhas_leituras.onLocalULRChange()">
+              <option value="">Todos os locais</option>
+            </select>
+          </div>
+        </fieldset>
+
+        <!-- SEÇÃO 2: Busca da Leitura -->
+        <fieldset id="ulr_secao_busca" class="border rounded p-3 mb-3">
+          <legend class="w-auto px-2" style="font-size:0.9rem;font-weight:bold;">Buscar Leitura</legend>
+
+          <div id="ulr_busca_wrapper">
+            <div class="input-group mb-2">
+              <input type="text" id="ulr_busca_titulo" class="form-control"
+                     placeholder="Digite parte do título..."
+                     onkeyup="if(event.key==='Enter') minhas_leituras.buscarLeituraParaAtualizar()">
+              <div class="input-group-append">
+                <button class="btn btn-outline-secondary" type="button"
+                        onclick="minhas_leituras.buscarLeituraParaAtualizar()">Buscar</button>
+              </div>
+            </div>
+            <div id="ulr_resultados"></div>
+            <div id="ulr_nao_encontrado" class="d-none">
+              <div class="alert alert-warning py-2 mb-0">Nenhuma leitura encontrada.</div>
+            </div>
+          </div>
+
+          <!-- Leitura selecionada -->
+          <div id="ulr_livro_selecionado" class="d-none">
+            <div class="row align-items-center">
+              <div class="col-md-7">
+                <label class="small text-muted">Título</label>
+                <p id="ulr_titulo_display" class="mb-0 font-weight-bold"></p>
+              </div>
+              <div class="col-md-3">
+                <label class="small text-muted">Autor</label>
+                <p id="ulr_autor_display" class="mb-0"></p>
+              </div>
+              <div class="col-md-2 text-right">
+                <button class="btn btn-sm btn-outline-secondary mt-3"
+                        onclick="minhas_leituras.limparLivroSelecionadoULR()">Trocar</button>
+              </div>
+            </div>
+            <div class="row mt-2">
+              <div class="col-md-4">
+                <label class="small text-muted">Início registrado</label>
+                <p id="ulr_data_inicio_display" class="mb-0"></p>
+              </div>
+              <div class="col-md-4">
+                <label class="small text-muted">Fim registrado</label>
+                <p id="ulr_data_fim_display" class="mb-0"></p>
+              </div>
+              <div class="col-md-4">
+                <label class="small text-muted">Local</label>
+                <p id="ulr_local_display" class="mb-0"></p>
+              </div>
+            </div>
+          </div>
+        </fieldset>
+
+        <!-- SEÇÃO 3: Dados para atualizar (oculto até selecionar) -->
+        <fieldset id="ulr_secao_dados" class="border rounded p-3 mb-3 d-none">
+          <legend class="w-auto px-2" style="font-size:0.9rem;font-weight:bold;">Dados da Leitura</legend>
+
+          <div class="row">
+            <div class="col-md-6 form-group">
+              <label>Data de Início <span class="text-danger">*</span></label>
+              <input type="date" id="ulr_data_inicio" class="form-control"
+                     onchange="minhas_leituras.onDataULRChange()">
+            </div>
+            <div class="col-md-6 form-group">
+              <label>Data de Fim</label>
+              <input type="date" id="ulr_data_fim" class="form-control"
+                     onchange="minhas_leituras.onDataULRChange()">
+            </div>
+          </div>
+
+          <div class="row">
+            <div class="col-md-6 form-group">
+              <label class="small text-muted d-block">Mês (calculado)</label>
+              <p id="ulr_mes_display" class="mb-0 font-weight-bold mt-1">—</p>
+            </div>
+            <div class="col-md-6 form-group">
+              <label class="small text-muted d-block">Tempo de Leitura (calculado)</label>
+              <p id="ulr_tempo_display" class="mb-0 font-weight-bold mt-1">—</p>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Natureza</label>
+            <select id="ulr_natureza" class="form-control">
+              <option value="">Selecione</option>
+              <option value="Leitura Pessoal">Leitura Pessoal</option>
+              <option value="LC">LC (Leitura Coletiva)</option>
+              <option value="Desafio">Desafio</option>
+              <option value="Maratona">Maratona</option>
+              <option value="Outro">Outro</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label>Avaliação</label>
+            <select id="ulr_avaliacao" class="form-control">
+              <option value="">Selecione</option>
+              <option value="1">⭐ 1</option>
+              <option value="2">⭐⭐ 2</option>
+              <option value="3">⭐⭐⭐ 3</option>
+              <option value="4">⭐⭐⭐⭐ 4</option>
+              <option value="5">⭐⭐⭐⭐⭐ 5</option>
+            </select>
+          </div>
+
+          <div class="form-group mb-0">
+            <label>Impressões</label>
+            <textarea id="ulr_impressoes" class="form-control" rows="3"
+                      placeholder="Anotações, reflexões, observações sobre a leitura..."></textarea>
+          </div>
+        </fieldset>
+
+        <input type="hidden" id="ulr_id_leitura">
+        <div id="ulr_mensagem" class="mt-2"></div>
+
+      </div><!-- /.modal-body -->
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary btn-sm" data-dismiss="modal">Cancelar</button>
+        <button type="button" class="btn btn-primary btn-sm" onclick="minhas_leituras.salvarAtualizarLeitura()">Salvar</button>
       </div>
 
     </div>

@@ -3,6 +3,25 @@ let tbr_view = {
     _dados: [],
     _mesAtual: '',
     _editando: null,
+    _sortCol: '',
+    _sortDir: 'asc',
+
+    _sortarPor: function (col) {
+        if (this._sortCol === col) {
+            this._sortDir = this._sortDir === 'asc' ? 'desc' : 'asc';
+        } else {
+            this._sortCol = col;
+            this._sortDir = 'asc';
+        }
+        const dir    = this._sortDir === 'asc' ? 1 : -1;
+        const numCol = ['paginas', 'avaliacao'].includes(col);
+        this._dados.sort(function (a, b) {
+            const va = numCol ? (parseFloat(a[col]) || 0) : String(a[col] || '').toLowerCase();
+            const vb = numCol ? (parseFloat(b[col]) || 0) : String(b[col] || '').toLowerCase();
+            return va < vb ? -dir : va > vb ? dir : 0;
+        });
+        this._renderTabela();
+    },
 
     init: async function () {
         this._injetarModal();
@@ -134,9 +153,14 @@ let tbr_view = {
             return;
         }
 
-        const thSt  = 'padding:6px 8px;text-align:left;border-bottom:2px solid #dee2e6;font-size:0.8rem;background:#f8f9fa;position:sticky;top:0;z-index:1;white-space:nowrap';
+        const thSt  = 'padding:6px 8px;text-align:left;border-bottom:2px solid #0891b2;font-size:0.8rem;background:rgba(8,145,178,0.07);position:sticky;top:0;z-index:1;white-space:nowrap;cursor:pointer;user-select:none;color:#0891b2';
         const tdSt  = 'padding:4px 8px;border-bottom:1px solid #f0f0f0;font-size:0.8rem;vertical-align:middle';
         const tdCtr = 'padding:4px 8px;border-bottom:1px solid #f0f0f0;font-size:0.8rem;text-align:center;white-space:nowrap;vertical-align:middle';
+        const sc = this._sortCol, sd = this._sortDir;
+        const th = (col, label, st) => {
+            const ind = col === sc ? (sd === 'asc' ? ' ↑' : ' ↓') : '';
+            return `<th style="${st || thSt}" onclick="tbr_view._sortarPor('${col}')" title="Clique para ordenar">${label}${ind}</th>`;
+        };
 
         const corPrevisao = function (prev) {
             switch (prev) {
@@ -164,20 +188,20 @@ let tbr_view = {
             <table style="width:100%;border-collapse:collapse;table-layout:auto">
                 <thead>
                     <tr>
-                        <th style="${thSt}">Título</th>
-                        <th style="${thSt}">Autor</th>
-                        <th style="${thSt}">Sexo</th>
-                        <th style="${thSt}">País</th>
-                        <th style="${thSt}">Natureza</th>
-                        <th style="${thSt}">Tema</th>
-                        <th style="${thSt}">Tipo</th>
-                        <th style="${thSt};width:55px">Págs.</th>
-                        <th style="${thSt}">Origem</th>
-                        <th style="${thSt}">Releitura</th>
-                        <th style="${thSt}">Previsão</th>
-                        <th style="${thSt}">Status</th>
-                        <th style="${thSt};width:60px">Av.</th>
-                        <th style="${thSt};width:65px"></th>
+                        ${th('titulo',           'Título')}
+                        ${th('autor',            'Autor')}
+                        ${th('sexo_autor',       'Sexo')}
+                        ${th('pais',             'País')}
+                        ${th('natureza',         'Natureza')}
+                        ${th('tema',             'Tema')}
+                        ${th('tipo_edicao',      'Tipo')}
+                        ${th('paginas',          'Págs.')}
+                        ${th('origem',           'Origem')}
+                        ${th('releitura',        'Releitura')}
+                        ${th('previsao_leitura', 'Previsão')}
+                        ${th('status',           'Status')}
+                        ${th('avaliacao',        'Av.')}
+                        <th style="padding:6px 8px;background:rgba(8,145,178,0.07);border-bottom:2px solid #0891b2;width:65px"></th>
                     </tr>
                 </thead>
                 <tbody>

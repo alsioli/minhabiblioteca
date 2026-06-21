@@ -57,6 +57,24 @@
     <!-- CSS Header -->
     <link rel="stylesheet" type="text/css" href="/public/assets/css/header.css">
 
+    <!-- CSS Mobile (responsivo) -->
+    <link rel="stylesheet" type="text/css" href="/public/assets/css/mobile.css">
 
+    <!-- PWA -->
+    <link rel="manifest" href="/public/manifest.json">
+    <meta name="theme-color" content="#6a2bbf">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="Biblioteca">
+
+    <script>
+        function toggleMenu() {
+            document.querySelector('.menu-lateral').classList.toggle('aberto');
+            document.getElementById('menuBackdrop').classList.toggle('ativo');
+        }
+
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/public/service-worker.js');
+        }
+    </script>
 
 </head>

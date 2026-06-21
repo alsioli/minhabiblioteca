@@ -2,6 +2,25 @@ let citacoes_view = {
 
     _dados: [],
     _livroSelecionado: null,
+    _sortCol: '',
+    _sortDir: 'asc',
+
+    _sortarPor: function (col) {
+        if (this._sortCol === col) {
+            this._sortDir = this._sortDir === 'asc' ? 'desc' : 'asc';
+        } else {
+            this._sortCol = col;
+            this._sortDir = 'asc';
+        }
+        const dir    = this._sortDir === 'asc' ? 1 : -1;
+        const numCol = ['avaliacao_livro', 'avaliacao_frase'].includes(col);
+        this._dados.sort(function (a, b) {
+            const va = numCol ? (parseFloat(a[col]) || 0) : String(a[col] || '').toLowerCase();
+            const vb = numCol ? (parseFloat(b[col]) || 0) : String(b[col] || '').toLowerCase();
+            return va < vb ? -dir : va > vb ? dir : 0;
+        });
+        this._renderTabela(this._dados);
+    },
 
     buscar: async function () {
         const busca   = (document.getElementById('citBuscaTitulo') || {}).value || '';
@@ -42,9 +61,14 @@ let citacoes_view = {
             return;
         }
 
-        const thSt  = 'padding:6px 8px;text-align:left;border-bottom:2px solid #dee2e6;font-size:0.82rem;background:#f8f9fa;position:sticky;top:0;z-index:1';
+        const thSt  = 'padding:6px 8px;text-align:left;border-bottom:2px solid #d97706;font-size:0.82rem;background:rgba(217,119,6,0.07);position:sticky;top:0;z-index:1;cursor:pointer;user-select:none;color:#d97706';
         const tdSt  = 'padding:5px 8px;border-bottom:1px solid #f0f0f0;font-size:0.83rem;vertical-align:top';
         const tdCtr = 'padding:5px 8px;border-bottom:1px solid #f0f0f0;font-size:0.83rem;text-align:center;white-space:nowrap;vertical-align:top';
+        const sc = this._sortCol, sd = this._sortDir;
+        const th = (col, label, w) => {
+            const ind = col === sc ? (sd === 'asc' ? ' ↑' : ' ↓') : '';
+            return `<th style="${thSt}${w ? ';width:' + w : ''}" onclick="citacoes_view._sortarPor('${col}')" title="Clique para ordenar">${label}${ind}</th>`;
+        };
 
         let html = `
             <div style="margin-bottom:6px;font-size:0.82rem;color:#666">
@@ -54,14 +78,14 @@ let citacoes_view = {
             <table style="width:100%;border-collapse:collapse;table-layout:auto">
                 <thead>
                     <tr>
-                        <th style="${thSt}">Título</th>
-                        <th style="${thSt}">Autor</th>
-                        <th style="${thSt};width:85px">Capítulo</th>
-                        <th style="${thSt};width:110px">Pág./Percentual</th>
-                        <th style="${thSt};width:80px">Av. Livro</th>
-                        <th style="${thSt};width:80px">Av. Frase</th>
-                        <th style="${thSt}">Citação</th>
-                        <th style="${thSt};width:90px"></th>
+                        ${th('titulo',           'Título')}
+                        ${th('autor',            'Autor')}
+                        ${th('capitulo',         'Capítulo',        '85px')}
+                        ${th('pagina_percentual','Pág./Percentual', '110px')}
+                        ${th('avaliacao_livro',  'Av. Livro',       '80px')}
+                        ${th('avaliacao_frase',  'Av. Frase',       '80px')}
+                        ${th('frases',           'Citação')}
+                        <th style="padding:6px 8px;background:rgba(217,119,6,0.07);border-bottom:2px solid #d97706;width:90px"></th>
                     </tr>
                 </thead>
                 <tbody>
@@ -127,7 +151,7 @@ let citacoes_view = {
     _renderDetalhe: function (titulo, autor, citacoes) {
         const box = document.getElementById('citacoesTabela');
 
-        const thSt = 'padding:6px 10px;text-align:left;border-bottom:2px solid #dee2e6;font-size:0.82rem;background:#f8f9fa';
+        const thSt = 'padding:6px 10px;text-align:left;border-bottom:2px solid #d97706;font-size:0.82rem;background:rgba(217,119,6,0.07);color:#d97706';
         const tdSt = 'padding:8px 10px;border-bottom:1px solid #f0f0f0;font-size:0.83rem;vertical-align:top';
 
         let linhas = '';

@@ -26,15 +26,19 @@ echo json_encode([
 function GetMethod() {
     global $result_status, $result_error, $result_data;
 
-    // Livros com avaliação 5 (ou '5F') lidos em 2025.
-    // Compatível com avaliacao armazenada como numérico (5) ou texto ('5', '5F').
+    // Livros com avaliação 5 lidos em 2026, ordenados por data_fim desc.
     $sql = "
         SELECT
-            titulo, autor, avaliacao, mes
+            titulo,
+            autor,
+            avaliacao,
+            mes                                         AS mes_leitura,
+            CONVERT(VARCHAR(7), data_fim, 126)          AS data_fim_fmt
         FROM [Biblioteca].[dbo].[Leituras]
-        WHERE CAST(avaliacao AS VARCHAR(10)) LIKE '5.%'
-          AND mes like '%2025-%'
-        ORDER BY mes DESC
+        WHERE FLOOR(ISNULL(avaliacao, 0)) = 5
+          AND data_fim IS NOT NULL
+          AND YEAR(data_fim) = 2026
+        ORDER BY data_fim DESC
     ";
 
     try {
@@ -42,6 +46,6 @@ function GetMethod() {
         $result_data   = $db->GetMany($sql);
         $result_status = true;
     } catch (Exception $e) {
-        $result_error = 'Erro ao listar favoritos de 2025: ' . $e->getMessage();
+        $result_error = 'Erro ao listar favoritos de 2026: ' . $e->getMessage();
     }
 }

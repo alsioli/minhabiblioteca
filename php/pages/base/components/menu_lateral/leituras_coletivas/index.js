@@ -486,12 +486,30 @@ let leitura_coletiva = {
                     <td>${item.situacao}</td>
                     <td style="${diasStyle}">${diasTexto}</td>
                     <td>${media}</td>
-                    <td>
+                    <td style="white-space:nowrap">
                         <button class="btn btn-sm btn-warning text-dark fw-bold"
                                 style="background-color:#ff9800; border-color:#e68900;"
                                 onclick="leitura_coletiva.abrirModalEditarLC(${item.id})">
                             ✏️ Editar
                         </button>
+                        <button class="btn btn-sm btn-danger text-white fw-bold ml-1"
+                                onclick="leitura_coletiva.excluirLC(${item.id}, '${(item.titulo || '').replace(/'/g, "\\'")}')">
+                            🗑️ Excluir
+                        </button>
+                        <button class="btn btn-sm btn-info text-dark fw-bold ml-1"
+                                onclick="leitura_coletiva.abrirTBRdaLC(${item.id})">
+                            📚 TBR
+                        </button>
+                        ${item.situacao === 'A começar'
+                            ? `<button class="btn btn-sm btn-success text-white fw-bold ml-1"
+                                       onclick="leitura_coletiva.abrirIniciarDaLC(${item.id})">
+                                   ▶ Iniciar
+                               </button>`
+                            : `<button class="btn btn-sm btn-secondary text-white fw-bold ml-1" disabled
+                                       title="Disponível apenas para livros 'A começar'">
+                                   ▶ Iniciar
+                               </button>`
+                        }
                     </td>
                 </tr>
             `;
@@ -558,6 +576,182 @@ let leitura_coletiva = {
 
         } catch (e) {
             $('#mensagemEditarLC').html('<div class="alert alert-danger">Erro ao salvar. Tente novamente.</div>');
+        }
+    },
+
+    excluirLC: async function (id, titulo) {
+        const confirm = await Swal.fire({
+            title: 'Excluir do Cronograma?',
+            text: titulo || 'Este registro será removido permanentemente.',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#dc3545',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: 'Sim, excluir',
+            cancelButtonText: 'Cancelar',
+        });
+
+        if (!confirm.isConfirmed) return;
+
+        try {
+            const body = new FormData();
+            body.append('id', id);
+
+            const resp = await fetch(
+                '/php/api/base/menu_lateral/leiturasColetivas/delete_cronograma_lc.php',
+                { method: 'POST', body }
+            );
+            const json = await resp.json();
+
+            if (!json.status) {
+                Swal.fire({ icon: 'error', title: 'Erro', text: json.error || 'Falha ao excluir.' });
+                return;
+            }
+
+            await this.carregarCronogramaLC();
+
+            Swal.fire({
+                icon: 'success',
+                title: 'Excluído!',
+                text: 'Registro removido do cronograma.',
+                timer: 1800,
+                showConfirmButton: false,
+            });
+        } catch (e) {
+            Swal.fire({ icon: 'error', title: 'Erro', text: 'Erro inesperado ao excluir.' });
+        }
+    },
+
+    _buscarDadosLivro: async function (titulo) {
+        try {
+            const resp = await fetch(
+                '/php/api/base/menu_lateral/leiturasColetivas/buscar_dados_livro.php?titulo=' +
+                encodeURIComponent(titulo)
+            );
+            const json = await resp.json();
+            return (json.status && json.data) ? json.data : null;
+        } catch (e) {
+            console.error('[LC] Erro ao buscar dados do livro:', e);
+            return null;
+        }
+    },
+
+    abrirTBRdaLC: async function (id) {
+        try {
+            const item = this._lista.find(i => i.id == id);
+            if (!item) throw new Error('Item id=' + id + ' nao encontrado na lista.');
+
+            // Busca dados completos nas tabelas de acervo
+            const dadosLivro = await this._buscarDadosLivro(item.titulo);
+            const livro = {
+                titulo:      (dadosLivro && dadosLivro.titulo)      || item.titulo,
+                paginas:     (dadosLivro && dadosLivro.paginas)     || item.paginas || '',
+                autor:       (dadosLivro && dadosLivro.autor)       || '',
+                sexo_autor:  (dadosLivro && dadosLivro.sexo_autor)  || '',
+                pais:        (dadosLivro && dadosLivro.pais)        || '',
+                natureza:    (dadosLivro && dadosLivro.natureza)    || '',
+                tema:        (dadosLivro && dadosLivro.tema)        || '',
+                tipo_edicao: (dadosLivro && dadosLivro.tipo_edicao) || '',
+            };
+
+            $('#modalTBRMensal').remove();
+
+            $.ajax({
+                url: '/php/pages/base/components/menu_lateral/tbr_mensal/index.php',
+                method: 'GET',
+                success: function (html) {
+                    try {
+                        $('body').append(html);
+                        $.getScript('/php/pages/base/components/menu_lateral/tbr_mensal/index.js')
+                            .done(function () {
+                                try {
+                                    if (!window.tbr_mensal || typeof tbr_mensal.abrirComLivroPreenchido !== 'function') {
+                                        throw new Error('tbr_mensal.abrirComLivroPreenchido nao disponivel.');
+                                    }
+                                    tbr_mensal.abrirComLivroPreenchido(livro);
+                                } catch (e) {
+                                    console.error('[TBR] Erro ao abrir modal:', e);
+                                    alert('Erro ao abrir modal TBR: ' + e.message);
+                                }
+                            })
+                            .fail(function () {
+                                console.error('[TBR] Falha ao carregar tbr_mensal/index.js');
+                                alert('Erro ao carregar script do modal TBR.');
+                            });
+                    } catch (e) {
+                        console.error('[TBR] Erro ao injetar HTML:', e);
+                        alert('Erro ao montar modal TBR: ' + e.message);
+                    }
+                },
+                error: function (xhr, status, err) {
+                    console.error('[TBR] Erro AJAX:', status, err);
+                    alert('Erro ao carregar modal TBR.');
+                }
+            });
+        } catch (e) {
+            console.error('[TBR] Erro geral em abrirTBRdaLC:', e);
+            alert('Erro: ' + e.message);
+        }
+    },
+
+    abrirIniciarDaLC: async function (id) {
+        try {
+            const item = this._lista.find(i => i.id == id);
+            if (!item) throw new Error('Item id=' + id + ' nao encontrado na lista.');
+
+            // Busca dados completos nas tabelas de acervo
+            const dadosLivro = await this._buscarDadosLivro(item.titulo);
+            const livro = {
+                titulo:        (dadosLivro && dadosLivro.titulo)        || item.titulo,
+                paginas:       (dadosLivro && dadosLivro.paginas)       || item.paginas || '',
+                autor:         (dadosLivro && dadosLivro.autor)         || '',
+                sexo_autor:    (dadosLivro && dadosLivro.sexo_autor)    || '',
+                pais:          (dadosLivro && dadosLivro.pais)          || '',
+                natureza:      (dadosLivro && dadosLivro.natureza)      || '',
+                tema:          (dadosLivro && dadosLivro.tema)          || '',
+                tipo_edicao:   (dadosLivro && dadosLivro.tipo_edicao)   || '',
+                local_leitura: (dadosLivro && dadosLivro.local_leitura) || '',
+            };
+
+            const contexto = { cronograma_id: item.id, cronograma_lc: item.lc };
+
+            $('#modalComecarLivro').remove();
+
+            $.ajax({
+                url: '/php/pages/base/components/menu_lateral/minhas_leituras/index.php',
+                method: 'GET',
+                success: function (html) {
+                    try {
+                        $('body').append(html);
+                        $.getScript('/php/pages/base/components/menu_lateral/minhas_leituras/index.js')
+                            .done(function () {
+                                try {
+                                    if (!window.minhas_leituras || typeof minhas_leituras.abrirComLivroPreenchido !== 'function') {
+                                        throw new Error('minhas_leituras.abrirComLivroPreenchido nao disponivel.');
+                                    }
+                                    minhas_leituras.abrirComLivroPreenchido(livro, contexto);
+                                } catch (e) {
+                                    console.error('[Iniciar] Erro ao abrir modal:', e);
+                                    alert('Erro ao abrir modal Iniciar: ' + e.message);
+                                }
+                            })
+                            .fail(function () {
+                                console.error('[Iniciar] Falha ao carregar minhas_leituras/index.js');
+                                alert('Erro ao carregar script do modal Iniciar.');
+                            });
+                    } catch (e) {
+                        console.error('[Iniciar] Erro ao injetar HTML:', e);
+                        alert('Erro ao montar modal Iniciar: ' + e.message);
+                    }
+                },
+                error: function (xhr, status, err) {
+                    console.error('[Iniciar] Erro AJAX:', status, err);
+                    alert('Erro ao carregar modal Iniciar.');
+                }
+            });
+        } catch (e) {
+            console.error('[Iniciar] Erro geral em abrirIniciarDaLC:', e);
+            alert('Erro: ' + e.message);
         }
     },
 

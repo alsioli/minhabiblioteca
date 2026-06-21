@@ -52,6 +52,7 @@ function GetMethod() {
         WHERE data_fim IS NOT NULL
           AND YEAR(data_fim)  = :ano
           AND MONTH(data_fim) = :mes_num
+          AND ISNULL(natureza, '') NOT IN ('Abandonado', 'Interrompido')
         ORDER BY data_fim ASC
     ";
 

@@ -1,7 +1,13 @@
 
 <script src="/php/pages/base/components/header/header.js"></script>
 
+<div class="menu-backdrop" id="menuBackdrop" onclick="toggleMenu()"></div>
+
 <header class="cabecalho-biblioteca">
+
+    <button class="btn-hamburger" onclick="toggleMenu()" aria-label="Menu">
+        <span></span><span></span><span></span>
+    </button>
 
     <!-- ── Bloco esquerda: Citações rotativas ─────────────────── -->
     <div class="bloco-esquerda">

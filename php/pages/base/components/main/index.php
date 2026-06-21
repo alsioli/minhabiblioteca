@@ -5,96 +5,96 @@
         <div class="container-fluid pt-3 pb-4">
 
             <!-- Linha 1: Leituras em Andamento | Livros Não Lidos Antigos -->
-            <div class="row">
+            <div class="row align-items-stretch">
 
-                <div class="col-md-7 mb-3">
-                    <div style="border:1px solid #e0e0e0;border-radius:6px;padding:12px;">
-                        <div class="d-flex justify-content-between align-items-center mb-2">
-                            <h5 class="mb-0" style="font-size:0.95rem;font-weight:600">Leituras em Andamento</h5>
+                <div class="col-12 col-md-7 mb-3 d-flex flex-column">
+                    <div style="border:1px solid #e8e0f5;border-left:4px solid #6a2bbf;border-radius:6px;padding:0;background:#fff;overflow:hidden;flex:1">
+                        <div style="background:rgba(106,43,191,0.07);padding:8px 12px 7px">
+                            <h5 class="mb-0" style="font-size:0.95rem;font-weight:700;color:#6a2bbf">Leituras em Andamento</h5>
                         </div>
-                        <div id="bloco-andamento"></div>
+                        <div id="bloco-andamento" style="padding:10px 12px 12px"></div>
                     </div>
                 </div>
 
-                <div class="col-md-5 mb-3">
-                    <div style="border:1px solid #e0e0e0;border-radius:6px;padding:12px;">
-                        <div class="d-flex justify-content-between align-items-center mb-2">
-                            <h5 class="mb-0" style="font-size:0.95rem;font-weight:600">Livros Nao Lidos Mais Antigos</h5>
+                <div class="col-12 col-md-5 mb-3 d-flex flex-column">
+                    <div style="border:1px solid #dce8f5;border-left:4px solid #4a76a8;border-radius:6px;padding:0;background:#fff;overflow:hidden;flex:1">
+                        <div style="background:rgba(74,118,168,0.07);padding:8px 12px 7px">
+                            <h5 class="mb-0" style="font-size:0.95rem;font-weight:700;color:#4a76a8">Livros Não Lidos Mais Antigos</h5>
                         </div>
-                        <div id="bloco-nao-lidos"></div>
-                    </div>
-                </div>
-
-            </div>
-
-            <!-- Linha 2: LCs Vencendo | Favoritos 2025 -->
-            <div class="row">
-
-                <div class="col-md-5 mb-3">
-                    <div style="border:1px solid #e0e0e0;border-radius:6px;padding:12px;">
-                        <div class="d-flex justify-content-between align-items-center mb-2">
-                            <h5 class="mb-0" style="font-size:0.95rem;font-weight:600">LCs Vencendo em 5 Dias</h5>
-                        </div>
-                        <div id="bloco-lc"></div>
-                    </div>
-                </div>
-
-                <div class="col-md-7 mb-3">
-                    <div style="border:1px solid #e0e0e0;border-radius:6px;padding:12px;">
-                        <div class="d-flex justify-content-between align-items-center mb-2">
-                            <h5 class="mb-0" style="font-size:0.95rem;font-weight:600">Livros Favoritos em 2025</h5>
-                        </div>
-                        <div id="bloco-favoritos"></div>
+                        <div id="bloco-nao-lidos" style="padding:10px 12px 12px"></div>
                     </div>
                 </div>
 
             </div>
 
-            <!-- Linha 3: TBR em Breve | Quero Ler Logo -->
-            <div class="row">
+            <!-- Linha 2: Favoritos 2025 | MINHA TBR -->
+            <div class="row align-items-stretch">
 
-                <div class="col-md-6 mb-3">
-                    <div style="border:1px solid #e0e0e0;border-radius:6px;padding:12px;">
-                        <div class="d-flex justify-content-between align-items-center mb-2">
-                            <h5 class="mb-0" style="font-size:0.95rem;font-weight:600">Quero Ler em Breve (TBR)</h5>
+                <div class="col-12 col-md-5 mb-3 d-flex flex-column">
+                    <div style="border:1px solid #fdecc8;border-left:4px solid #d97706;border-radius:6px;padding:0;background:#fff;overflow:hidden;flex:1">
+                        <div style="background:rgba(217,119,6,0.07);padding:8px 12px 7px">
+                            <h5 class="mb-0" style="font-size:0.95rem;font-weight:700;color:#d97706">Livros Favoritos em 2026</h5>
                         </div>
-                        <div id="bloco-tbr-breve"></div>
+                        <div id="bloco-favoritos" style="padding:10px 12px 12px"></div>
                     </div>
                 </div>
 
-                <div class="col-md-6 mb-3">
-                    <div style="border:1px solid #e0e0e0;border-radius:6px;padding:12px;">
-                        <div class="d-flex justify-content-between align-items-center mb-2">
-                            <h5 class="mb-0" style="font-size:0.95rem;font-weight:600">Quero Ler Logo</h5>
-                            <button class="btn btn-sm btn-outline-primary"
-                                    style="padding:1px 8px;font-size:0.85rem;line-height:1.4"
+                <div class="col-12 col-md-7 mb-3 d-flex flex-column">
+                    <div style="border:1px solid #cdf0f8;border-left:4px solid #0891b2;border-radius:6px;padding:0;background:#fff;overflow:hidden;flex:1">
+                        <div style="background:rgba(8,145,178,0.07);padding:8px 12px 7px">
+                            <h5 class="mb-0" style="font-size:0.95rem;font-weight:700;color:#0891b2">MINHA TBR de <span id="mes-tbr-atual"></span></h5>
+                        </div>
+                        <div id="bloco-tbr-breve" style="padding:10px 12px 12px"></div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Linha 3: LCs Vencendo | Quero Ler Logo -->
+            <div class="row align-items-stretch">
+
+                <div class="col-12 col-md-5 mb-3 d-flex flex-column">
+                    <div style="border:1px solid #fce0e0;border-left:4px solid #dc2626;border-radius:6px;padding:0;background:#fff;overflow:hidden;flex:1">
+                        <div style="background:rgba(220,38,38,0.06);padding:8px 12px 7px">
+                            <h5 class="mb-0" style="font-size:0.95rem;font-weight:700;color:#dc2626">LCs Vencendo em 5 Dias</h5>
+                        </div>
+                        <div id="bloco-lc" style="padding:10px 12px 12px"></div>
+                    </div>
+                </div>
+
+                <div class="col-12 col-md-7 mb-3 d-flex flex-column">
+                    <div style="border:1px solid #ccf0e3;border-left:4px solid #059669;border-radius:6px;padding:0;background:#fff;overflow:hidden;flex:1">
+                        <div style="background:rgba(5,150,105,0.07);padding:8px 12px 7px;display:flex;justify-content:space-between;align-items:center">
+                            <h5 class="mb-0" style="font-size:0.95rem;font-weight:700;color:#059669">Quero Ler Logo</h5>
+                            <button class="btn btn-sm"
+                                    style="padding:1px 10px;font-size:0.82rem;line-height:1.5;background:#059669;color:#fff;border:none;border-radius:4px"
                                     onclick="menuLateral.abrirModalQueroLerLogo()"
                                     title="Adicionar livro">+</button>
                         </div>
-                        <div id="bloco-quero-ler"></div>
+                        <div id="bloco-quero-ler" style="padding:10px 12px 12px"></div>
                     </div>
                 </div>
 
             </div>
 
-            <!-- Linha 4: Adquiridos Recentemente | Previsões do Mês -->
-            <div class="row">
+            <!-- Linha 4: Adquiridos Recentemente | Gráfico Livros TAG -->
+            <div class="row align-items-stretch">
 
-                <div class="col-md-6 mb-3">
-                    <div style="border:1px solid #e0e0e0;border-radius:6px;padding:12px;">
-                        <div class="d-flex justify-content-between align-items-center mb-2">
-                            <h5 class="mb-0" style="font-size:0.95rem;font-weight:600">Adquiridos Recentemente</h5>
+                <div class="col-12 col-md-7 mb-3 d-flex flex-column">
+                    <div style="border:1px solid #e5d8f8;border-left:4px solid #7c3aed;border-radius:6px;padding:0;background:#fff;overflow:hidden;flex:1">
+                        <div style="background:rgba(124,58,237,0.07);padding:8px 12px 7px">
+                            <h5 class="mb-0" style="font-size:0.95rem;font-weight:700;color:#7c3aed">Adquiridos Recentemente</h5>
                         </div>
-                        <div id="bloco-adquiridos"></div>
+                        <div id="bloco-adquiridos" style="padding:10px 12px 12px"></div>
                     </div>
                 </div>
 
-                <div class="col-md-6 mb-3">
-                    <div style="border:1px solid #e0e0e0;border-radius:6px;padding:12px;">
-                        <div class="d-flex justify-content-between align-items-center mb-2">
-                            <h5 class="mb-0" style="font-size:0.95rem;font-weight:600">Leituras Previstas para o Mês</h5>
+                <div class="col-12 col-md-5 mb-3 d-flex flex-column">
+                    <div style="border:1px solid #ffe8cc;border-left:4px solid #ff9d4d;border-radius:6px;padding:0;background:#fff;overflow:hidden;flex:1">
+                        <div style="background:rgba(255,157,77,0.08);padding:8px 12px 7px">
+                            <h5 class="mb-0" style="font-size:0.95rem;font-weight:700;color:#c2690a">Gráfico Livros TAG</h5>
                         </div>
-                        <div id="bloco-previsoes"></div>
+                        <div id="bloco-tag-chart" style="padding:6px 12px 12px"></div>
                     </div>
                 </div>
 
@@ -171,6 +171,7 @@
         <input type="hidden" id="atualizar_paginas">
         <input type="hidden" id="atualizar_tipo_midia">
         <input type="hidden" id="atualizar_data_inicio">
+        <input type="hidden" id="atualizar_local_leitura">
 
         <div id="atualizar_mensagem" class="mt-2"></div>
 

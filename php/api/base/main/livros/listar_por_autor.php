@@ -10,6 +10,7 @@ include_once __DIR__ . "/../../../../utils/function/database.php";
 $CONFIG = [
     'livros_autor' => [
         'label'      => 'Lista Geral de Autores',
+        'status_col' => 'status',
         'sql_select' => "
             SELECT
                 Titulo          AS titulo,
@@ -21,25 +22,26 @@ $CONFIG = [
                 Tema            AS tema,
                 Paginas         AS paginas,
                 Status          AS status,
-                Pais            AS pais,
-                DataPublicacao  AS data_publicacao
+                Pais            AS pais
             FROM [Biblioteca].[dbo].[LivrosAutor]
             ORDER BY Titulo ASC
         ",
         'colunas' => [
             'titulo', 'titulo_portugues', 'autor', 'serie', 'volume',
-            'genero', 'tema', 'paginas', 'status', 'pais', 'data_publicacao',
+            'genero', 'tema', 'paginas', 'status', 'pais',
         ],
     ],
     'jo_nesbo_tess' => [
-        'label'   => 'Jo Nesbo / Tess Gerritsen',
-        'tabela'  => 'ListaJoNesboTess',
-        'colunas' => ['autor', 'titulo', 'status'],
+        'label'      => 'Jo Nesbo / Tess Gerritsen',
+        'tabela'     => 'ListaJoNesboTess',
+        'status_col' => 'status',
+        'colunas'    => ['autor', 'titulo', 'status'],
     ],
     'king' => [
-        'label'   => 'Stephen King',
-        'tabela'  => 'King',
-        'colunas' => ['autor', 'titulo', 'data_lancamento', 'serie', 'seq', 'situacao', 'data_registro'],
+        'label'      => 'Stephen King',
+        'tabela'     => 'King',
+        'status_col' => 'situacao',
+        'colunas'    => ['autor', 'titulo', 'ano_lancamento', 'serie', 'seq', 'situacao', 'ano_registro'],
     ],
 ];
 
@@ -93,9 +95,10 @@ if ($acao === 'livros') {
         $db   = new DataBase();
         $rows = $db->GetMany($sql);
         echo json_encode([
-            'status'  => true,
-            'colunas' => $cfg['colunas'],
-            'data'    => $rows,
+            'status'     => true,
+            'colunas'    => $cfg['colunas'],
+            'status_col' => $cfg['status_col'] ?? null,
+            'data'       => $rows,
         ], JSON_UNESCAPED_UNICODE);
     } catch (Exception $e) {
         echo json_encode(['status' => false, 'error' => 'Erro ao consultar: ' . $e->getMessage()]);

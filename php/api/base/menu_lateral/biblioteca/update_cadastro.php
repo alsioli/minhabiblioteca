@@ -134,6 +134,16 @@ function PostMethod() {
         }
     }
 
+    // mes_leitura/ano/mes só existem na tabela Livros (Biblioteca)
+    if ($local === 'Biblioteca') {
+        $mesLeitura = trim($data['mes_leitura'] ?? '');
+        if ($mesLeitura !== '' && preg_match('/^(\d{4})-(\d{2})$/', $mesLeitura, $ml)) {
+            $dadosCorrigidos['mes_leitura'] = $mesLeitura;
+            $dadosCorrigidos['ano']         = (int) $ml[1];
+            $dadosCorrigidos['mes']         = (int) $ml[2];
+        }
+    }
+
     // Processa codigo/tipo_codigo somente para Biblioteca
     if ($local === 'Biblioteca' && !empty($data['codigo'])) {
         $codigoColumn = getCodigoColumn($data['tipo_codigo'] ?? '');
@@ -168,6 +178,27 @@ function PostMethod() {
         $db->ExecuteNonQuery($sqlQuery, $params);
         $result_status = true;
         $result_data   = ['id' => $id, 'message' => 'Livro atualizado com sucesso'];
+
+        // Upsert na tabela Autores (silencioso)
+        $autorNome = trim($data['autor']          ?? '');
+        $autorSexo = trim($data['sexo_autor']     ?? '');
+        $autorRaca = trim($data['raca']           ?? '');
+        $autorNac  = trim($data['nacionalidade']  ?? '');
+
+        if ($autorNome !== '') {
+            try {
+                $db->ExecuteNonQuery(
+                    "IF NOT EXISTS (SELECT 1 FROM [Biblioteca].[dbo].[Autor] WHERE LOWER(nome_autor) = LOWER(:nome))
+                         INSERT INTO [Biblioteca].[dbo].[Autor] (nome_autor, sexo_autor, [raça], nacionalidade)
+                         VALUES (:nome2, NULLIF(:sexo,''), NULLIF(:raca,''), NULLIF(:nac,''))",
+                    [
+                        ':nome'  => $autorNome, ':nome2' => $autorNome,
+                        ':sexo'  => $autorSexo, ':raca'  => $autorRaca, ':nac' => $autorNac,
+                    ]
+                );
+            } catch (Exception $e) { /* silencioso */ }
+        }
+
     } catch (Exception $e) {
         $result_error = 'Erro ao atualizar: ' . $e->getMessage();
     }

@@ -252,6 +252,118 @@ let desafios = {
         }
     },
 
+    // ─── LIVROS DOS DESAFIOS ─────────────────────────────────────
+
+    carregarLivrosDesafios: async function () {
+        const container = $('#livrosDesafiosContainer');
+        if (!container.length) return;
+        container.html('<p class="text-muted small">Carregando...</p>');
+
+        try {
+            const resp = await fetch('/php/api/base/menu_lateral/desafios/listar_livros_desafios.php');
+            const json = await resp.json();
+
+            if (!json.status) {
+                container.html(`<div class="alert alert-warning">${json.error || 'Erro ao carregar.'}</div>`);
+                return;
+            }
+
+            this._renderLivrosDesafios(json.data || []);
+        } catch (e) {
+            console.error('Erro ao carregar livros dos desafios:', e);
+            container.html('<div class="alert alert-danger">Erro ao carregar dados.</div>');
+        }
+    },
+
+    _renderLivrosDesafios: function (lista) {
+        const container = $('#livrosDesafiosContainer');
+
+        if (!lista.length) {
+            container.html('<p class="text-muted">Nenhum livro encontrado nos desafios.</p>');
+            return;
+        }
+
+        const corStatus = {
+            'Lido':  { bg: '#e8f5e9', cor: '#2e7d32' },
+            'Lendo': { bg: '#fff3e0', cor: '#e65100' },
+        };
+
+        // Conta totais por desafio para o rodapé
+        const totais = {};
+        lista.forEach(item => {
+            if (!totais[item.tematica]) totais[item.tematica] = { total: 0, lidos: 0 };
+            totais[item.tematica].total++;
+            if (item.status_leitura === 'Lido') totais[item.tematica].lidos++;
+        });
+
+        let html = `<div style="overflow-x:auto">
+            <table style="width:100%;border-collapse:collapse;font-size:0.85rem">
+                <thead style="background:#f8f9fa;position:sticky;top:0;z-index:1">
+                    <tr>
+                        <th style="padding:7px 10px;border-bottom:2px solid #dee2e6;text-align:left">Desafio</th>
+                        <th style="padding:7px 10px;border-bottom:2px solid #dee2e6;text-align:center;white-space:nowrap">#</th>
+                        <th style="padding:7px 10px;border-bottom:2px solid #dee2e6;text-align:left">Título</th>
+                        <th style="padding:7px 10px;border-bottom:2px solid #dee2e6;text-align:left">Autor</th>
+                        <th style="padding:7px 10px;border-bottom:2px solid #dee2e6;text-align:center">Status</th>
+                        <th style="padding:7px 10px;border-bottom:2px solid #dee2e6;text-align:center;white-space:nowrap">Data</th>
+                    </tr>
+                </thead>
+                <tbody>`;
+
+        let ultimaTematica = null;
+        let bgAlterna      = false;
+
+        lista.forEach(item => {
+            if (item.tematica !== ultimaTematica) {
+                ultimaTematica = item.tematica;
+                bgAlterna      = !bgAlterna;
+            }
+
+            const rowBg = bgAlterna ? 'background:#fafafa' : '';
+            const cores  = corStatus[item.status_leitura] || { bg: '#f5f5f5', cor: '#555' };
+
+            html += `<tr style="border-bottom:1px solid #dee2e6;${rowBg}">
+                <td style="padding:6px 10px;font-weight:500;max-width:200px;word-break:break-word">${item.tematica || ''}</td>
+                <td style="padding:6px 10px;text-align:center;color:#6c757d;font-size:0.8rem;white-space:nowrap">Leitura ${item.sequencia}</td>
+                <td style="padding:6px 10px;max-width:260px;word-break:break-word">${item.titulo || ''}</td>
+                <td style="padding:6px 10px;color:#555;max-width:180px;word-break:break-word">${item.autor || '—'}</td>
+                <td style="padding:6px 10px;text-align:center">
+                    <span style="padding:2px 10px;border-radius:12px;font-size:0.78rem;font-weight:600;
+                                 background:${cores.bg};color:${cores.cor}">
+                        ${item.status_leitura}
+                    </span>
+                </td>
+                <td style="padding:6px 10px;text-align:center;font-size:0.8rem;white-space:nowrap">${item.data_referencia || '—'}</td>
+            </tr>`;
+        });
+
+        html += '</tbody></table></div>';
+
+        // Rodapé com totais por desafio
+        html += '<div style="margin-top:16px;border-top:1px solid #dee2e6;padding-top:12px">';
+        Object.entries(totais).forEach(([tematica, t]) => {
+            const faltam = t.total - t.lidos;
+            const pct    = t.total > 0 ? ((t.lidos / t.total) * 100).toFixed(1) : '0.0';
+            const cor    = parseFloat(pct) >= 100 ? '#155724' : parseFloat(pct) >= 50 ? '#856404' : '#721c24';
+            const bg     = parseFloat(pct) >= 100 ? '#d4edda'  : parseFloat(pct) >= 50 ? '#fff3cd'  : '#f8d7da';
+            html += `
+                <div style="margin-bottom:10px">
+                    <div style="display:flex;align-items:center;gap:10px;font-size:0.83rem;margin-bottom:4px">
+                        <span style="font-weight:600;min-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"
+                              title="${tematica}">${tematica}</span>
+                        <span style="flex:1;background:#e9ecef;border-radius:4px;height:10px;overflow:hidden">
+                            <span style="display:block;width:${pct}%;height:100%;background:${parseFloat(pct) >= 100 ? '#28a745' : '#6f42c1'};border-radius:4px"></span>
+                        </span>
+                        <span style="padding:1px 8px;border-radius:4px;background:${bg};color:${cor};font-weight:bold;font-size:0.8rem">${pct}%</span>
+                        <span style="color:#555;white-space:nowrap">${t.lidos} lid${t.lidos !== 1 ? 'os' : 'o'} · ${faltam} falt${faltam !== 1 ? 'am' : 'a'} de ${t.total}</span>
+                    </div>
+                </div>`;
+        });
+        html += '</div>';
+
+        container.html(html);
+    },
+
     // ─── DESAFIOS EM ANDAMENTO (dashboard inline) ─────────────────
     // Renderiza na div #bloco-desafios-andamento se existir
 

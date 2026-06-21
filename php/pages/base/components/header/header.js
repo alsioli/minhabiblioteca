@@ -116,6 +116,9 @@
         init();
     }
 
+    // Expõe para outros módulos atualizarem os cards após sincronização
+    window.atualizarHeaderContadores = carregarContadores;
+
 })();
 
 // ── Retorna ao dashboard principal ───────────────────────────

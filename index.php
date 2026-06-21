@@ -20,7 +20,7 @@ if(!$cache->isUpdated()){
 //--- Geração dos arquivos em Ambiente de Desenvolvimento
 if ($config->debug_mode) {
     $build = new Build();
-} else {
+} elseif (class_exists('Traffic', false)) {
     $traffic = new Traffic();
     $traffic->save();
 }

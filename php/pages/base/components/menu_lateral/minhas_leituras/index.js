@@ -1,4 +1,4 @@
-let minhas_leituras = {
+window.minhas_leituras = {
 
     _locais: [],
     _tabelaSelecionada: '',
@@ -6,6 +6,8 @@ let minhas_leituras = {
     _grupos: [],
     _desafios: [],
     _listaResultados: [],
+    _cronograma_lc_id:   null,
+    _cronograma_lc_nome: null,
 
     iniciar: async function () {
         this._tabelaSelecionada = '';
@@ -26,6 +28,11 @@ let minhas_leituras = {
         $('#cl_tipo_midia').val('');
         $('#cl_avaliacao').val('');
         $('#cl_data_inicio').val('');
+
+        // Restaura visibilidade caso tenha sido aberto via fluxo da LC
+        $('#cl_local').closest('fieldset').show();
+        this._cronograma_lc_id   = null;
+        this._cronograma_lc_nome = null;
 
         await Promise.all([
             this._carregarLocais(),
@@ -309,12 +316,89 @@ let minhas_leituras = {
         return natureza;
     },
 
+    // livro: { titulo, paginas, autor, sexo_autor, pais, natureza, tema, tipo_edicao, local_leitura }
+    // contexto: { cronograma_id, cronograma_lc } — opcional, usado ao abrir via cronograma
+    abrirComLivroPreenchido: async function (livro, contexto) {
+        try {
+            this._tabelaSelecionada  = '';
+            this._localSelecionado   = (livro && livro.local_leitura) || '';
+            this._listaResultados    = [];
+            this._cronograma_lc_id   = (contexto && contexto.cronograma_id)  || null;
+            this._cronograma_lc_nome = (contexto && contexto.cronograma_lc)  || null;
+
+            $('#cl_resultados').empty();
+            $('#cl_nao_encontrado').addClass('d-none');
+            $('#cl_mensagem').empty();
+            $('#cl_busca_titulo').val('');
+            $('#cl_mes_display').text('-');
+            $('#cl_sub_lc').addClass('d-none');
+            $('#cl_sub_desafio').addClass('d-none');
+            $('#cl_natureza').val('');
+            $('#cl_tipo_midia').val('');
+            $('#cl_avaliacao').val('');
+            $('#cl_data_inicio').val('');
+
+            await Promise.all([
+                this._carregarGrupos(),
+                this._carregarDesafios(),
+                this._carregarTipoMidia(),
+            ]);
+
+            $('#cl_local').closest('fieldset').hide();
+
+            const titulo      = (livro && livro.titulo)      || '';
+            const paginas     = (livro && livro.paginas)     || '';
+            const autor       = (livro && livro.autor)       || '';
+            const sexo_autor  = (livro && livro.sexo_autor)  || '';
+            const pais        = (livro && livro.pais)        || '';
+            const tema        = (livro && livro.tema)        || '';
+
+            $('#cl_livro_id').val('');
+            $('#cl_livro_local').val(this._localSelecionado);
+            $('#cl_livro_titulo').val(titulo);
+            $('#cl_livro_autor').val(autor);
+            $('#cl_livro_paginas').val(paginas);
+            $('#cl_livro_sexo_autor').val(sexo_autor);
+            $('#cl_livro_pais').val(pais);
+            $('#cl_livro_raca').val('');
+            $('#cl_livro_tema').val(tema);
+
+            $('#cl_titulo_display').text(titulo  || '-');
+            $('#cl_autor_display').text(autor    || '-');
+            $('#cl_paginas_display').text(paginas || '-');
+            $('#cl_tema_display').text(tema      || '-');
+
+            // Pré-seleciona natureza LC e o grupo quando vem do cronograma
+            if (this._cronograma_lc_nome) {
+                $('#cl_natureza').val('LC');
+                this.onNaturezaChange();
+                // Aguarda o select de grupos ser populado para selecionar o correto
+                const lcNome = this._cronograma_lc_nome;
+                setTimeout(function () {
+                    $('#cl_lc_grupo option').filter(function () {
+                        return $(this).val() === lcNome;
+                    }).prop('selected', true);
+                }, 150);
+            }
+
+            $('#cl_secao_livro').removeClass('d-none');
+            $('#cl_busca_wrapper').hide();
+            $('#cl_livro_selecionado').removeClass('d-none');
+            $('#cl_secao_dados').removeClass('d-none');
+
+            $('#modalComecarLivro').modal('show');
+        } catch (e) {
+            console.error('[Iniciar] Erro em abrirComLivroPreenchido:', e);
+            alert('Erro ao preparar modal Iniciar: ' + e.message);
+        }
+    },
+
     salvarLeitura: async function () {
         const titulo     = $('#cl_livro_titulo').val();
         const autor      = $('#cl_livro_autor').val();
         const data_inicio = $('#cl_data_inicio').val();
 
-        if (!titulo || !autor) {
+        if (!titulo) {
             this._mostrarMensagem('danger', 'Selecione um livro antes de salvar.');
             return;
         }
@@ -337,17 +421,18 @@ let minhas_leituras = {
         }
 
         const body = new FormData();
-        body.append('titulo',      titulo);
-        body.append('autor',       autor);
-        body.append('paginas',     $('#cl_livro_paginas').val());
-        body.append('tipo_midia',  $('#cl_tipo_midia').val());
-        body.append('natureza',    natureza);
-        body.append('data_inicio', data_inicio);
-        body.append('avaliacao',   $('#cl_avaliacao').val());
-        body.append('sexo_autor',  $('#cl_livro_sexo_autor').val());
-        body.append('pais',        $('#cl_livro_pais').val());
-        body.append('raca',        $('#cl_livro_raca').val());
-        body.append('tema',        $('#cl_livro_tema').val());
+        body.append('titulo',         titulo);
+        body.append('autor',          autor);
+        body.append('paginas',        $('#cl_livro_paginas').val());
+        body.append('tipo_midia',     $('#cl_tipo_midia').val());
+        body.append('natureza',       natureza);
+        body.append('data_inicio',    data_inicio);
+        body.append('avaliacao',      $('#cl_avaliacao').val());
+        body.append('sexo_autor',     $('#cl_livro_sexo_autor').val());
+        body.append('pais',           $('#cl_livro_pais').val());
+        body.append('raca',           $('#cl_livro_raca').val());
+        body.append('tema',           $('#cl_livro_tema').val());
+        body.append('local_leitura',  this._localSelecionado || '');
 
         try {
             const resp = await fetch('/php/api/base/menu_lateral/minhasLeituras/create_leitura.php', {
@@ -362,6 +447,18 @@ let minhas_leituras = {
             }
 
             $('#modalComecarLivro').modal('hide');
+
+            // Atualiza situacao no CronogramaLCs se iniciado via cronograma
+            if (this._cronograma_lc_id) {
+                const fd = new FormData();
+                fd.append('id',       this._cronograma_lc_id);
+                fd.append('situacao', 'Lendo');
+                fetch('/php/api/base/menu_lateral/leiturasColetivas/update_situacao_cronograma.php', {
+                    method: 'POST', body: fd
+                }).catch(e => console.error('[Cronograma] Erro ao atualizar situacao:', e));
+                this._cronograma_lc_id   = null;
+                this._cronograma_lc_nome = null;
+            }
 
             Swal.fire({
                 title: 'Leitura registrada!',
@@ -403,7 +500,8 @@ let minhas_leituras = {
         $('#al_wrapper_percentual').addClass('d-none');
         $('#al_wrapper_pagina').addClass('d-none');
         $('#al_mensagem').empty();
-        $('#al_tipo_input').val('');
+        $('#al_abandonar').val('');
+        $('#al_tipo_input').val('').prop('disabled', false);
         $('#al_percentual').val('');
         $('#al_pagina_atual').val('');
         $('#al_impressoes').val('');
@@ -445,7 +543,8 @@ let minhas_leituras = {
         $('#al_secao_avaliacao').addClass('d-none');
         $('#al_wrapper_percentual').addClass('d-none');
         $('#al_wrapper_pagina').addClass('d-none');
-        $('#al_tipo_input').val('');
+        $('#al_abandonar').val('');
+        $('#al_tipo_input').val('').prop('disabled', false);
         $('#al_percentual').val('');
         $('#al_pagina_atual').val('');
         $('#al_pagina_calc_display').text('—');
@@ -488,6 +587,25 @@ let minhas_leituras = {
 
         $('#al_secao_progresso').removeClass('d-none');
         $('#al_secao_impressoes').removeClass('d-none');
+    },
+
+    onAbandonarChange: function () {
+        const motivo = $('#al_abandonar').val();
+
+        if (motivo) {
+            // Desativa e oculta "Registrar por" e seus inputs
+            $('#al_tipo_input').val('').prop('disabled', true);
+            $('#al_wrapper_percentual').addClass('d-none');
+            $('#al_wrapper_pagina').addClass('d-none');
+            $('#al_secao_avaliacao').addClass('d-none');
+            $('#al_percentual').val('');
+            $('#al_pagina_atual').val('');
+            $('#al_pagina_calc_display').text('—');
+            $('#al_percentual_calc_display').text('—');
+        } else {
+            // Reativa "Registrar por"
+            $('#al_tipo_input').prop('disabled', false);
+        }
     },
 
     onTipoInputChange: function () {
@@ -542,14 +660,22 @@ let minhas_leituras = {
     },
 
     salvarAtualizacao: async function () {
-        const id_leitura  = $('#al_id_leitura').val();
-        const tipo_input  = $('#al_tipo_input').val();
-        const paginas     = parseInt($('#al_paginas_total').val()) || 0;
+        const id_leitura = $('#al_id_leitura').val();
+        const motivo     = $('#al_abandonar').val();
 
         if (!id_leitura) {
             this._mostrarMensagemAL('danger', 'Selecione um livro antes de salvar.');
             return;
         }
+
+        // ── Fluxo de abandono / interrupção ──────────────────────
+        if (motivo === 'Abandonado' || motivo === 'Interrompido') {
+            await this._finalizarAbandonoOuInterrupcao(id_leitura, motivo);
+            return;
+        }
+
+        const tipo_input = $('#al_tipo_input').val();
+        const paginas    = parseInt($('#al_paginas_total').val()) || 0;
 
         if (!tipo_input) {
             this._mostrarMensagemAL('danger', 'Selecione o tipo de registro (Percentual ou Página).');
@@ -584,17 +710,18 @@ let minhas_leituras = {
         const l     = this._leiturasAndamento[parseInt(idx)];
 
         const body = new FormData();
-        body.append('id_leitura',   id_leitura);
-        body.append('titulo',       l ? (l.titulo     || '') : '');
-        body.append('autor',        l ? (l.autor      || '') : '');
-        body.append('paginas',      l ? (l.paginas    || '') : '');
-        body.append('tipo_midia',   l ? (l.tipo_midia || '') : '');
-        body.append('data_inicio',  $('#al_data_inicio_hidden').val());
-        body.append('tipo_input',   tipo_input);
-        body.append('percentual',   percentual);
-        body.append('pagina_atual', pagina_atual);
-        body.append('impressoes',   $('#al_impressoes').val());
-        body.append('avaliacao',    $('#al_avaliacao').val());
+        body.append('id_leitura',    id_leitura);
+        body.append('titulo',        l ? (l.titulo        || '') : '');
+        body.append('autor',         l ? (l.autor         || '') : '');
+        body.append('paginas',       l ? (l.paginas       || '') : '');
+        body.append('tipo_midia',    l ? (l.tipo_midia    || '') : '');
+        body.append('data_inicio',   $('#al_data_inicio_hidden').val());
+        body.append('tipo_input',    tipo_input);
+        body.append('percentual',    percentual);
+        body.append('pagina_atual',  pagina_atual);
+        body.append('impressoes',    $('#al_impressoes').val());
+        body.append('avaliacao',     $('#al_avaliacao').val());
+        body.append('local_leitura', l ? (l.local_leitura || '') : '');
 
         try {
             const resp = await fetch('/php/api/base/menu_lateral/minhasLeituras/create_atualizacao_leitura.php', {
@@ -622,6 +749,11 @@ let minhas_leituras = {
                 // Sincroniza automaticamente: atualiza Leituras e Livros
                 fetch('/php/api/base/menu_lateral/minhasLeituras/sincronizar_leituras.php', {
                     method: 'POST'
+                }).then(function () {
+                    // Atualiza os cards do header com os novos totais
+                    if (typeof window.atualizarHeaderContadores === 'function') {
+                        window.atualizarHeaderContadores();
+                    }
                 }).catch(() => {});
 
                 Swal.fire({
@@ -655,6 +787,52 @@ let minhas_leituras = {
         } catch (e) {
             console.error('Erro ao salvar atualização:', e);
             this._mostrarMensagemAL('danger', 'Erro inesperado. Tente novamente.');
+        }
+    },
+
+    _finalizarAbandonoOuInterrupcao: async function (id_leitura, motivo) {
+        try {
+            const idx = $('#al_leitura').val();
+            const l   = this._leiturasAndamento[parseInt(idx)];
+
+            const body = new FormData();
+            body.append('id_leitura',    id_leitura);
+            body.append('motivo',        motivo);
+            body.append('titulo',        l ? (l.titulo        || '') : '');
+            body.append('autor',         l ? (l.autor         || '') : '');
+            body.append('paginas',       l ? (l.paginas       || '') : '');
+            body.append('tipo_midia',    l ? (l.tipo_midia    || '') : '');
+            body.append('data_inicio',   $('#al_data_inicio_hidden').val());
+            body.append('local_leitura', l ? (l.local_leitura || '') : '');
+
+            const resp = await fetch('/php/api/base/menu_lateral/minhasLeituras/finalizar_abandono.php', {
+                method: 'POST',
+                body
+            });
+            const json = await resp.json();
+
+            if (!json.status) {
+                this._mostrarMensagemAL('danger', json.error || 'Erro ao finalizar leitura.');
+                return;
+            }
+
+            $('#modalAtualizandoLeitura').modal('hide');
+
+            const titulo = l ? l.titulo : '';
+            const icone  = motivo === 'Abandonado' ? '📕' : '⏸️';
+
+            Swal.fire({
+                title: icone + ' ' + motivo + '!',
+                html: `"${titulo}" foi marcado como <strong>${motivo}</strong>.<br>
+                       <small class="text-muted">Removido das leituras em andamento.</small>`,
+                icon: 'info',
+                confirmButtonText: 'OK',
+                confirmButtonColor: motivo === 'Abandonado' ? '#dc3545' : '#fd7e14'
+            });
+
+        } catch (e) {
+            console.error('[Abandono] Erro:', e);
+            this._mostrarMensagemAL('danger', 'Erro inesperado ao finalizar leitura: ' + e.message);
         }
     },
 
@@ -956,8 +1134,290 @@ let minhas_leituras = {
                 </button>
             </div>
         `);
+    },
+
+    // ─────────────────────────────────────────────────────────────
+    //  ATUALIZAR LEITURAS REALIZADAS
+    // ─────────────────────────────────────────────────────────────
+
+    _leiturasBuscadas: [],
+    _tabelaULR: '',
+    _livroULR: null,
+
+    iniciarAtualizarLeituras: async function () {
+        this._leiturasBuscadas = [];
+        this._tabelaULR = '';
+        this._livroULR  = null;
+
+        $('#ulr_busca_titulo').val('');
+        $('#ulr_resultados').empty();
+        $('#ulr_nao_encontrado').addClass('d-none');
+        $('#ulr_busca_wrapper').show();
+        $('#ulr_livro_selecionado').addClass('d-none');
+        $('#ulr_secao_dados').addClass('d-none');
+        $('#ulr_id_leitura').val('');
+        $('#ulr_mensagem').empty();
+        $('#ulr_data_inicio').val('');
+        $('#ulr_data_fim').val('');
+        $('#ulr_natureza').val('');
+        $('#ulr_avaliacao').val('');
+        $('#ulr_impressoes').val('');
+        $('#ulr_mes_display').text('—');
+        $('#ulr_tempo_display').text('—');
+
+        await this._carregarLocaisULR();
+    },
+
+    _carregarLocaisULR: async function () {
+        try {
+            const resp = await fetch('/php/api/base/menu_lateral/leiturasColetivas/listar_local_leitura.php');
+            const json = await resp.json();
+            const locais = json.status ? json.data : [];
+
+            const sel = $('#ulr_local');
+            sel.empty().append('<option value="">Selecione o local...</option>');
+            locais.forEach(l => {
+                sel.append(`<option value="${l.vLocal_Leitura}" data-tabela="${l.vTabelaVinculada}">${l.vLocal_Leitura}</option>`);
+            });
+        } catch (e) {
+            console.error('[ULR] Erro ao carregar locais:', e);
+        }
+    },
+
+    onLocalULRChange: function () {
+        const opt = $('#ulr_local option:selected');
+        this._tabelaULR = opt.data('tabela') || '';
+
+        $('#ulr_resultados').empty();
+        $('#ulr_nao_encontrado').addClass('d-none');
+        $('#ulr_livro_selecionado').addClass('d-none');
+        $('#ulr_secao_dados').addClass('d-none');
+        $('#ulr_busca_titulo').val('');
+        $('#ulr_id_leitura').val('');
+    },
+
+    buscarLeituraParaAtualizar: async function () {
+        const titulo = $('#ulr_busca_titulo').val().trim();
+
+        $('#ulr_resultados').empty();
+        $('#ulr_nao_encontrado').addClass('d-none');
+
+        if (!this._tabelaULR) {
+            $('#ulr_resultados').html('<div class="alert alert-warning py-1 mb-1">Selecione o Local de Leitura antes de buscar.</div>');
+            return;
+        }
+
+        if (titulo.length < 3) {
+            $('#ulr_resultados').html('<div class="alert alert-warning py-1 mb-1">Digite pelo menos 3 caracteres.</div>');
+            return;
+        }
+
+        try {
+            // Busca na tabela da plataforma selecionada (igual aos outros modais)
+            const body = new FormData();
+            body.append('tabela', this._tabelaULR);
+            body.append('titulo', titulo);
+
+            const resp = await fetch('/php/api/base/menu_lateral/leiturasColetivas/buscar_livro_tabela.php', {
+                method: 'POST', body
+            });
+            const json = await resp.json();
+
+            if (!json.status) {
+                $('#ulr_resultados').html('<div class="alert alert-danger py-1 mb-1">' + (json.error || 'Erro ao buscar.') + '</div>');
+                return;
+            }
+
+            if (!json.data || json.data.length === 0) {
+                $('#ulr_nao_encontrado').removeClass('d-none');
+                return;
+            }
+
+            this._leiturasBuscadas = json.data;
+            this._montarResultadosULR(json.data);
+        } catch (e) {
+            console.error('[ULR] Erro ao buscar:', e);
+            $('#ulr_resultados').html('<div class="alert alert-danger py-1 mb-1">Erro inesperado: ' + e.message + '</div>');
+        }
+    },
+
+    _montarResultadosULR: function (lista) {
+        let tabela = `
+            <table class="table table-sm table-hover mt-1 mb-1" style="font-size:0.85rem">
+                <thead>
+                    <tr>
+                        <th style="padding:0.25rem">Título</th>
+                        <th style="padding:0.25rem">Autor</th>
+                        <th style="padding:0.25rem">Páginas</th>
+                    </tr>
+                </thead>
+                <tbody>
+        `;
+
+        lista.forEach((livro, idx) => {
+            tabela += `
+                <tr onclick="minhas_leituras.selecionarLeituraParaAtualizar(${idx})" style="cursor:pointer">
+                    <td style="padding:0.25rem">${livro.titulo || ''}</td>
+                    <td style="padding:0.25rem">${livro.autor  || ''}</td>
+                    <td style="padding:0.25rem">${livro.paginas || ''}</td>
+                </tr>
+            `;
+        });
+
+        tabela += '</tbody></table>';
+        $('#ulr_resultados').html(tabela);
+    },
+
+    selecionarLeituraParaAtualizar: async function (idx) {
+        const livro = this._leiturasBuscadas[idx];
+        if (!livro) return;
+        this._livroULR = livro;
+
+        // Mostra o livro selecionado e oculta resultados imediatamente
+        $('#ulr_resultados').empty();
+        $('#ulr_nao_encontrado').addClass('d-none');
+        $('#ulr_busca_wrapper').hide();
+        $('#ulr_livro_selecionado').removeClass('d-none');
+        $('#ulr_titulo_display').text(livro.titulo || '');
+        $('#ulr_autor_display').text(livro.autor   || '—');
+        $('#ulr_local_display').text($('#ulr_local option:selected').text());
+        $('#ulr_data_inicio_display').text('Carregando...');
+        $('#ulr_data_fim_display').text('—');
+
+        // Busca o registro em Leituras pelo título do livro selecionado
+        try {
+            const body = new FormData();
+            body.append('titulo', livro.titulo || '');
+
+            const resp = await fetch('/php/api/base/menu_lateral/minhasLeituras/buscar_leituras_para_atualizar.php', {
+                method: 'POST', body
+            });
+            const json = await resp.json();
+
+            if (json.status && json.data && json.data.length > 0) {
+                const l = json.data[0]; // registro mais recente
+
+                $('#ulr_id_leitura').val(l.id);
+
+                const inicio = l.data_inicio || '';
+                const fim    = l.data_fim    || '';
+                $('#ulr_data_inicio_display').text(inicio || '—');
+                $('#ulr_data_fim_display').text(fim || 'Não registrado');
+
+                $('#ulr_data_inicio').val(inicio);
+                $('#ulr_data_fim').val(fim);
+                $('#ulr_natureza').val(l.natureza  || '');
+                $('#ulr_avaliacao').val(l.avaliacao || '');
+            } else {
+                $('#ulr_data_inicio_display').text('—');
+                $('#ulr_id_leitura').val('');
+                this._mostrarMensagemULR('warning', 'Nenhum registro encontrado em Leituras para este livro.');
+            }
+        } catch (e) {
+            console.error('[ULR] Erro ao buscar leitura:', e);
+            $('#ulr_data_inicio_display').text('—');
+        }
+
+        this.onDataULRChange();
+        $('#ulr_secao_dados').removeClass('d-none');
+    },
+
+    limparLivroSelecionadoULR: function () {
+        $('#ulr_livro_selecionado').addClass('d-none');
+        $('#ulr_secao_dados').addClass('d-none');
+        $('#ulr_busca_wrapper').show();
+        $('#ulr_resultados').empty();
+        $('#ulr_busca_titulo').val('');
+        $('#ulr_id_leitura').val('');
+    },
+
+    onDataULRChange: function () {
+        const inicio = $('#ulr_data_inicio').val();
+        const fim    = $('#ulr_data_fim').val();
+
+        // Mês calculado
+        if (inicio) {
+            const [ano, mes] = inicio.split('-');
+            $('#ulr_mes_display').text(`${mes}/${ano}`);
+        } else {
+            $('#ulr_mes_display').text('—');
+        }
+
+        // Tempo calculado
+        if (inicio && fim) {
+            const dtInicio = new Date(inicio);
+            const dtFim    = new Date(fim);
+            const dias     = Math.round((dtFim - dtInicio) / 86400000);
+            $('#ulr_tempo_display').text(dias >= 0 ? `${dias} dia(s)` : '—');
+        } else {
+            $('#ulr_tempo_display').text('—');
+        }
+    },
+
+    salvarAtualizarLeitura: async function () {
+        const id          = $('#ulr_id_leitura').val();
+        const data_inicio = $('#ulr_data_inicio').val();
+        const livro       = this._livroULR;
+
+        if (!livro) {
+            this._mostrarMensagemULR('danger', 'Selecione um livro antes de salvar.');
+            return;
+        }
+        if (!data_inicio) {
+            this._mostrarMensagemULR('danger', 'Data de início é obrigatória.');
+            return;
+        }
+
+        const body = new FormData();
+        body.append('id',            id);
+        body.append('titulo',        livro.titulo  || '');
+        body.append('autor',         livro.autor   || '');
+        body.append('paginas',       livro.paginas || '');
+        body.append('local_leitura', $('#ulr_local').val() || '');
+        body.append('data_inicio',   data_inicio);
+        body.append('data_fim',      $('#ulr_data_fim').val());
+        body.append('natureza',      $('#ulr_natureza').val());
+        body.append('avaliacao',     $('#ulr_avaliacao').val());
+
+        try {
+            const resp = await fetch('/php/api/base/menu_lateral/minhasLeituras/update_leitura_realizada.php', {
+                method: 'POST', body
+            });
+            const json = await resp.json();
+
+            if (!json.status) {
+                this._mostrarMensagemULR('danger', json.error || 'Erro ao salvar.');
+                return;
+            }
+
+            const titulo = $('#ulr_titulo_display').text();
+
+            this._mostrarMensagemULR('success',
+                `"${titulo}" atualizada! Mês: ${json.data.mes || '—'} · Tempo: ${json.data.tempo_dias != null ? json.data.tempo_dias + ' dia(s)' : '—'}`
+            );
+
+            // Limpa para nova operação após 2s
+            const self = this;
+            setTimeout(function () {
+                $('#ulr_mensagem').empty();
+                self.limparLivroSelecionadoULR();
+            }, 3000);
+
+        } catch (e) {
+            console.error('[ULR] Erro ao salvar:', e);
+            this._mostrarMensagemULR('danger', 'Erro inesperado. Tente novamente.');
+        }
+    },
+
+    _mostrarMensagemULR: function (tipo, texto) {
+        $('#ulr_mensagem').html(`
+            <div class="alert alert-${tipo} alert-dismissible fade show py-2" role="alert">
+                ${texto}
+                <button type="button" class="close" data-dismiss="alert" aria-label="Fechar">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+        `);
     }
 
 };
-
-window.minhas_leituras = minhas_leituras;

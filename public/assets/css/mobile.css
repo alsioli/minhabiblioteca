@@ -1,0 +1,130 @@
+/* ── Mobile: telas até 768px ─────────────────────────────── */
+@media (max-width: 768px) {
+
+    /* ── Header ─────────────────────────────────────────────── */
+    .cabecalho-biblioteca {
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: center;
+        padding: 12px 16px;
+        min-height: 64px;
+        gap: 0;
+    }
+
+    .bloco-esquerda,
+    .bloco-meio {
+        display: none;
+    }
+
+    .bloco-direita {
+        width: auto;
+        text-align: left;
+    }
+
+    .bloco-direita h1 {
+        font-size: 22px;
+    }
+
+    /* Botão hambúrguer */
+    .btn-hamburger {
+        display: flex !important;
+        flex-direction: column;
+        justify-content: center;
+        gap: 5px;
+        background: transparent;
+        border: none;
+        cursor: pointer;
+        padding: 6px;
+        order: -1;
+    }
+
+    .btn-hamburger span {
+        display: block;
+        width: 24px;
+        height: 2px;
+        background: #fff;
+        border-radius: 2px;
+        transition: 0.2s;
+    }
+
+    /* Botão fechar menu */
+    #btnFecharMenu {
+        display: block !important;
+    }
+
+    /* ── Menu lateral ────────────────────────────────────────── */
+    .menu-lateral {
+        position: fixed;
+        top: 0;
+        left: -280px;
+        width: 260px;
+        height: 100vh;
+        z-index: 1050;
+        transition: left 0.25s ease;
+        box-shadow: 4px 0 16px rgba(0,0,0,0.25);
+        overflow-y: auto;
+        padding-top: 16px;
+    }
+
+    .menu-lateral.aberto {
+        left: 0;
+    }
+
+    /* Backdrop */
+    .menu-backdrop {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.45);
+        z-index: 1040;
+    }
+
+    .menu-backdrop.ativo {
+        display: block;
+    }
+
+    /* ── Layout principal ────────────────────────────────────── */
+    .d-flex.justify-content-between {
+        display: block !important;
+    }
+
+    .conteudo {
+        padding: 16px;
+        width: 100% !important;
+    }
+
+    /* ── Tabelas: scroll horizontal ──────────────────────────── */
+    table {
+        display: block;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        white-space: nowrap;
+    }
+
+    /* ── Painéis side-by-side → empilhar ─────────────────────── */
+    .d-flex:not(.cabecalho-biblioteca):not(.rodape):not(.modal-header):not(.modal-footer):not(.btn-hamburger) {
+        flex-wrap: wrap !important;
+    }
+
+    .col-md-6, .col-md-4, .col-md-3, .col-md-8 {
+        width: 100% !important;
+        max-width: 100% !important;
+        flex: 0 0 100% !important;
+    }
+
+    /* ── Footer ──────────────────────────────────────────────── */
+    .rodape {
+        flex-direction: column;
+        gap: 10px;
+        text-align: center;
+    }
+
+    .rodape-conteudo {
+        text-align: center;
+    }
+}
+
+/* Hambúrguer oculto no desktop */
+.btn-hamburger {
+    display: none;
+}

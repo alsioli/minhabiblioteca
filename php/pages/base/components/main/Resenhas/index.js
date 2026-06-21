@@ -1,6 +1,25 @@
 let resenhas_view = {
 
     _dados: [],
+    _sortCol: '',
+    _sortDir: 'asc',
+
+    _sortarPor: function (col) {
+        if (this._sortCol === col) {
+            this._sortDir = this._sortDir === 'asc' ? 'desc' : 'asc';
+        } else {
+            this._sortCol = col;
+            this._sortDir = 'asc';
+        }
+        const dir    = this._sortDir === 'asc' ? 1 : -1;
+        const numCol = col === 'avaliacao';
+        this._dados.sort(function (a, b) {
+            const va = numCol ? (parseFloat(a[col]) || 0) : String(a[col] || '').toLowerCase();
+            const vb = numCol ? (parseFloat(b[col]) || 0) : String(b[col] || '').toLowerCase();
+            return va < vb ? -dir : va > vb ? dir : 0;
+        });
+        this._renderTabela(this._dados);
+    },
 
     init: async function () {
         await this._carregarMeses();
@@ -66,9 +85,14 @@ let resenhas_view = {
             return;
         }
 
-        const thSt  = 'padding:6px 8px;text-align:left;border-bottom:2px solid #dee2e6;font-size:0.82rem;background:#f8f9fa;position:sticky;top:0;z-index:1';
+        const thSt  = 'padding:6px 8px;text-align:left;border-bottom:2px solid #ff9d4d;font-size:0.82rem;background:rgba(255,157,77,0.08);position:sticky;top:0;z-index:1;cursor:pointer;user-select:none;color:#c2690a';
         const tdSt  = 'padding:5px 8px;border-bottom:1px solid #f0f0f0;font-size:0.83rem;vertical-align:top';
         const tdCtr = 'padding:5px 8px;border-bottom:1px solid #f0f0f0;font-size:0.83rem;text-align:center;white-space:nowrap;vertical-align:top';
+        const sc = this._sortCol, sd = this._sortDir;
+        const th = (col, label, w) => {
+            const ind = col === sc ? (sd === 'asc' ? ' ↑' : ' ↓') : '';
+            return `<th style="${thSt}${w ? ';width:' + w : ''}" onclick="resenhas_view._sortarPor('${col}')" title="Clique para ordenar">${label}${ind}</th>`;
+        };
 
         let html = `
             <div style="margin-bottom:6px;font-size:0.82rem;color:#666">
@@ -78,11 +102,11 @@ let resenhas_view = {
             <table style="width:100%;border-collapse:collapse;table-layout:auto">
                 <thead>
                     <tr>
-                        <th style="${thSt}">Livro</th>
-                        <th style="${thSt}">Autor</th>
-                        <th style="${thSt};width:100px">Mês</th>
-                        <th style="${thSt};width:80px">Avaliação</th>
-                        <th style="${thSt}">Resenha (prévia)</th>
+                        ${th('nome_livro',   'Livro')}
+                        ${th('autor',        'Autor')}
+                        ${th('mes_leitura',  'Mês',      '100px')}
+                        ${th('avaliacao',    'Avaliação','80px')}
+                        ${th('resenhas',     'Resenha (prévia)')}
                     </tr>
                 </thead>
                 <tbody>

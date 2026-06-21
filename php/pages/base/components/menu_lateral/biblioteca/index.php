@@ -1,7 +1,7 @@
 
-<script src="/php/pages/base/components/menu_lateral/biblioteca/index.js"></script>
 <link rel="stylesheet" href="/public/assets/css/menu_lateral.css">
 <link rel="stylesheet" href="/public/assets/css/header.css">
+
 
 
 <!-- =============================================
@@ -46,13 +46,16 @@
 
           <div class="grupo">
             <label>Autor <span class="text-danger">*</span></label>
-            <input type="text" name="autor" id="livro_autor" required>
+            <input type="text" name="autor" id="livro_autor" list="datalist_autor"
+                   placeholder="Buscar ou digitar autor..." autocomplete="off" style="width:100%"
+                   onchange="if(window.biblioteca) biblioteca.preencherDadosAutor(this.value.trim(),'cadastro')"
+                   oninput="if(window.biblioteca) biblioteca._agendarPreencherAutor(this.value.trim(),'cadastro')">
           </div>
 
           <div class="linha">
             <div class="grupo">
               <label>Série</label>
-              <input type="text" name="serie">
+              <input type="text" name="serie" id="livro_serie" list="datalist_serie">
             </div>
             <div class="grupo">
               <label>Volume</label>
@@ -62,20 +65,18 @@
 
           <div class="grupo">
             <label>Gênero</label>
-            <input type="text" name="genero">
+            <input type="text" name="genero" list="datalist_genero">
           </div>
 
           <div class="grupo">
             <label>Tema</label>
-            <select id="select_tema" name="tema">
-              <option value="">Selecione</option>
-            </select>
+            <input type="text" name="tema" id="livro_tema" list="datalist_tema">
           </div>
 
           <div class="linha">
             <div class="grupo">
               <label>Editora</label>
-              <input type="text" name="editora">
+              <input type="text" name="editora" list="datalist_editora">
             </div>
             <div class="grupo">
               <label>Páginas</label>
@@ -86,7 +87,12 @@
           <div class="linha">
             <div class="grupo">
               <label>Status</label>
-              <select name="status">
+              <select name="status" id="status_novo"
+                      onchange="
+                        const v = this.value;
+                        document.getElementById('grupo_mes_novo').style.display = v === 'Lido' ? '' : 'none';
+                        document.getElementById('grupo_data_inicio_lendo').style.display = v === 'Lendo' ? '' : 'none';
+                      ">
                 <option value="">Selecione</option>
                 <option value="Lido">Lido</option>
                 <option value="Não Lido">Não Lido</option>
@@ -104,6 +110,21 @@
                 <option value="4">⭐⭐⭐⭐ 4</option>
                 <option value="5">⭐⭐⭐⭐⭐ 5</option>
               </select>
+            </div>
+          </div>
+
+          <div id="grupo_mes_novo" class="linha" style="display:none">
+            <div class="grupo">
+              <label>Mês de Leitura</label>
+              <input type="month" name="mes_leitura" id="mes_leitura_novo">
+            </div>
+          </div>
+
+          <div id="grupo_data_inicio_lendo" class="linha" style="display:none">
+            <div class="grupo">
+              <label>Data de Início da Leitura <span class="text-danger">*</span></label>
+              <input type="date" name="data_inicio_leitura" id="data_inicio_leitura_novo">
+              <small class="text-muted">Será registrado automaticamente em Leituras em Andamento.</small>
             </div>
           </div>
 
@@ -187,7 +208,7 @@
             <div class="linha">
               <div class="grupo">
                 <label>Sexo do Autor</label>
-                <select name="sexo_autor">
+                <select name="sexo_autor" id="livro_sexo_autor">
                   <option value="">Selecione</option>
                   <option value="F">Feminino</option>
                   <option value="M">Masculino</option>
@@ -195,11 +216,11 @@
               </div>
               <div class="grupo">
                 <label>Nacionalidade</label>
-                <input type="text" name="nacionalidade">
+                <input type="text" name="nacionalidade" id="livro_nacionalidade">
               </div>
               <div class="grupo">
                 <label>Raça</label>
-                <input type="text" name="raca">
+                <input type="text" name="raca" id="livro_raca">
               </div>
             </div>
 
@@ -312,7 +333,10 @@
 
             <div class="grupo">
                 <label>Autor</label>
-                <input type="text" name="autor" id="autor_atualizar" required>
+                <input type="text" name="autor" id="autor_atualizar" list="datalist_autor"
+                       placeholder="Buscar ou digitar autor..." autocomplete="off" style="width:100%"
+                       onchange="if(window.biblioteca) biblioteca.preencherDadosAutor(this.value.trim(),'atualizar')"
+                       oninput="if(window.biblioteca) biblioteca._agendarPreencherAutor(this.value.trim(),'atualizar')">
             </div>
 
             <div class="linha">
@@ -341,26 +365,24 @@
                 </div>
                 <div class="grupo">
                     <label>Série</label>
-                    <input type="text" name="serie" id="serie_atualizar">
+                    <input type="text" name="serie" id="serie_atualizar" list="datalist_serie">
                 </div>
             </div>
 
             <div class="grupo">
                 <label>Gênero</label>
-                <input type="text" name="genero" id="genero_atualizar">
+                <input type="text" name="genero" id="genero_atualizar" list="datalist_genero">
             </div>
 
             <div class="grupo">
                 <label>Tema</label>
-                <select id="select_tema_atualizar" name="tema">
-                    <option value="">Selecione</option>
-                </select>
+                <input type="text" name="tema" id="tema_atualizar" list="datalist_tema">
             </div>
 
             <div class="linha">
                 <div class="grupo">
                     <label>Editora</label>
-                    <input type="text" name="editora" id="editora_atualizar">
+                    <input type="text" name="editora" id="editora_atualizar" list="datalist_editora">
                 </div>
                 <div class="grupo">
                     <label>Tipo de Edição</label>
@@ -384,7 +406,16 @@
             <div class="linha">
                 <div class="grupo">
                     <label>Status</label>
-                    <input type="text" name="status" id="status_atualizar">
+                    <select name="status" id="status_atualizar"
+                            onchange="document.getElementById('grupo_mes_atualizar').style.display = this.value === 'Lido' ? '' : 'none'">
+                        <option value="">Selecione</option>
+                        <option value="Lido">Lido</option>
+                        <option value="Não Lido">Não Lido</option>
+                        <option value="Lendo">Lendo</option>
+                        <option value="A começar">A começar</option>
+                        <option value="Interrompido">Interrompido</option>
+                        <option value="Abandonado">Abandonado</option>
+                    </select>
                 </div>
                 <div class="grupo">
                     <label>Empréstimo</label>
@@ -393,6 +424,13 @@
                         <option value="Sim">Sim</option>
                         <option value="Não">Não</option>
                     </select>
+                </div>
+            </div>
+
+            <div id="grupo_mes_atualizar" class="linha" style="display:none">
+                <div class="grupo">
+                    <label>Mês de Leitura</label>
+                    <input type="month" name="mes_leitura" id="mes_leitura_atualizar">
                 </div>
             </div>
 
@@ -425,8 +463,88 @@
   </div>
 </div>
 
-<link rel="stylesheet" href="https://code.jquery.com/ui/1.13.2/themes/base/jquery-ui.css">
-<script src="https://code.jquery.com/ui/1.13.2/jquery-ui.min.js"></script>
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.min.js"></script>
+
+<!-- Datalists compartilhados para autocomplete -->
+<datalist id="datalist_autor"></datalist>
+<datalist id="datalist_genero"></datalist>
+<datalist id="datalist_tema"></datalist>
+<datalist id="datalist_editora"></datalist>
+<datalist id="datalist_serie"></datalist>
+
+
+<!-- =============================================
+     Modal Cadastro de Autor
+     ============================================= -->
+<div class="modal fade" id="modalCadastroAutor" tabindex="-1" role="dialog" aria-labelledby="modalCadastroAutorLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered" role="document">
+    <div class="modal-content">
+      <div class="cabecalho-biblioteca-modal modal-header">
+        <h5 class="modal-title" id="modalCadastroAutorLabel">Cadastrar Autor</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Fechar">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <form id="formCadastroAutor">
+          <div class="grupo">
+            <label>Nome <span class="text-danger">*</span></label>
+            <input type="text" name="nome_autor" id="autor_nome" required placeholder="Nome completo do autor">
+          </div>
+          <div class="linha">
+            <div class="grupo">
+              <label>Sexo</label>
+              <select name="sexo_autor" id="autor_sexo">
+                <option value="">Selecione</option>
+                <option value="F">Feminino</option>
+                <option value="M">Masculino</option>
+              </select>
+            </div>
+            <div class="grupo">
+              <label>Raça</label>
+              <input type="text" name="raca" id="autor_raca" placeholder="Ex: Branca, Preta...">
+            </div>
+          </div>
+          <div class="linha">
+            <div class="grupo">
+              <label>Nacionalidade</label>
+              <input type="text" name="nacionalidade" id="autor_nacionalidade" placeholder="Ex: Brasileira">
+            </div>
+            <div class="grupo">
+              <label>Origem</label>
+              <input type="text" name="origem" id="autor_origem" placeholder="Ex: Brasil">
+            </div>
+          </div>
+        </form>
+        <div id="autorMensagem" class="mt-2"></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-primary" onclick="biblioteca.cadastrarAutor()">Salvar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- =============================================
+     Modal Lista de Escritores
+     ============================================= -->
+<div class="modal fade" id="modalListaEscritores" tabindex="-1" role="dialog" aria-labelledby="modalListaEscritoresLabel" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-dialog-scrollable" role="document">
+    <div class="modal-content">
+      <div class="cabecalho-biblioteca-modal modal-header">
+        <h5 class="modal-title" id="modalListaEscritoresLabel">Lista de Escritores</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Fechar">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div id="tabelaEscritoresContainer">
+          <p class="text-muted text-center mt-3">Carregando...</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

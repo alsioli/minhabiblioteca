@@ -22,6 +22,7 @@
  */
 
 include_once __DIR__ . "/../../../../utils/function/database.php";
+include_once __DIR__ . "/../../../../utils/function/atualizar_status_tabela.php";
 
 $result_status = false;
 $result_error  = null;
@@ -47,17 +48,18 @@ echo json_encode([
 function PostMethod() {
     global $result_status, $result_error, $result_data;
 
-    $id_leitura  = trim($_POST['id_leitura']  ?? '');
-    $titulo      = trim($_POST['titulo']      ?? '');
-    $autor       = trim($_POST['autor']       ?? '');
-    $paginas     = trim($_POST['paginas']     ?? '');
-    $tipo_midia  = trim($_POST['tipo_midia']  ?? '');
-    $data_inicio = trim($_POST['data_inicio'] ?? '');
-    $tipo_input  = trim($_POST['tipo_input']  ?? '');
-    $percentual  = trim($_POST['percentual']  ?? '');
-    $pagina_atual = trim($_POST['pagina_atual'] ?? '');
-    $impressoes  = trim($_POST['impressoes']  ?? '');
-    $avaliacao   = trim($_POST['avaliacao']   ?? '');
+    $id_leitura    = trim($_POST['id_leitura']    ?? '');
+    $titulo        = trim($_POST['titulo']        ?? '');
+    $autor         = trim($_POST['autor']         ?? '');
+    $paginas       = trim($_POST['paginas']       ?? '');
+    $tipo_midia    = trim($_POST['tipo_midia']    ?? '');
+    $data_inicio   = trim($_POST['data_inicio']   ?? '');
+    $tipo_input    = trim($_POST['tipo_input']    ?? '');
+    $percentual    = trim($_POST['percentual']    ?? '');
+    $pagina_atual  = trim($_POST['pagina_atual']  ?? '');
+    $impressoes    = trim($_POST['impressoes']    ?? '');
+    $avaliacao     = trim($_POST['avaliacao']     ?? '');
+    $local_leitura = trim($_POST['local_leitura'] ?? '');
 
     if (empty($id_leitura)) {
         $result_error = 'ID da leitura é obrigatório.';
@@ -77,6 +79,14 @@ function PostMethod() {
     if ($tipo_input === 'pagina' && $pagina_atual === '') {
         $result_error = 'Informe a página atual.';
         return;
+    }
+
+    // Auto-calcula o campo faltante com base no total de páginas
+    $pagTotal = $paginas !== '' ? (int)$paginas : 0;
+    if ($tipo_input === 'percentual' && $percentual !== '' && $pagina_atual === '' && $pagTotal > 0) {
+        $pagina_atual = (string)round((float)$percentual / 100 * $pagTotal);
+    } elseif ($tipo_input === 'pagina' && $pagina_atual !== '' && $percentual === '' && $pagTotal > 0) {
+        $percentual = (string)round((int)$pagina_atual / $pagTotal * 100, 2);
     }
 
     // Calcula tempo_leitura em dias
@@ -120,6 +130,18 @@ function PostMethod() {
     try {
         $db = new DataBase();
         $db->ExecuteNonQuery($sql, $params);
+
+        // Determina o status a propagar para a tabela correspondente
+        $pctFinal = $percentual !== '' ? (float)$percentual : 0;
+        $pagFinal = $pagina_atual !== '' ? (int)$pagina_atual : 0;
+        $pagTotal = $paginas !== '' ? (int)$paginas : 0;
+        $concluido = $pctFinal >= 100 || ($pagTotal > 0 && $pagFinal >= $pagTotal);
+        $statusTabela = $pctFinal > 0.1 ? ($concluido ? 'Lido' : 'Lendo') : null;
+
+        if ($statusTabela !== null) {
+            atualizarStatusNaTabela($db, $local_leitura, $titulo, $autor, $statusTabela);
+        }
+
         $result_status = true;
         $result_data   = ['message' => 'Atualização registrada com sucesso.'];
     } catch (Exception $e) {

@@ -11,6 +11,9 @@ let tbr_mensal = {
         this._localSelecionado  = '';
         this._listaResultados   = [];
 
+        // Restaura visibilidade caso tenha sido aberto via fluxo da LC
+        $('#tbr_local').closest('fieldset').show();
+
         // Reset de seções
         $('#tbr_secao_releitura').addClass('d-none');
         $('#tbr_secao_busca').addClass('d-none');
@@ -279,6 +282,63 @@ let tbr_mensal = {
         } catch (e) {
             console.error('Erro ao salvar TBR:', e);
             this._mostrarMensagem('danger', 'Erro inesperado. Tente novamente.');
+        }
+    },
+
+    abrirComLivroPreenchido: function (livro) {
+        try {
+            this._tabelaSelecionada = '';
+            this._localSelecionado  = '';
+            this._listaResultados   = [];
+
+            $('#tbr_busca_titulo').val('');
+            $('#tbr_resultados').empty();
+            $('#tbr_nao_encontrado').addClass('d-none');
+            $('#tbr_mensagem').empty();
+            $('#tbr_mes_referencia').val('');
+            $('#tbr_previsao_leitura').val('');
+            $('#tbr_rel_nao').prop('checked', true);
+            this._atualizarHintReleitura();
+
+            $('#tbr_local').closest('fieldset').hide();
+            $('#tbr_secao_releitura').addClass('d-none');
+
+            const titulo      = (livro && livro.titulo)      || '';
+            const paginas     = (livro && livro.paginas)     || '';
+            const autor       = (livro && livro.autor)       || '';
+            const sexo_autor  = (livro && livro.sexo_autor)  || '';
+            const pais        = (livro && livro.pais)        || '';
+            const natureza    = (livro && livro.natureza)    || '';
+            const tema        = (livro && livro.tema)        || '';
+            const tipo_edicao = (livro && livro.tipo_edicao) || '';
+
+            $('#tbr_livro_titulo').val(titulo);
+            $('#tbr_livro_paginas').val(paginas);
+            $('#tbr_livro_autor').val(autor);
+            $('#tbr_livro_sexo_autor').val(sexo_autor);
+            $('#tbr_livro_pais').val(pais);
+            $('#tbr_livro_natureza').val(natureza);
+            $('#tbr_livro_tema').val(tema);
+            $('#tbr_livro_tipo_edicao').val(tipo_edicao);
+
+            $('#tbr_titulo_display').text(titulo  || '-');
+            $('#tbr_paginas_display').text(paginas || '-');
+            $('#tbr_autor_display').text(autor       || '-');
+            $('#tbr_sexo_display').text(sexo_autor   || '-');
+            $('#tbr_pais_display').text(pais         || '-');
+            $('#tbr_natureza_display').text(natureza || '-');
+            $('#tbr_tema_display').text(tema         || '-');
+            $('#tbr_tipo_edicao_display').text(tipo_edicao || '-');
+
+            $('#tbr_secao_busca').removeClass('d-none');
+            $('#tbr_busca_wrapper').hide();
+            $('#tbr_livro_selecionado').removeClass('d-none');
+            $('#tbr_secao_previsao').removeClass('d-none');
+
+            $('#modalTBRMensal').modal('show');
+        } catch (e) {
+            console.error('[TBR] Erro em abrirComLivroPreenchido:', e);
+            alert('Erro ao preparar modal TBR: ' + e.message);
         }
     },
 

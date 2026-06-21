@@ -36,6 +36,29 @@ let graficos = {
         return p.length === 2 ? parseInt(p[1]) * 100 + parseInt(p[0]) : 0;
     },
 
+    // ── Plugin inline: mostra valores acima das barras ────────────
+    _pluginValoresBarras: {
+        id: 'valoresBarras',
+        afterDatasetsDraw: function (chart) {
+            var ctx = chart.ctx;
+            chart.data.datasets.forEach(function (dataset, i) {
+                var meta = chart.getDatasetMeta(i);
+                if (meta.hidden) return;
+                meta.data.forEach(function (bar, j) {
+                    var val = dataset.data[j];
+                    if (!val || val <= 0) return;
+                    ctx.save();
+                    ctx.font = 'bold 11px sans-serif';
+                    ctx.fillStyle = '#444';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'bottom';
+                    ctx.fillText(val, bar.x, bar.y - 2);
+                    ctx.restore();
+                });
+            });
+        }
+    },
+
     // ── Pivot: [{mes, total}] → {mes: total} ───────────────────
     _pivot: function (lista, campoMes, campoVal) {
         const map = {};
@@ -147,7 +170,8 @@ let graficos = {
                     y: { beginAtZero: true, ticks: { precision: 0 }, grid: { color: '#f0f0f0' } },
                     x: { grid: { display: false } }
                 }
-            }
+            },
+            plugins: [this._pluginValoresBarras]
         });
 
         // ── Gráfico 2: Concluídas vs Em andamento ───────────────
@@ -194,7 +218,8 @@ let graficos = {
                     y: { beginAtZero: true, ticks: { precision: 0 }, grid: { color: '#f0f0f0' } },
                     x: { grid: { display: false } }
                 }
-            }
+            },
+            plugins: [this._pluginValoresBarras]
         });
     },
 
@@ -252,7 +277,28 @@ let graficos = {
                 maintainAspectRatio: false,
                 cutout: '65%',
                 plugins: {
-                    legend: { position: 'bottom', labels: { font: { size: 11 } } },
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            font: { size: 11 },
+                            generateLabels: function (chart) {
+                                var ds  = chart.data.datasets[0];
+                                var tot = ds.data.reduce(function (a, b) { return a + b; }, 0);
+                                return chart.data.labels.map(function (lbl, i) {
+                                    var val = ds.data[i];
+                                    var pct = tot > 0 ? Math.round((val / tot) * 100) : 0;
+                                    return {
+                                        text:       lbl + ': ' + val + ' (' + pct + '%)',
+                                        fillStyle:  ds.backgroundColor[i],
+                                        strokeStyle:'#fff',
+                                        lineWidth:  2,
+                                        index:      i,
+                                        hidden:     false
+                                    };
+                                });
+                            }
+                        }
+                    },
                     tooltip: {
                         callbacks: {
                             label: function (c) {
@@ -355,7 +401,8 @@ let graficos = {
                     y: { beginAtZero: true, ticks: { precision: 0 }, grid: { color: '#f0f0f0' } },
                     x: { grid: { display: false } }
                 }
-            }
+            },
+            plugins: [this._pluginValoresBarras]
         });
     },
 
@@ -396,7 +443,28 @@ let graficos = {
                 maintainAspectRatio: false,
                 cutout: '60%',
                 plugins: {
-                    legend: { position: 'bottom', labels: { font: { size: 11 } } },
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            font: { size: 11 },
+                            generateLabels: function (chart) {
+                                var ds  = chart.data.datasets[0];
+                                var tot = ds.data.reduce(function (a, b) { return a + b; }, 0);
+                                return chart.data.labels.map(function (lbl, i) {
+                                    var val = ds.data[i];
+                                    var pct = tot > 0 ? Math.round((val / tot) * 100) : 0;
+                                    return {
+                                        text:       lbl + ': ' + val + ' (' + pct + '%)',
+                                        fillStyle:  ds.backgroundColor[i],
+                                        strokeStyle:'#fff',
+                                        lineWidth:  2,
+                                        index:      i,
+                                        hidden:     false
+                                    };
+                                });
+                            }
+                        }
+                    },
                     tooltip: {
                         callbacks: {
                             label: function (c) {

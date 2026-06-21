@@ -26,13 +26,27 @@ echo json_encode([
 function GetMethod() {
     global $result_status, $result_error, $result_data;
 
+    // Constrói MM/YYYY sem depender da cultura do servidor (FORMAT pode trocar '/' por '.' em pt-BR)
+    $mesAtual = date('m') . '/' . date('Y');
+
     $sql = "
         SELECT
-            titulo, autor, origem, mes_referencia, previsao_leitura
-        FROM [Biblioteca].[dbo].[TBR_Mensal]
-        WHERE mes_referencia = FORMAT(GETDATE(), 'MM/yyyy')
+            t.titulo,
+            ISNULL(NULLIF(t.autor,  ''), l.autor)   AS autor,
+            t.origem,
+            t.previsao_leitura,
+            ISNULL(l.tipo_edicao, '')                AS tipo_edicao,
+            ISNULL(l.paginas,     0)                 AS paginas,
+            ISNULL(l.status,      '')                AS status
+        FROM [Biblioteca].[dbo].[TBR_Mensal] t
+        OUTER APPLY (
+            SELECT TOP 1 autor, tipo_edicao, paginas, status
+            FROM [Biblioteca].[dbo].[Livros]
+            WHERE LOWER(LTRIM(RTRIM(titulo))) = LOWER(LTRIM(RTRIM(t.titulo)))
+        ) l
+        WHERE t.mes_referencia = :mes
         ORDER BY
-            CASE previsao_leitura
+            CASE t.previsao_leitura
                 WHEN 'Começo do mês'    THEN 1
                 WHEN 'Depois do dia 10' THEN 2
                 WHEN 'Antes do dia 20'  THEN 3
@@ -42,7 +56,7 @@ function GetMethod() {
 
     try {
         $db            = new DataBase();
-        $result_data   = $db->GetMany($sql);
+        $result_data   = $db->GetMany($sql, [':mes' => $mesAtual]);
         $result_status = true;
     } catch (Exception $e) {
         $result_error = 'Erro ao listar TBR em breve: ' . $e->getMessage();

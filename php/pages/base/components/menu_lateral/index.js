@@ -4,17 +4,26 @@ let menuLateral = {
     },  
 
     abrirModalNovoLivro: async function () {
+        $('#modalNovoLivro').remove();
         $.ajax({
             url: '/php/pages/base/components/menu_lateral/biblioteca/index.php',
             method: 'GET',
             success: function (html) {
-                $('body').append(html); // injeta o modal no DOM
+                $('body').append(html);
                 $('#modalNovoLivro').modal('show');
 
                 $.getScript('/php/pages/base/components/menu_lateral/biblioteca/index.js')
                     .done(function () {
                         if (window.biblioteca && typeof biblioteca.carregarSelects === 'function') {
                             biblioteca.carregarSelects();
+                        }
+                        // Autocomplete no campo Autor do novo livro
+                        if (window.biblioteca && typeof biblioteca._initAutocompleteAutor === 'function') {
+                            biblioteca._initAutocompleteAutor('#livro_autor', function (autor) {
+                                if (autor.sexo)          $('#livro_sexo_autor').val(autor.sexo);
+                                if (autor.raca)          $('#livro_raca').val(autor.raca);
+                                if (autor.nacionalidade) $('#livro_nacionalidade').val(autor.nacionalidade);
+                            });
                         }
                     })
                     .fail(function () {
@@ -25,21 +34,30 @@ let menuLateral = {
                 console.error('Erro ao carregar o modal.');
             }
         });
-    
     },
 
     abrirModalAtualizarLivro: async function () {
+        $('#modalAtualizarLivro').remove();
         $.ajax({
             url: '/php/pages/base/components/menu_lateral/biblioteca/index.php',
             method: 'GET',
             success: function (html) {
-                $('body').append(html); // injeta o modal no DOM
+                $('body').append(html);
                 $('#modalAtualizarLivro').modal('show');
 
                 $.getScript('/php/pages/base/components/menu_lateral/biblioteca/index.js')
                     .done(function () {
                         if (window.biblioteca && typeof biblioteca.carregarSelects === 'function') {
                             biblioteca.carregarSelects();
+                        }
+                        // Autocomplete no campo Autor do modal de atualização
+                        if (window.biblioteca && typeof biblioteca._initAutocompleteAutor === 'function') {
+                            biblioteca._initAutocompleteAutor('#autor_atualizar', function (autor) {
+                                if (autor.sexo)          $('#sexo_autor_atualizar').val(autor.sexo);
+                                if (autor.raca)          $('#raça_atualizar').val(autor.raca);
+                                if (autor.nacionalidade) $('#nacionalidade_atualizar').val(autor.nacionalidade);
+                                $('#autorAtualizarInfo').remove();
+                            });
                         }
                     })
                     .fail(function () {
@@ -48,6 +66,49 @@ let menuLateral = {
             },
             error: function () {
                 console.error('Erro ao carregar o modal.');
+            }
+        });
+    },
+
+    abrirModalCadastroAutor: function () {
+        $('#modalCadastroAutor, #modalListaEscritores').remove();
+        $.ajax({
+            url: '/php/pages/base/components/menu_lateral/biblioteca/index.php',
+            method: 'GET',
+            success: function (html) {
+                $('body').append(html);
+                $('#modalCadastroAutor').modal('show');
+                $.getScript('/php/pages/base/components/menu_lateral/biblioteca/index.js')
+                    .fail(function () {
+                        console.error('Erro ao carregar script Biblioteca - Cadastro Autor.');
+                    });
+            },
+            error: function () {
+                console.error('Erro ao carregar modal Cadastro de Autor.');
+            }
+        });
+    },
+
+    abrirModalListaEscritores: function () {
+        $('#modalCadastroAutor, #modalListaEscritores').remove();
+        $.ajax({
+            url: '/php/pages/base/components/menu_lateral/biblioteca/index.php',
+            method: 'GET',
+            success: function (html) {
+                $('body').append(html);
+                $('#modalListaEscritores').modal('show');
+                $.getScript('/php/pages/base/components/menu_lateral/biblioteca/index.js')
+                    .done(function () {
+                        if (window.biblioteca && typeof biblioteca.listarEscritores === 'function') {
+                            biblioteca.listarEscritores();
+                        }
+                    })
+                    .fail(function () {
+                        console.error('Erro ao carregar script Biblioteca - Lista Escritores.');
+                    });
+            },
+            error: function () {
+                console.error('Erro ao carregar modal Lista de Escritores.');
             }
         });
     },
@@ -113,7 +174,7 @@ let menuLateral = {
     },
 
     _carregarMinhasLeituras: function (modalId, initFn) {
-        $('#modalComecarLivro, #modalAtualizandoLeitura, #modalMinhasImpressoes, #modalFraseFavorita').remove();
+        $('#modalComecarLivro, #modalAtualizandoLeitura, #modalMinhasImpressoes, #modalFraseFavorita, #modalAtualizarLeituras').remove();
         $.ajax({
             url: '/php/pages/base/components/menu_lateral/minhas_leituras/index.php',
             method: 'GET',
@@ -150,6 +211,10 @@ let menuLateral = {
 
     abrirModalFraseFavorita: function () {
         this._carregarMinhasLeituras('modalFraseFavorita', 'iniciarFraseFavorita');
+    },
+
+    abrirModalAtualizarLeituras: function () {
+        this._carregarMinhasLeituras('modalAtualizarLeituras', 'iniciarAtualizarLeituras');
     },
 
     abrirModalResenha: function (mesFiltro) {
@@ -558,6 +623,11 @@ let menuLateral = {
             }
 
             msg.text(json.data.message).css('color', json.data.sincronizados > 0 ? '#28a745' : '#6c757d');
+
+            // Atualiza os cards do header se houve livros finalizados
+            if (json.data.sincronizados > 0 && typeof window.atualizarHeaderContadores === 'function') {
+                window.atualizarHeaderContadores();
+            }
 
             // Recarrega a tabela do mês ou do ano, dependendo da view aberta
             const mesAtual = $('#leiturasMesFiltro').val();
@@ -987,11 +1057,13 @@ let menuLateral = {
 
     // ─── Lista por Autor ─────────────────────────────────────────
     _autorState: {
-        dados:   [],
-        colunas: [],
-        pagina:  1,
-        sortCol: '',
-        sortDir: 1,
+        dados:      [],
+        colunas:    [],
+        statusCol:  null,
+        chave:      '',
+        pagina:     1,
+        sortCol:    '',
+        sortDir:    1,
     },
 
     // Configuração de cada coluna: label pt-BR, peso para largura proporcional, tipo de dado
@@ -1336,17 +1408,40 @@ let menuLateral = {
                 return;
             }
 
-            this._autorState.dados   = json.data;
-            this._autorState.colunas = json.colunas;
-            this._autorState.pagina  = 1;
-            this._autorState.sortCol = json.colunas[0] || '';
-            this._autorState.sortDir = 1;
+            this._autorState.dados      = json.data;
+            this._autorState.colunas    = json.colunas;
+            this._autorState.statusCol  = json.status_col || null;
+            this._autorState.chave      = chave;
+            this._autorState.pagina     = 1;
+            this._autorState.sortCol    = json.colunas[0] || '';
+            this._autorState.sortDir    = 1;
 
             this._renderAutor();
         } catch (e) {
             console.error('Erro ao carregar livros:', e);
             document.getElementById('autorContainer').innerHTML =
                 '<div class="alert alert-danger">Erro ao carregar dados.</div>';
+        }
+    },
+
+    _toggleStatusAutor: async function (chave, titulo, statusAtual) {
+        const novoStatus = statusAtual.toLowerCase() === 'lido' ? '' : 'Lido';
+        try {
+            const body = new FormData();
+            body.append('chave',  chave);
+            body.append('titulo', titulo);
+            body.append('status', novoStatus);
+            const resp = await fetch('/php/api/base/main/livros/update_status_por_autor.php', { method: 'POST', body });
+            const json = await resp.json();
+            if (json.status) {
+                // Atualiza dado local e re-renderiza
+                const st = this._autorState;
+                const idx = st.dados.findIndex(function (d) { return d[st.colunas[0]] === titulo || d.titulo === titulo; });
+                if (idx !== -1 && st.statusCol) st.dados[idx][st.statusCol] = novoStatus;
+                this._renderAutor();
+            }
+        } catch (e) {
+            console.error('Erro ao atualizar status:', e);
         }
     },
 
@@ -1371,9 +1466,13 @@ let menuLateral = {
         const st      = this._autorState;
         const cfg     = this._autorColCfg;
         const perPag  = 20;
-        const colunas = st.colunas;
+        const statusCol = st.statusCol || null;
+        const chave     = st.chave    || '';
 
-        // Calcula larguras proporcionais
+        // Filtra as colunas a exibir (status/situacao é tratada separadamente como checkbox)
+        const colunas = st.colunas.filter(function (c) { return c !== statusCol; });
+
+        // Calcula larguras proporcionais (exclui coluna de status)
         const pesoTotal = colunas.reduce(function (acc, c) {
             return acc + ((cfg[c] && cfg[c].peso) || 2);
         }, 0);
@@ -1405,11 +1504,16 @@ let menuLateral = {
 
         const seta = function (c) { return c === col ? (dir === 1 ? ' ▲' : ' ▼') : ''; };
         const thSt = 'padding:5px 8px;border-bottom:2px solid #dee2e6;cursor:pointer;user-select:none;white-space:nowrap;font-size:0.82rem;background:#f8f9fa';
+        const thChk = 'padding:5px 8px;border-bottom:2px solid #dee2e6;text-align:center;font-size:0.82rem;background:#f8f9fa;white-space:nowrap;width:60px';
 
         let html = '<div style="overflow-x:hidden">' +
             '<table style="width:100%;border-collapse:collapse;table-layout:fixed;font-size:0.82rem">' +
             '<thead><tr>';
 
+        // Coluna de checkbox se há statusCol
+        if (statusCol) {
+            html += '<th style="' + thChk + '">Lido</th>';
+        }
         colunas.forEach(function (c) {
             html += '<th style="' + thSt + ';width:' + pct(c) + '%" ' +
                     'onclick="menuLateral._ordenarAutor(\'' + c + '\')">' +
@@ -1425,9 +1529,29 @@ let menuLateral = {
 
         const tdTxt = 'padding:4px 8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;border-bottom:1px solid #f0f0f0';
         const tdCtr = 'padding:4px 8px;text-align:center;white-space:nowrap;border-bottom:1px solid #f0f0f0';
+        const tdChk = 'padding:4px 8px;text-align:center;border-bottom:1px solid #f0f0f0';
+
+        var _htmlAttr = function (s) {
+            return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/"/g, '&quot;');
+        };
 
         pagina.forEach(function (row) {
-            html += '<tr>';
+            const statusVal = statusCol ? (row[statusCol] || '') : '';
+            const isLido    = statusVal.toLowerCase() === 'lido';
+
+            html += '<tr style="' + (isLido ? 'background:#f0fff4' : '') + '">';
+
+            if (statusCol) {
+                const tituloVal = row.titulo || row[colunas[0]] || '';
+                html += '<td style="' + tdChk + '">' +
+                    '<input type="checkbox" class="chk-autor-status"' + (isLido ? ' checked' : '') +
+                    ' data-chave="' + _htmlAttr(chave) + '"' +
+                    ' data-titulo="' + _htmlAttr(tituloVal) + '"' +
+                    ' data-status="' + _htmlAttr(statusVal) + '"' +
+                    ' title="' + (isLido ? 'Marcar como não lido' : 'Marcar como lido') + '">' +
+                    '</td>';
+            }
+
             colunas.forEach(function (c) {
                 const tipo = (cfg[c] && cfg[c].tipo) || 'texto';
                 let val = row[c];
@@ -1459,7 +1583,91 @@ let menuLateral = {
             '<span style="padding:2px 6px">Pág. ' + st.pagina + ' / ' + totPag + '</span>' +
             bProx + '</div></div>';
 
+        // ── Estatísticas por autor ───────────────────────────────────
+        if (statusCol && st.dados.length > 0) {
+            // Agrupa por autor (campo "autor")
+            const grupos = {};
+            st.dados.forEach(function (row) {
+                const nomeAutor = row.autor || '—';
+                if (!grupos[nomeAutor]) grupos[nomeAutor] = { total: 0, lidos: 0 };
+                grupos[nomeAutor].total++;
+                if ((row[statusCol] || '').toLowerCase() === 'lido') grupos[nomeAutor].lidos++;
+            });
+
+            const autores = Object.keys(grupos).sort();
+            const totalGeral = st.dados.length;
+            const lidosGeral = st.dados.filter(function (r) { return (r[statusCol] || '').toLowerCase() === 'lido'; }).length;
+            const faltamGeral = totalGeral - lidosGeral;
+            const pctGeral = totalGeral > 0 ? ((lidosGeral / totalGeral) * 100).toFixed(1) : '0.0';
+
+            html += '<div style="margin-top:16px;border-top:1px solid #dee2e6;padding-top:12px">' +
+                '<strong style="font-size:0.87rem;display:block;margin-bottom:8px">Progresso de Leitura</strong>';
+
+            if (autores.length > 1) {
+                autores.forEach(function (nome) {
+                    const g   = grupos[nome];
+                    const f   = g.total - g.lidos;
+                    const p   = g.total > 0 ? ((g.lidos / g.total) * 100).toFixed(1) : '0.0';
+                    const cor = parseFloat(p) >= 100 ? '#155724' : parseFloat(p) >= 50 ? '#856404' : '#721c24';
+                    const bg  = parseFloat(p) >= 100 ? '#d4edda' : parseFloat(p) >= 50 ? '#fff3cd' : '#f8d7da';
+                    html += '<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;font-size:0.82rem">' +
+                        '<span style="min-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' + nome + '">' + nome + '</span>' +
+                        '<span style="flex:1;background:#e9ecef;border-radius:4px;height:12px;overflow:hidden">' +
+                        '<span style="display:block;width:' + p + '%;height:100%;background:' + (parseFloat(p) >= 100 ? '#28a745' : '#007bff') + '"></span>' +
+                        '</span>' +
+                        '<span style="min-width:90px;text-align:right">' +
+                        '<span style="padding:1px 6px;border-radius:3px;background:' + bg + ';color:' + cor + ';font-weight:bold">' + p + '%</span>' +
+                        '</span>' +
+                        '<span style="color:#555;min-width:120px">' + g.lidos + ' lido(s) · ' + f + ' falt' + (f !== 1 ? 'am' : 'a') + ' de ' + g.total + '</span>' +
+                        '</div>';
+                });
+                html += '<div style="margin-top:6px;padding-top:6px;border-top:1px dashed #dee2e6;font-size:0.82rem;font-weight:bold">' +
+                    'Total: ' + lidosGeral + ' lido(s) · ' + faltamGeral + ' falt' + (faltamGeral !== 1 ? 'am' : 'a') + ' de ' + totalGeral + ' livros (' + pctGeral + '%)' +
+                    '</div>';
+            } else {
+                const nome = autores[0] || '';
+                const g    = grupos[nome] || { total: totalGeral, lidos: lidosGeral };
+                const cor  = parseFloat(pctGeral) >= 100 ? '#155724' : parseFloat(pctGeral) >= 50 ? '#856404' : '#721c24';
+                const bg   = parseFloat(pctGeral) >= 100 ? '#d4edda' : parseFloat(pctGeral) >= 50 ? '#fff3cd' : '#f8d7da';
+                html += '<p style="font-size:0.85rem;margin:0">' +
+                    'Temos <strong>' + totalGeral + '</strong> livro' + (totalGeral !== 1 ? 's' : '') +
+                    (nome && nome !== '—' ? ' de <em>' + nome + '</em>' : '') +
+                    ', já li <strong>' + lidosGeral + '</strong>' +
+                    ', falt' + (faltamGeral !== 1 ? 'am' : 'a') + ' <strong>' + faltamGeral + '</strong>' +
+                    ' — <span style="padding:2px 8px;border-radius:3px;background:' + bg + ';color:' + cor + ';font-weight:bold">' + pctGeral + '%</span>' +
+                    '</p>';
+            }
+
+            html += '</div>';
+        }
+
         document.getElementById('autorContainer').innerHTML = html;
+
+        // Bind checkbox events via data attributes (evita problemas de escape com títulos especiais)
+        document.querySelectorAll('#autorContainer .chk-autor-status').forEach(function (el) {
+            el.addEventListener('change', function () {
+                menuLateral._toggleStatusAutor(
+                    el.getAttribute('data-chave'),
+                    el.getAttribute('data-titulo'),
+                    el.getAttribute('data-status')
+                );
+            });
+        });
+    },
+
+    abrirLivrosDesafios: function () {
+        this._carregarCSSCronograma();
+        $('#mainConteudo').html(`
+            <div class="container-fluid mt-4">
+                <h3 class="mb-3">Livros dos Desafios</h3>
+                <div id="livrosDesafiosContainer"></div>
+            </div>
+        `);
+        $.getScript('/php/pages/base/components/menu_lateral/desafios/index.js')
+            .done(function () {
+                if (window.desafios) desafios.carregarLivrosDesafios();
+            })
+            .fail(function () { console.error('Erro ao carregar script Desafios.'); });
     },
 
     abrirDesafiosAndamento: function () {
@@ -1475,6 +1683,207 @@ let menuLateral = {
                 if (window.desafios) desafios.carregarAndamento();
             })
             .fail(function () { console.error('Erro ao carregar script Desafios.'); });
+    },
+
+    // ─── Consulta Geral de Livros ─────────────────────────────────
+    abrirConsultaGeral: function () {
+        this._carregarCSSCronograma();
+        $('#mainConteudo').html(`
+            <div id="cgContainer" class="container-fluid mt-4">
+                <h3 class="mb-3">Consulta Geral de Livros</h3>
+
+                <div class="mb-3 d-flex flex-wrap align-items-end" style="gap:8px">
+
+                    <div>
+                        <label class="mb-1 d-block" style="font-size:0.82rem;font-weight:600">Titulo</label>
+                        <input type="text" id="cgTitulo" class="form-control form-control-sm"
+                               style="width:220px" placeholder="Digite o titulo..."
+                               onkeydown="if(event.key==='Enter') consulta_geral_view.buscar()">
+                    </div>
+
+                    <div>
+                        <label class="mb-1 d-block" style="font-size:0.82rem;font-weight:600">Autor</label>
+                        <input type="text" id="cgAutor" class="form-control form-control-sm"
+                               style="width:180px" placeholder="Digite o autor..."
+                               onkeydown="if(event.key==='Enter') consulta_geral_view.buscar()">
+                    </div>
+
+                    <div>
+                        <label class="mb-1 d-block" style="font-size:0.82rem;font-weight:600">Tipo de Edicao</label>
+                        <select id="cgTipoEdicao" class="form-control form-control-sm" style="width:150px">
+                            <option value="">Todos</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="mb-1 d-block" style="font-size:0.82rem;font-weight:600">Status</label>
+                        <select id="cgLido" class="form-control form-control-sm" style="width:140px">
+                            <option value="">Todos</option>
+                            <option value="sim">Lido</option>
+                            <option value="nao">Nao lido</option>
+                            <option value="lendo">Lendo</option>
+                            <option value="abandonado">Abandonado</option>
+                            <option value="interrompido">Interrompido</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="mb-1 d-block" style="font-size:0.82rem;font-weight:600">Páginas</label>
+                        <select id="cgPaginas" class="form-control form-control-sm" style="width:160px">
+                            <option value="">Todas</option>
+                            <option value="ate100">Até 100</option>
+                            <option value="101_200">101 a 200</option>
+                            <option value="201_300">201 a 300</option>
+                            <option value="301_400">301 a 400</option>
+                            <option value="mais400">Mais de 400</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="mb-1 d-block" style="font-size:0.82rem;font-weight:600">Natureza</label>
+                        <select id="cgNatureza" class="form-control form-control-sm" style="width:160px">
+                            <option value="">Todas</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="mb-1 d-block" style="font-size:0.82rem;font-weight:600">Sexo do Autor</label>
+                        <select id="cgSexo" class="form-control form-control-sm" style="width:140px">
+                            <option value="">Todos</option>
+                            <option value="F">Feminino</option>
+                            <option value="M">Masculino</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="mb-1 d-block" style="font-size:0.82rem;font-weight:600">Raça</label>
+                        <select id="cgRaca" class="form-control form-control-sm" style="width:160px">
+                            <option value="">Todas</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="mb-1 d-block" style="font-size:0.82rem;font-weight:600">País</label>
+                        <select id="cgPais" class="form-control form-control-sm" style="width:160px">
+                            <option value="">Todos</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="mb-1 d-block" style="font-size:0.82rem;font-weight:600">Mes de Leitura</label>
+                        <input type="month" id="cgMes" class="form-control form-control-sm"
+                               style="width:160px" min="2020-01">
+                    </div>
+
+                    <button class="btn btn-primary btn-sm" onclick="consulta_geral_view.buscar()">
+                        Buscar
+                    </button>
+                    <button class="btn btn-outline-secondary btn-sm" onclick="consulta_geral_view.limpar()">
+                        Limpar
+                    </button>
+                </div>
+
+                <div id="cgTabela">
+                    <p class="text-muted small">Carregando...</p>
+                </div>
+            </div>
+        `);
+        $.getScript('/php/pages/base/components/main/ConsultaGeral/index.js')
+            .done(function () {
+                if (window.consulta_geral_view) consulta_geral_view.init();
+            })
+            .fail(function () {
+                console.error('Erro ao carregar script Consulta Geral.');
+                $('#cgTabela').html('<div class="alert alert-danger">Erro ao carregar o modulo de consulta.</div>');
+            });
+    },
+
+    // ─── Consulta Empréstimos Geral ───────────────────────────────
+    abrirConsultaEmprestimos: function () {
+        this._carregarCSSCronograma();
+        $('#mainConteudo').html(`
+            <div id="ceContainer" class="container-fluid mt-4">
+                <h3 class="mb-3">Consulta Empréstimos Geral</h3>
+
+                <div class="mb-3 d-flex flex-wrap align-items-end" style="gap:8px">
+
+                    <div>
+                        <label class="mb-1 d-block" style="font-size:0.82rem;font-weight:600">Titulo</label>
+                        <input type="text" id="ceTitulo" class="form-control form-control-sm"
+                               style="width:220px" placeholder="Digite o titulo..."
+                               onkeydown="if(event.key==='Enter') consulta_emprestimos_view.buscar()">
+                    </div>
+
+                    <div>
+                        <label class="mb-1 d-block" style="font-size:0.82rem;font-weight:600">Autor</label>
+                        <input type="text" id="ceAutor" class="form-control form-control-sm"
+                               style="width:180px" placeholder="Digite o autor..."
+                               onkeydown="if(event.key==='Enter') consulta_emprestimos_view.buscar()">
+                    </div>
+
+                    <div>
+                        <label class="mb-1 d-block" style="font-size:0.82rem;font-weight:600">Status</label>
+                        <select id="ceStatus" class="form-control form-control-sm" style="width:140px">
+                            <option value="">Todos</option>
+                            <option value="sim">Lido</option>
+                            <option value="nao">Nao lido</option>
+                            <option value="lendo">Lendo</option>
+                            <option value="abandonado">Abandonado</option>
+                            <option value="interrompido">Interrompido</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="mb-1 d-block" style="font-size:0.82rem;font-weight:600">Origem</label>
+                        <select id="ceOrigem" class="form-control form-control-sm" style="width:180px">
+                            <option value="">Todas</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="mb-1 d-block" style="font-size:0.82rem;font-weight:600">Sexo do Autor</label>
+                        <select id="ceSexo" class="form-control form-control-sm" style="width:140px">
+                            <option value="">Todos</option>
+                            <option value="F">Feminino</option>
+                            <option value="M">Masculino</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="mb-1 d-block" style="font-size:0.82rem;font-weight:600">Raça</label>
+                        <select id="ceRaca" class="form-control form-control-sm" style="width:160px">
+                            <option value="">Todas</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="mb-1 d-block" style="font-size:0.82rem;font-weight:600">País</label>
+                        <select id="cePais" class="form-control form-control-sm" style="width:160px">
+                            <option value="">Todos</option>
+                        </select>
+                    </div>
+
+                    <button class="btn btn-primary btn-sm" onclick="consulta_emprestimos_view.buscar()">
+                        Buscar
+                    </button>
+                    <button class="btn btn-outline-secondary btn-sm" onclick="consulta_emprestimos_view.limpar()">
+                        Limpar
+                    </button>
+                </div>
+
+                <div id="ceTabela">
+                    <p class="text-muted small">Carregando...</p>
+                </div>
+            </div>
+        `);
+        $.getScript('/php/pages/base/components/main/ConsultaEmprestimos/index.js')
+            .done(function () {
+                if (window.consulta_emprestimos_view) consulta_emprestimos_view.init();
+            })
+            .fail(function () {
+                console.error('Erro ao carregar script Consulta Emprestimos.');
+                $('#ceTabela').html('<div class="alert alert-danger">Erro ao carregar o modulo de consulta.</div>');
+            });
     }
 
 };

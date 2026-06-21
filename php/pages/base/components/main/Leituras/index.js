@@ -1,5 +1,51 @@
 let leituras_view = {
 
+    // Dados armazenados para re-ordenação
+    _andDados: [],
+    _mesDados: [],
+    _anoDados: [],
+
+    // Estado de ordenação por tabela
+    _andSortCol: '', _andSortDir: 'asc',
+    _mesSortCol: '', _mesSortDir: 'asc',
+    _anoSortCol: '', _anoSortDir: 'asc',
+
+    _sortarAndamento: function (col) {
+        this._andSortCol = this._andSortCol === col && this._andSortDir === 'asc' ? (this._andSortDir = 'desc', col) : (this._andSortDir = 'asc', col);
+        const dir = this._andSortDir === 'asc' ? 1 : -1;
+        const num = ['dias_lendo', 'percentual', 'pagina_atual'].includes(col);
+        this._andDados.sort((a, b) => {
+            const va = num ? (parseFloat(a[col]) || 0) : String(a[col] || '').toLowerCase();
+            const vb = num ? (parseFloat(b[col]) || 0) : String(b[col] || '').toLowerCase();
+            return va < vb ? -dir : va > vb ? dir : 0;
+        });
+        this._renderAndamento(this._andDados);
+    },
+
+    _sortarMes: function (col) {
+        this._mesSortCol = this._mesSortCol === col && this._mesSortDir === 'asc' ? (this._mesSortDir = 'desc', col) : (this._mesSortDir = 'asc', col);
+        const dir = this._mesSortDir === 'asc' ? 1 : -1;
+        const num = ['paginas', 'avaliacao', 'tempo_dias'].includes(col);
+        this._mesDados.sort((a, b) => {
+            const va = num ? (parseFloat(a[col]) || 0) : String(a[col] || '').toLowerCase();
+            const vb = num ? (parseFloat(b[col]) || 0) : String(b[col] || '').toLowerCase();
+            return va < vb ? -dir : va > vb ? dir : 0;
+        });
+        this._renderMes(this._mesDados);
+    },
+
+    _sortarAno: function (col) {
+        this._anoSortCol = this._anoSortCol === col && this._anoSortDir === 'asc' ? (this._anoSortDir = 'desc', col) : (this._anoSortDir = 'asc', col);
+        const dir = this._anoSortDir === 'asc' ? 1 : -1;
+        const num = ['paginas', 'avaliacao', 'tempo_dias'].includes(col);
+        this._anoDados.sort((a, b) => {
+            const va = num ? (parseFloat(a[col]) || 0) : String(a[col] || '').toLowerCase();
+            const vb = num ? (parseFloat(b[col]) || 0) : String(b[col] || '').toLowerCase();
+            return va < vb ? -dir : va > vb ? dir : 0;
+        });
+        this._renderAno(this._anoDados);
+    },
+
     // ─── Utilitário de formatação de data ───────────────────────
     _fmtData: function (val) {
         if (!val) return '—';
@@ -28,6 +74,24 @@ let leituras_view = {
 
     carregarAndamento: async function () {
         $('#leiturasAndamentoTabela').html('<p class="text-muted small">Carregando...</p>');
+
+        // Sincroniza automaticamente livros com 100% antes de exibir a lista
+        try {
+            const syncResp = await fetch(
+                '/php/api/base/menu_lateral/minhasLeituras/sincronizar_leituras.php',
+                { method: 'POST' }
+            );
+            const syncJson = await syncResp.json();
+            if (syncJson.status && syncJson.data && syncJson.data.sincronizados > 0) {
+                // Atualiza os cards do header para refletir os novos livros finalizados
+                if (typeof window.atualizarHeaderContadores === 'function') {
+                    window.atualizarHeaderContadores();
+                }
+            }
+        } catch (e) {
+            console.warn('Aviso ao sincronizar leituras antes de exibir andamento:', e);
+        }
+
         try {
             const resp = await fetch('/php/api/base/main/leituras/listar_andamento.php');
             const json = await resp.json();
@@ -39,7 +103,9 @@ let leituras_view = {
                 return;
             }
 
-            this._renderAndamento(json.data || []);
+            this._andDados = json.data || [];
+            this._andSortCol = ''; this._andSortDir = 'asc';
+            this._renderAndamento(this._andDados);
         } catch (e) {
             console.error('Erro ao carregar leituras em andamento:', e);
             $('#leiturasAndamentoTabela').html(
@@ -56,19 +122,26 @@ let leituras_view = {
             return;
         }
 
+        const thA = 'padding:6px 8px;border-bottom:2px solid #7c3aed;cursor:pointer;user-select:none;white-space:nowrap;color:#7c3aed';
+        const scA = this._andSortCol, sdA = this._andSortDir;
+        const thAnd = (col, label, align) => {
+            const ind = col === scA ? (sdA === 'asc' ? ' ↑' : ' ↓') : '';
+            return `<th style="${thA};text-align:${align || 'left'}" onclick="leituras_view._sortarAndamento('${col}')" title="Clique para ordenar">${label}${ind}</th>`;
+        };
+
         let html = `
             <div class="tabela-wrapper">
             <table style="width:100%;border-collapse:collapse;table-layout:auto">
-                <thead style="background:#f8f9fa;position:sticky;top:0;z-index:1">
+                <thead style="background:rgba(124,58,237,0.07);position:sticky;top:0;z-index:1">
                     <tr style="font-size:0.82rem">
-                        <th style="padding:6px 8px;text-align:left;border-bottom:2px solid #dee2e6">Título</th>
-                        <th style="padding:6px 8px;text-align:left;border-bottom:2px solid #dee2e6">Autor</th>
-                        <th style="padding:6px 8px;text-align:left;border-bottom:2px solid #dee2e6">Mídia</th>
-                        <th style="padding:6px 8px;text-align:center;border-bottom:2px solid #dee2e6">Início</th>
-                        <th style="padding:6px 8px;text-align:center;border-bottom:2px solid #dee2e6">Dias lendo</th>
-                        <th style="padding:6px 8px;text-align:center;border-bottom:2px solid #dee2e6">% Lido</th>
-                        <th style="padding:6px 8px;text-align:center;border-bottom:2px solid #dee2e6">Pág. Atual</th>
-                        <th style="padding:6px 8px;text-align:center;border-bottom:2px solid #dee2e6">Últ. Atualização</th>
+                        ${thAnd('titulo',             'Título')}
+                        ${thAnd('autor',              'Autor')}
+                        ${thAnd('tipo_midia',         'Mídia')}
+                        ${thAnd('data_inicio',        'Início',           'center')}
+                        ${thAnd('dias_lendo',         'Dias lendo',       'center')}
+                        ${thAnd('percentual',         '% Lido',           'center')}
+                        ${thAnd('pagina_atual',       'Pág. Atual',       'center')}
+                        ${thAnd('ultima_atualizacao', 'Últ. Atualização', 'center')}
                     </tr>
                 </thead>
                 <tbody style="font-size:0.83rem">
@@ -133,7 +206,9 @@ let leituras_view = {
                 return;
             }
 
-            this._renderMes(lista);
+            this._mesDados = lista;
+            this._mesSortCol = ''; this._mesSortDir = 'asc';
+            this._renderMes(this._mesDados);
         } catch (e) {
             console.error('Erro ao carregar leituras do mês:', e);
             $('#leiturasMesTabela').html('<div class="alert alert-danger">Erro ao carregar dados.</div>');
@@ -141,20 +216,27 @@ let leituras_view = {
     },
 
     _renderMes: function (lista) {
+        const thM = 'padding:6px 8px;border-bottom:2px solid #4a76a8;cursor:pointer;user-select:none;white-space:nowrap;color:#4a76a8';
+        const scM = this._mesSortCol, sdM = this._mesSortDir;
+        const thMes = (col, label, align) => {
+            const ind = col === scM ? (sdM === 'asc' ? ' ↑' : ' ↓') : '';
+            return `<th style="${thM};text-align:${align || 'left'}" onclick="leituras_view._sortarMes('${col}')" title="Clique para ordenar">${label}${ind}</th>`;
+        };
+
         let html = `
             <div class="tabela-wrapper">
             <table style="width:100%;border-collapse:collapse;table-layout:auto">
-                <thead style="background:#f8f9fa;position:sticky;top:0;z-index:1">
+                <thead style="background:rgba(74,118,168,0.07);position:sticky;top:0;z-index:1">
                     <tr style="font-size:0.82rem">
-                        <th style="padding:6px 8px;text-align:left;border-bottom:2px solid #dee2e6">Título</th>
-                        <th style="padding:6px 8px;text-align:left;border-bottom:2px solid #dee2e6">Autor</th>
-                        <th style="padding:6px 8px;text-align:left;border-bottom:2px solid #dee2e6">Natureza</th>
-                        <th style="padding:6px 8px;text-align:left;border-bottom:2px solid #dee2e6">Mídia</th>
-                        <th style="padding:6px 8px;text-align:center;border-bottom:2px solid #dee2e6">Páginas</th>
-                        <th style="padding:6px 8px;text-align:center;border-bottom:2px solid #dee2e6">Avaliação</th>
-                        <th style="padding:6px 8px;text-align:center;border-bottom:2px solid #dee2e6">Início</th>
-                        <th style="padding:6px 8px;text-align:center;border-bottom:2px solid #dee2e6">Fim</th>
-                        <th style="padding:6px 8px;text-align:center;border-bottom:2px solid #dee2e6">Tempo</th>
+                        ${thMes('titulo',     'Título')}
+                        ${thMes('autor',      'Autor')}
+                        ${thMes('natureza',   'Natureza')}
+                        ${thMes('tipo_midia', 'Mídia')}
+                        ${thMes('paginas',    'Páginas',  'center')}
+                        ${thMes('avaliacao',  'Avaliação','center')}
+                        ${thMes('data_inicio','Início',   'center')}
+                        ${thMes('data_fim',   'Fim',      'center')}
+                        ${thMes('tempo_dias', 'Tempo',    'center')}
                     </tr>
                 </thead>
                 <tbody style="font-size:0.83rem">
@@ -229,7 +311,9 @@ let leituras_view = {
                 return;
             }
 
-            this._renderAno(lista);
+            this._anoDados = lista;
+            this._anoSortCol = ''; this._anoSortDir = 'asc';
+            this._renderAno(this._anoDados);
         } catch (e) {
             console.error('Erro ao carregar leituras do ano:', e);
             $('#leiturasAnoTabela').html('<div class="alert alert-danger">Erro ao carregar dados.</div>');
@@ -237,21 +321,28 @@ let leituras_view = {
     },
 
     _renderAno: function (lista) {
+        const thN = 'padding:6px 8px;border-bottom:2px solid #0891b2;cursor:pointer;user-select:none;white-space:nowrap;color:#0891b2';
+        const scN = this._anoSortCol, sdN = this._anoSortDir;
+        const thAno = (col, label, align) => {
+            const ind = col === scN ? (sdN === 'asc' ? ' ↑' : ' ↓') : '';
+            return `<th style="${thN};text-align:${align || 'left'}" onclick="leituras_view._sortarAno('${col}')" title="Clique para ordenar">${label}${ind}</th>`;
+        };
+
         let html = `
             <div class="tabela-wrapper">
             <table style="width:100%;border-collapse:collapse;table-layout:auto">
-                <thead style="background:#f8f9fa;position:sticky;top:0;z-index:1">
+                <thead style="background:rgba(8,145,178,0.07);position:sticky;top:0;z-index:1">
                     <tr style="font-size:0.82rem">
-                        <th style="padding:6px 8px;text-align:center;border-bottom:2px solid #dee2e6;width:30px">#</th>
-                        <th style="padding:6px 8px;text-align:left;border-bottom:2px solid #dee2e6">Título</th>
-                        <th style="padding:6px 8px;text-align:left;border-bottom:2px solid #dee2e6">Autor</th>
-                        <th style="padding:6px 8px;text-align:left;border-bottom:2px solid #dee2e6">Natureza</th>
-                        <th style="padding:6px 8px;text-align:left;border-bottom:2px solid #dee2e6">Mídia</th>
-                        <th style="padding:6px 8px;text-align:center;border-bottom:2px solid #dee2e6">Páginas</th>
-                        <th style="padding:6px 8px;text-align:center;border-bottom:2px solid #dee2e6">Avaliação</th>
-                        <th style="padding:6px 8px;text-align:center;border-bottom:2px solid #dee2e6">Início</th>
-                        <th style="padding:6px 8px;text-align:center;border-bottom:2px solid #dee2e6">Fim</th>
-                        <th style="padding:6px 8px;text-align:center;border-bottom:2px solid #dee2e6">Tempo</th>
+                        <th style="padding:6px 8px;text-align:center;border-bottom:2px solid #0891b2;color:#0891b2;width:30px">#</th>
+                        ${thAno('titulo',     'Título')}
+                        ${thAno('autor',      'Autor')}
+                        ${thAno('natureza',   'Natureza')}
+                        ${thAno('tipo_midia', 'Mídia')}
+                        ${thAno('paginas',    'Páginas',  'center')}
+                        ${thAno('avaliacao',  'Avaliação','center')}
+                        ${thAno('data_inicio','Início',   'center')}
+                        ${thAno('data_fim',   'Fim',      'center')}
+                        ${thAno('tempo_dias', 'Tempo',    'center')}
                     </tr>
                 </thead>
                 <tbody style="font-size:0.83rem">
@@ -347,15 +438,15 @@ let leituras_view = {
             </div>
             <div class="tabela-wrapper">
             <table style="width:100%;border-collapse:collapse;table-layout:auto">
-                <thead style="background:#f8f9fa;position:sticky;top:0;z-index:1">
+                <thead style="background:rgba(8,145,178,0.07);position:sticky;top:0;z-index:1">
                     <tr style="font-size:0.82rem">
-                        <th style="padding:6px 10px;text-align:left;border-bottom:2px solid #dee2e6">${labelColuna}</th>
-                        <th style="padding:6px 10px;text-align:center;border-bottom:2px solid #dee2e6">Total</th>
-                        <th style="padding:6px 10px;text-align:center;border-bottom:2px solid #dee2e6">Lidos</th>
-                        <th style="padding:6px 10px;text-align:center;border-bottom:2px solid #dee2e6">Lendo</th>
-                        <th style="padding:6px 10px;text-align:center;border-bottom:2px solid #dee2e6">Não Lidos</th>
-                        <th style="padding:6px 10px;text-align:left;border-bottom:2px solid #dee2e6;min-width:160px">% Lidos</th>
-                        <th style="padding:6px 10px;text-align:center;border-bottom:2px solid #dee2e6">% do Acervo</th>
+                        <th style="padding:6px 10px;text-align:left;border-bottom:2px solid #0891b2;color:#0891b2">${labelColuna}</th>
+                        <th style="padding:6px 10px;text-align:center;border-bottom:2px solid #0891b2;color:#0891b2">Total</th>
+                        <th style="padding:6px 10px;text-align:center;border-bottom:2px solid #0891b2;color:#0891b2">Lidos</th>
+                        <th style="padding:6px 10px;text-align:center;border-bottom:2px solid #0891b2;color:#0891b2">Lendo</th>
+                        <th style="padding:6px 10px;text-align:center;border-bottom:2px solid #0891b2;color:#0891b2">Não Lidos</th>
+                        <th style="padding:6px 10px;text-align:left;border-bottom:2px solid #0891b2;color:#0891b2;min-width:160px">% Lidos</th>
+                        <th style="padding:6px 10px;text-align:center;border-bottom:2px solid #0891b2;color:#0891b2">% do Acervo</th>
                     </tr>
                 </thead>
                 <tbody style="font-size:0.83rem">

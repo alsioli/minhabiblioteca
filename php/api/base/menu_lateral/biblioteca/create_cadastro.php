@@ -109,7 +109,7 @@ function PostMethod() {
         'data_compra' => 'data_compra',
         'valor_compra'=> 'valor_compra',
         'local_compra'=> 'local_compra',
-        'observacoes' => 'observacoes',
+        'observacoes'  => 'observacoes',
     ];
 
     $dadosCorrigidos = [];
@@ -121,6 +121,13 @@ function PostMethod() {
 
     // Processa codigo/tipo_codigo somente para a tabela Biblioteca
     if ($localCadastro === 'Biblioteca') {
+        // mes_leitura (YYYY-MM) → coluna mes_leitura + derivar mes e ano (só existem em Livros)
+        $mesLeitura = trim($data['mes_leitura'] ?? '');
+        if ($mesLeitura !== '' && preg_match('/^(\d{4})-(\d{2})$/', $mesLeitura, $ml)) {
+            $dadosCorrigidos['mes_leitura'] = $mesLeitura;
+            $dadosCorrigidos['ano']         = (int) $ml[1];
+            $dadosCorrigidos['mes']         = (int) $ml[2];
+        }
         $codigo      = trim($data['codigo'] ?? '');
         $tipo_codigo = normalizeTipoCodigo($data['tipo_codigo'] ?? '');
 
@@ -178,6 +185,106 @@ function PostMethod() {
         $db->ExecuteNonQuery($sqlQuery, $params);
         $result_status = true;
         $result_data = ['message' => 'Livro cadastrado com sucesso'];
+
+        // Upsert na tabela Autores (silencioso — não falha o cadastro se der erro)
+        $autorNome    = trim($data['autor']         ?? '');
+        $autorSexo    = trim($data['sexo_autor']    ?? '');
+        $autorRaca    = trim($data['raca']          ?? '');
+        $autorNac     = trim($data['nacionalidade'] ?? '');
+
+        if ($autorNome !== '') {
+            try {
+                $db->ExecuteNonQuery(
+                    "IF NOT EXISTS (SELECT 1 FROM [Biblioteca].[dbo].[Autor] WHERE LOWER(nome_autor) = LOWER(:nome))
+                         INSERT INTO [Biblioteca].[dbo].[Autor] (nome_autor, sexo_autor, [raça], nacionalidade)
+                         VALUES (:nome2, NULLIF(:sexo,''), NULLIF(:raca,''), NULLIF(:nac,''))",
+                    [
+                        ':nome'  => $autorNome, ':nome2' => $autorNome,
+                        ':sexo'  => $autorSexo, ':raca'  => $autorRaca, ':nac' => $autorNac,
+                    ]
+                );
+            } catch (Exception $e) {
+                // Tabela Autores pode não existir ainda — ignora silenciosamente
+            }
+        }
+
+        // Se status = 'Lendo' e data_inicio_leitura foi informado, registra em Leituras e LeiturasEmAndamento
+        $statusVal   = trim($data['status']               ?? '');
+        $dataInicio  = trim($data['data_inicio_leitura']  ?? '');
+        $tituloVal   = trim($data['titulo']               ?? '');
+        $autorVal    = trim($data['autor']                ?? '');
+        $paginasVal  = trim($data['paginas']              ?? '');
+        $tipoMidia   = trim($data['tipo_midia']           ?? '');
+        $localLeitura = $localCadastro;
+
+        if (strtolower($statusVal) === 'lendo' && $dataInicio !== '' && $tituloVal !== '') {
+            $dtObj = DateTime::createFromFormat('Y-m-d', $dataInicio);
+            if ($dtObj) {
+                $mesLeitura = $dtObj->format('m/Y');
+
+                $camposL = ['titulo', 'autor', 'mes', 'data_inicio', 'local_leitura'];
+                $valsL   = [
+                    $tituloVal,
+                    $autorVal ?: null,
+                    $mesLeitura,
+                    $dataInicio,
+                    $localLeitura,
+                ];
+                if ($paginasVal !== '') { $camposL[] = 'paginas'; $valsL[] = (int)$paginasVal; }
+                if ($tipoMidia  !== '') { $camposL[] = 'tipo_midia'; $valsL[] = $tipoMidia; }
+
+                $colListL = implode(', ', array_map(fn($c) => "[{$c}]", $camposL));
+                $phListL  = implode(', ', array_map(fn($i) => ':lp'.$i, range(0, count($camposL)-1)));
+                $paramsL  = [];
+                foreach ($valsL as $i => $v) { $paramsL[':lp'.$i] = $v; }
+
+                $idLeitura = null;
+                try {
+                    $rowL = $db->GetOne(
+                        "INSERT INTO [Biblioteca].[dbo].[Leituras] ({$colListL}) OUTPUT INSERTED.id VALUES ({$phListL})",
+                        $paramsL
+                    );
+                    $idLeitura = $rowL['id'] ?? null;
+                } catch (Exception $e) {
+                    // Tenta sem local_leitura
+                    $camposL2 = array_filter($camposL, fn($c) => $c !== 'local_leitura');
+                    $camposL2 = array_values($camposL2);
+                    $valsL2   = array_slice($valsL, 0, count($camposL2));
+                    $colL2    = implode(', ', array_map(fn($c) => "[{$c}]", $camposL2));
+                    $phL2     = implode(', ', array_map(fn($i) => ':lp2'.$i, range(0, count($camposL2)-1)));
+                    $pL2      = [];
+                    foreach ($valsL2 as $i => $v) { $pL2[':lp2'.$i] = $v; }
+                    try {
+                        $rowL = $db->GetOne(
+                            "INSERT INTO [Biblioteca].[dbo].[Leituras] ({$colL2}) OUTPUT INSERTED.id VALUES ({$phL2})",
+                            $pL2
+                        );
+                        $idLeitura = $rowL['id'] ?? null;
+                    } catch (Exception $e2) { /* silencioso */ }
+                }
+
+                if ($idLeitura) {
+                    try {
+                        $db->ExecuteNonQuery("
+                            INSERT INTO [Biblioteca].[dbo].[LeiturasEmAndamento]
+                                (id_leitura, titulo, autor, paginas, tipo_midia, data_inicio,
+                                 dt_alteracao, tipo_input, percentual, pagina_atual, tempo_leitura)
+                            VALUES
+                                (:la0, :la1, :la2, :la3, :la4, :la5,
+                                 GETDATE(), 'percentual', 0, 0, 0)
+                        ", [
+                            ':la0' => (int)$idLeitura,
+                            ':la1' => $tituloVal,
+                            ':la2' => $autorVal ?: null,
+                            ':la3' => $paginasVal !== '' ? (int)$paginasVal : null,
+                            ':la4' => $tipoMidia ?: null,
+                            ':la5' => $dataInicio,
+                        ]);
+                    } catch (Exception $e) { /* silencioso */ }
+                }
+            }
+        }
+
     } catch (Exception $e) {
         $result_status = false;
         $result_error = 'Erro ao cadastrar: ' . $e->getMessage();

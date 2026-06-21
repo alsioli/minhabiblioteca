@@ -7,7 +7,12 @@
 <script src="/php/pages/base/components/menu_lateral/index.js"></script>
 
 
-<aside class="menu-lateral">
+<aside class="menu-lateral" id="menuLateral">
+    <div id="btnFecharMenu"
+         onclick="toggleMenu()"
+         style="display:none;text-align:right;padding:4px 8px 12px;cursor:pointer;font-size:1.4rem;line-height:1;color:#6a2bbf">
+        &times;
+    </div>
     <nav>
 
         <div class="grupo">
@@ -15,6 +20,8 @@
                 <ul class="submenu">
                     <li><a class="btn-submenu" href="#" onclick="menuLateral.abrirModalNovoLivro()">Cadastro de livro</a></li>
                     <li><a class="btn-submenu" href="#" onclick="menuLateral.abrirModalAtualizarLivro()">Alterar cadastro</a></li>
+                    <li><a class="btn-submenu" href="#" onclick="menuLateral.abrirModalCadastroAutor()">Cadastrar Autor</a></li>
+                    <li><a class="btn-submenu" href="#" onclick="menuLateral.abrirModalListaEscritores()">Lista de Escritores</a></li>
                 </ul>
         </div>
 
@@ -36,12 +43,15 @@
                 <li><a class="btn-submenu" href="#" onclick="menuLateral.abrirModalTBRMensal()">Cadastro TBR Mensal</a></li>
                 <li><a class="btn-submenu" href="#" onclick="menuLateral.abrirModalFraseFavorita()">Incluir Citações Favoritas</a></li>
                 <li><a class="btn-submenu" href="#" onclick="menuLateral.abrirModalResenha()">Incluir Minhas Resenhas</a></li>
+                <li><a class="btn-submenu" href="#" onclick="menuLateral.abrirModalAtualizarLeituras()">Atualizar Leituras</a></li>
             </ul>
         </div>
 
         <div class="grupo">
             <button class="botao-menu">Consultas</button>
             <ul>
+                <li><a class="btn-submenu" href="#" onclick="menuLateral.abrirConsultaGeral()">Consulta Geral</a></li>
+                    <li><a class="btn-submenu" href="#" onclick="menuLateral.abrirConsultaEmprestimos()">Consulta Empréstimos Geral</a></li>
                 <li><a class="btn-submenu" href="#" onclick="menuLateral.abrirConsultaImpressoes()">Minhas Impressões</a></li>
                 <li><a class="btn-submenu" href="#" onclick="menuLateral.abrirConsultaCitacoes()">Minhas Citações Favoritas</a></li>
                 <li><a class="btn-submenu" href="#" onclick="menuLateral.abrirConsultaResenhas()">Minhas Resenhas</a></li>
@@ -62,6 +72,7 @@
                 <li><a class="btn-submenu" href="#" onclick="menuLateral.abrirModalNovoDesafio()">Cadastro de desafios</a></li>
                 <li><a class="btn-submenu" href="#" onclick="menuLateral.abrirAcompanhamentoDesafios()">Acompanhamento de desafios</a></li>
                 <li><a class="btn-submenu" href="#" onclick="menuLateral.abrirDesafiosAndamento()">Desafios em andamento</a></li>
+                <li><a class="btn-submenu" href="#" onclick="menuLateral.abrirLivrosDesafios()">Livros dos desafios</a></li>
             </ul>
         </div>
 

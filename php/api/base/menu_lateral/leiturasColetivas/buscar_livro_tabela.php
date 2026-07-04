@@ -62,8 +62,22 @@ echo json_encode([
 function PostMethod(array $tabelasPermitidas) {
     global $result_status, $result_error, $result_data;
 
-    $tabela = trim($_POST['tabela'] ?? '');
-    $titulo = trim($_POST['titulo'] ?? '');
+    $tabela      = trim($_POST['tabela'] ?? '');
+    $titulo      = trim($_POST['titulo'] ?? '');
+    $id_leitura  = trim($_POST['id'] ?? '');
+    $autor       = trim($_POST['autor']       ?? '');
+    $paginas     = trim($_POST['paginas']     ?? '');
+    $tipo_midia  = trim($_POST['tipo_midia']  ?? '');
+    $natureza    = trim($_POST['natureza']    ?? '');
+    $data_inicio = trim($_POST['data_inicio'] ?? '');
+    $avaliacao   = trim($_POST['avaliacao']   ?? '');
+
+    $local_leitura = trim($_POST['local_leitura'] ?? '');
+
+    // $sexo_autor = trim($_POST['sexo_autor'] ?? '');
+    // $pais       = trim($_POST['pais']       ?? '');
+    // $raca       = trim($_POST['raca']       ?? '');
+    // $tema       = trim($_POST['tema']       ?? '');
 
     if (empty($tabela) || empty($titulo)) {
         $result_error = 'Tabela e título são obrigatórios.';
@@ -80,18 +94,28 @@ function PostMethod(array $tabelasPermitidas) {
 
     // Livros tem tipo_edicao e status; outras tabelas retornam NULL nesses campos
     if ($ehLivros) {
-        $campos = "id, titulo, autor, paginas, tipo_edicao";
+        $campos = "id, titulo, autor, natureza, tipo_midia, paginas, tema, tipo_edicao";
         $where  = "titulo LIKE :titulo AND (status IS NULL OR status <> 'Lido')";
     } else {
-        $campos = "id, titulo, autor, paginas, NULL AS tipo_edicao";
+        $campos = "id, titulo, autor, natureza, tipo_midia, paginas, tema, NULL AS tipo_edicao";
         $where  = "titulo LIKE :titulo";
+    }
+
+    $statusTables = [
+        TABELA_SQL_LIVROS,
+    ];
+    $hasStatus = in_array($tabelaSQL, $statusTables, true);
+
+    if ($hasStatus) {
+        $where = "titulo LIKE :titulo AND (status IS NULL OR status <> 'Lido')";
     }
 
     $sql = "SELECT {$campos} FROM {$tabelaSQL} WHERE {$where} ORDER BY titulo ASC";
 
     try {
         $db        = new DataBase();
-        $resultado = $db->GetMany($sql, [':titulo' => '%' . $titulo . '%']);
+        $params    = [':titulo' => '%' . $titulo . '%'];
+        $resultado = $db->GetMany($sql, $params);
 
         if (empty($resultado)) {
             $result_error = 'Nenhum livro encontrado.';

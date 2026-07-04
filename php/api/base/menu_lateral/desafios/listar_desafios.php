@@ -40,21 +40,34 @@ function GetMethod() {
             d.data_fim,
             d.criado_em,
             d.bAtivo,
-            COALESCE(
-                -- Conta livros lidos via tabela Desafio50Antes50 (lidos em Leituras)
-                (
-                    SELECT COUNT(DISTINCT d50.titulo)
-                    FROM [Biblioteca].[dbo].[Desafio50Antes50] d50
-                    WHERE d50.tematica = d.tematica
-                      AND EXISTS (
+            -- Conta lidos via Desafio50Antes50 (pelo Leituras)
+            COALESCE((
+                SELECT COUNT(DISTINCT d50.titulo)
+                FROM [Biblioteca].[dbo].[Desafio50Antes50] d50
+                WHERE d50.tematica = d.tematica
+                  AND EXISTS (
+                      SELECT 1 FROM [Biblioteca].[dbo].[Leituras] lx
+                      WHERE lx.titulo = d50.titulo
+                        AND lx.data_fim IS NOT NULL
+                        AND (d.ano IS NULL OR YEAR(lx.data_fim) = d.ano)
+                  )
+            ), 0)
+            +
+            -- Conta lidos via DesafioPrompts (pelo Leituras ou pelo status da tabela)
+            COALESCE((
+                SELECT COUNT(DISTINCT dp.titulo)
+                FROM [Biblioteca].[dbo].[DesafioPrompts] dp
+                WHERE dp.tematica = d.tematica
+                  AND (
+                      EXISTS (
                           SELECT 1 FROM [Biblioteca].[dbo].[Leituras] lx
-                          WHERE lx.titulo = d50.titulo
+                          WHERE lx.titulo = dp.titulo
                             AND lx.data_fim IS NOT NULL
-                            AND (d.ano IS NULL OR YEAR(lx.data_fim) = d.ano)
                       )
-                ),
-                0
-            ) AS livros_lidos
+                      OR dp.status = 'Lido'
+                  )
+            ), 0)
+            AS livros_lidos
         FROM [Biblioteca].[dbo].[ListaDesafios] d
         WHERE (:filtroAtivo = 0 OR d.bAtivo = 1)
         ORDER BY

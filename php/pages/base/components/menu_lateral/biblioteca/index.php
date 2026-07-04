@@ -297,8 +297,6 @@
       <div class="modal-body">
         <form method="POST" id="formLivroAtualizar">
             <input type="hidden" name="id_livro"     id="id_livro"     value="">
-            <input type="hidden" name="local_leitura" id="local_leitura" value="Biblioteca">
-
             <div class="linha">
                 <div class="grupo">
                     <label>Código</label>
@@ -458,6 +456,56 @@
 
       <div class="modal-footer">
         <button type="button" class="btn btn-primary" onclick="biblioteca.atualizar_dados()">Atualizar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Consultar Livro -->
+<div class="modal fade" id="modalConsultarLivro" tabindex="-1" role="dialog" aria-labelledby="modalConsultarLivroLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable" role="document">
+    <div class="modal-content">
+      <div class="cabecalho-biblioteca-modal modal-header">
+        <h5 class="modal-title" id="modalConsultarLivroLabel">Consultar Livro</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Fechar">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <form method="POST" id="formLivroConsultar">
+            <input type="hidden" name="id_livro" id="id_livro_consultar" value="">
+            <input type="hidden" name="local_leitura" id="local_leitura_consultar" value="Biblioteca">
+
+            <div class="linha">
+                <div class="grupo" style="flex:1">
+                    <label>Título</label>
+                    <input type="text" name="titulo" id="titulo_consultar" placeholder="Digite título ou parte do título">
+                </div>
+                <div class="grupo" style="flex:1">
+                    <label>Autor</label>
+                    <input type="text" name="autor" id="autor_consultar" list="datalist_autor"
+                           placeholder="Digite autor ou parte do nome" autocomplete="off"
+                           onchange="if(window.biblioteca) biblioteca.preencherDadosAutor(this.value.trim(),'consultar')"
+                           oninput="if(window.biblioteca) biblioteca._agendarPreencherAutor(this.value.trim(),'consultar')">
+                </div>
+            </div>
+            <div class="grupo mb-3">
+                <small class="text-muted">A busca funciona com título OU autor: preencha pelo menos um dos campos com 3 ou mais caracteres.</small>
+            </div>
+
+            <div class="linha" style="align-items:flex-end; gap:10px; margin-bottom:1rem">
+                <button type="button" class="btn btn-info" onclick="biblioteca.consultarLivro()">Buscar</button>
+                <button type="button" class="btn btn-secondary" onclick="biblioteca.limparConsultaLivro()">Limpar</button>
+                <div id="consultaLivroMensagem" class="ml-2"></div>
+            </div>
+
+            <div id="tabelaResultadosConsultar"></div>
+
+            <hr>
+        </form>
+      </div>
+
       </div>
     </div>
   </div>

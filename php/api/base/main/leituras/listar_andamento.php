@@ -32,7 +32,7 @@ function GetMethod() {
     // pegando o registro mais recente por id_leitura.
     // JOIN com Leituras para obter local_leitura (usado ao marcar livro como Lido).
     $sqlComLocal = "
-        WITH ranked AS (
+       WITH ranked AS (
             SELECT *,
                    ROW_NUMBER() OVER (PARTITION BY id_leitura ORDER BY dt_alteracao DESC) AS rn
             FROM [Biblioteca].[dbo].[LeiturasEmAndamento]
@@ -48,43 +48,15 @@ function GetMethod() {
             r.pagina_atual,
             r.dt_alteracao                            AS ultima_atualizacao,
             DATEDIFF(day, r.data_inicio, GETDATE())   AS dias_lendo,
-            ISNULL(lt.local_leitura, '')              AS local_leitura
+            ISNULL(lt.vLocal_Leitura, '')              AS local_leitura
         FROM ranked r
-        LEFT JOIN [Biblioteca].[dbo].[Leituras] lt ON lt.id = r.id_leitura
+        LEFT JOIN [Biblioteca].[dbo].[LocalLeitura] lt ON lt.id = r.id_localLeitura
         WHERE r.rn = 1
         ORDER BY r.dt_alteracao DESC
     ";
 
-    $sqlSemLocal = "
-        WITH ranked AS (
-            SELECT *,
-                   ROW_NUMBER() OVER (PARTITION BY id_leitura ORDER BY dt_alteracao DESC) AS rn
-            FROM [Biblioteca].[dbo].[LeiturasEmAndamento]
-        )
-        SELECT
-            id_leitura                            AS id,
-            titulo,
-            autor,
-            paginas,
-            tipo_midia,
-            data_inicio,
-            percentual,
-            pagina_atual,
-            dt_alteracao                          AS ultima_atualizacao,
-            DATEDIFF(day, data_inicio, GETDATE()) AS dias_lendo,
-            ''                                    AS local_leitura
-        FROM ranked
-        WHERE rn = 1
-        ORDER BY dt_alteracao DESC
-    ";
-
-    try {
-        try {
-            $result_data = $db->GetMany($sqlComLocal);
-        } catch (Exception $e) {
-            // local_leitura pode não existir em Leituras — fallback sem ela
-            $result_data = $db->GetMany($sqlSemLocal);
-        }
+   try {
+        $result_data = $db->GetMany($sqlComLocal);
         $result_status = true;
     } catch (Exception $e) {
         $result_error = 'Erro ao carregar leituras em andamento: ' . $e->getMessage();

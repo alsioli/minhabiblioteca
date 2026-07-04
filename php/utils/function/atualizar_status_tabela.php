@@ -15,15 +15,20 @@
  * Usa whitelist para evitar SQL injection.
  */
 function getTabela(string $local_leitura): ?string {
+    $local = trim($local_leitura);
+    $local = mb_strtolower($local, 'UTF-8');
+    $local = preg_replace('/[\s_]+/', '_', $local);
+
     $mapa = [
-        'Skeelo'            => 'LeiturasSKEELO',
-        'Biblion'           => 'LivrosBiblion',
-        'MEC_Livros'        => 'LivrosMEC',
-        'Audible'           => 'LivrosAudible',
-        'Kindle_Unlimited'  => 'LivrosKindleUnlimited',
-        'Biblioteca'        => 'Livros',
+        'skeelo'                => 'LeiturasSKEELO',
+        'biblion'               => 'LivrosBiblion',
+        'mec_livros'            => 'LivrosMEC',
+        'audible'               => 'LivrosAudible',
+        'kindle_unlimited'      => 'LivrosKindleUnlimited',
+        'biblioteca'            => 'Livros',
     ];
-    return $mapa[$local_leitura] ?? null;
+
+    return $mapa[$local] ?? null;
 }
 
 /**
@@ -39,19 +44,25 @@ function atualizarStatusNaTabela($db, string $local_leitura, string $titulo, str
 
     try {
         if (!empty($autor)) {
-            $db->ExecuteNonQuery("
-                UPDATE [Biblioteca].[dbo].[{$tabela}]
-                SET [status] = :status
-                WHERE titulo = :titulo
-                  AND autor  = :autor
-            ", [':status' => $status, ':titulo' => $titulo, ':autor' => $autor]);
-        } else {
-            $db->ExecuteNonQuery("
-                UPDATE [Biblioteca].[dbo].[{$tabela}]
-                SET [status] = :status
-                WHERE titulo = :titulo
-            ", [':status' => $status, ':titulo' => $titulo]);
+            try {
+                $db->ExecuteNonQuery("
+                    UPDATE [Biblioteca].[dbo].[{$tabela}]
+                    SET [status] = :status
+                    WHERE titulo = :titulo
+                      AND autor  = :autor
+                ", [':status' => $status, ':titulo' => $titulo, ':autor' => $autor]);
+                return;
+            } catch (Exception $e) {
+                error_log("[atualizarStatusNaTabela] Falha ao atualizar por autor em {$tabela}: " . $e->getMessage());
+                // Fallback to title-only update
+            }
         }
+
+        $db->ExecuteNonQuery("
+            UPDATE [Biblioteca].[dbo].[{$tabela}]
+            SET [status] = :status
+            WHERE titulo = :titulo
+        ", [':status' => $status, ':titulo' => $titulo]);
     } catch (Exception $e) {
         error_log("[atualizarStatusNaTabela] Erro ao atualizar {$tabela}: " . $e->getMessage());
     }

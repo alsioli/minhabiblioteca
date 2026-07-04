@@ -646,12 +646,12 @@ let leitura_coletiva = {
             const livro = {
                 titulo:      (dadosLivro && dadosLivro.titulo)      || item.titulo,
                 paginas:     (dadosLivro && dadosLivro.paginas)     || item.paginas || '',
-                autor:       (dadosLivro && dadosLivro.autor)       || '',
+                autor:       (dadosLivro && dadosLivro.autor)       || item.autor || '',
                 sexo_autor:  (dadosLivro && dadosLivro.sexo_autor)  || '',
                 pais:        (dadosLivro && dadosLivro.pais)        || '',
-                natureza:    (dadosLivro && dadosLivro.natureza)    || '',
-                tema:        (dadosLivro && dadosLivro.tema)        || '',
-                tipo_edicao: (dadosLivro && dadosLivro.tipo_edicao) || '',
+                natureza:    (dadosLivro && dadosLivro.natureza)    || item.natureza || '',
+                tema:        (dadosLivro && dadosLivro.tema)        || item.tema || '',
+                tipo_edicao: (dadosLivro && dadosLivro.tipo_edicao) || item.tipo_edicao || ''
             };
 
             $('#modalTBRMensal').remove();
@@ -702,14 +702,15 @@ let leitura_coletiva = {
             // Busca dados completos nas tabelas de acervo
             const dadosLivro = await this._buscarDadosLivro(item.titulo);
             const livro = {
+                id:            (dadosLivro && dadosLivro.id)            || '',
                 titulo:        (dadosLivro && dadosLivro.titulo)        || item.titulo,
                 paginas:       (dadosLivro && dadosLivro.paginas)       || item.paginas || '',
-                autor:         (dadosLivro && dadosLivro.autor)         || '',
+                autor:         (dadosLivro && dadosLivro.autor)         || item.autor || '',
                 sexo_autor:    (dadosLivro && dadosLivro.sexo_autor)    || '',
                 pais:          (dadosLivro && dadosLivro.pais)          || '',
                 natureza:      (dadosLivro && dadosLivro.natureza)      || '',
-                tema:          (dadosLivro && dadosLivro.tema)          || '',
-                tipo_edicao:   (dadosLivro && dadosLivro.tipo_edicao)   || '',
+                tema:          (dadosLivro && dadosLivro.tema)          || item.tema || '',
+                tipo_edicao:   (dadosLivro && dadosLivro.tipo_edicao)   || item.tipo_edicao || '',
                 local_leitura: (dadosLivro && dadosLivro.local_leitura) || '',
             };
 

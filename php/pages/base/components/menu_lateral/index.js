@@ -70,6 +70,40 @@ let menuLateral = {
         });
     },
 
+    abrirModalConsultarLivro: async function () {
+        $('#modalConsultarLivro').remove();
+        $.ajax({
+            url: '/php/pages/base/components/menu_lateral/biblioteca/index.php',
+            method: 'GET',
+            success: function (html) {
+                $('body').append(html);
+                $('#modalConsultarLivro').modal('show');
+
+                $.getScript('/php/pages/base/components/menu_lateral/biblioteca/index.js')
+                    .done(function () {
+                        if (window.biblioteca && typeof biblioteca.carregarSelects === 'function') {
+                            biblioteca.carregarSelects();
+                        }
+                        // Autocomplete no campo Autor do modal de consulta
+                        if (window.biblioteca && typeof biblioteca._initAutocompleteAutor === 'function') {
+                            biblioteca._initAutocompleteAutor('#autor_atualizar', function (autor) {
+                                if (autor.sexo)          $('#sexo_autor_atualizar').val(autor.sexo);
+                                if (autor.raca)          $('#raça_atualizar').val(autor.raca);
+                                if (autor.nacionalidade) $('#nacionalidade_atualizar').val(autor.nacionalidade);
+                                $('#autorAtualizarInfo').remove();
+                            });
+                        }
+                    })
+                    .fail(function () {
+                        console.error('Erro ao carregar o script do modal Biblioteca - Consulta.');
+                    });
+            },
+            error: function () {
+                console.error('Erro ao carregar o modal de consulta.');
+            }
+        });
+    },
+
     abrirModalCadastroAutor: function () {
         $('#modalCadastroAutor, #modalListaEscritores').remove();
         $.ajax({
@@ -690,16 +724,25 @@ let menuLateral = {
     // ─── Desafios ─────────────────────────────────────────────────
 
     _carregarDesafiosScript: function (callback) {
+        const carregarScript = function () {
+            $.getScript('/php/pages/base/components/menu_lateral/desafios/index.js')
+                .done(callback)
+                .fail(function () { console.error('Erro ao carregar script Desafios.'); });
+        };
+
         if ($('#modalNovoDesafio').length === 0) {
             $.ajax({
                 url: '/php/pages/base/components/menu_lateral/desafios/index.php',
                 method: 'GET',
-                success: function (html) { $('body').append(html); }
+                success: function (html) {
+                    $('body').append(html);
+                    carregarScript();
+                },
+                error: function () { console.error('Erro ao carregar HTML Desafios.'); }
             });
+        } else {
+            carregarScript();
         }
-        $.getScript('/php/pages/base/components/menu_lateral/desafios/index.js')
-            .done(callback)
-            .fail(function () { console.error('Erro ao carregar script Desafios.'); });
     },
 
     abrirModalNovoDesafio: function () {

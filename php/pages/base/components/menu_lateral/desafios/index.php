@@ -197,25 +197,19 @@
         <fieldset class="border rounded p-3 mb-3">
           <legend class="w-auto px-2" style="font-size:0.9rem;font-weight:bold;">Selecionar Livro</legend>
 
-          <div class="row">
-            <div class="col-md-5 form-group">
-              <label>Local de Leitura <span class="text-danger">*</span></label>
-              <select id="ld_local" class="form-control" onchange="desafios.carregarLivrosPorLocal()">
-                <option value="">— Selecione —</option>
-                <option value="Biblioteca">Biblioteca</option>
-                <option value="Skeelo">Skeelo</option>
-                <option value="Kindle_Unlimited">Kindle Unlimited</option>
-                <option value="Audible">Audible</option>
-                <option value="Biblion">Biblion</option>
-                <option value="MEC_Livros">MEC Livros</option>
-              </select>
+          <div class="form-group mb-0">
+            <label>Nome do Livro <span class="text-danger">*</span></label>
+            <div style="position:relative">
+              <input type="text" id="ld_busca_titulo" class="form-control"
+                     placeholder="Digite pelo menos 3 letras..." autocomplete="off"
+                     oninput="desafios.buscarLivroDesafio(this.value)">
+              <div id="ld_sugestoes"
+                   style="display:none;position:absolute;left:0;right:0;top:100%;z-index:300;
+                          background:#fff;border:1px solid #ced4da;border-top:0;
+                          border-radius:0 0 4px 4px;max-height:220px;overflow-y:auto;
+                          box-shadow:0 4px 8px rgba(0,0,0,.1)"></div>
             </div>
-            <div class="col-md-7 form-group">
-              <label>Livro <span class="text-danger">*</span></label>
-              <select id="ld_livro" class="form-control" onchange="desafios.preencherDadosLivro()" disabled>
-                <option value="">— Selecione o local primeiro —</option>
-              </select>
-            </div>
+            <input type="hidden" id="ld_id_leitura">
           </div>
         </fieldset>
 

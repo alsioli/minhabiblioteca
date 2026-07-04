@@ -113,7 +113,7 @@ window.minhas_leituras = {
             console.error('Erro ao carregar tipo mídia:', e);
         }
     },
-
+//A FUNÇÃO ABAIXO Reage à mudança do <select> chamado #cl_local e atualiza elementos da tela.
     onLocalChange: function () {
         const opt = $('#cl_local option:selected');
         const local = opt.val();
@@ -353,7 +353,7 @@ window.minhas_leituras = {
             const pais        = (livro && livro.pais)        || '';
             const tema        = (livro && livro.tema)        || '';
 
-            $('#cl_livro_id').val('');
+            $('#cl_livro_id').val((livro && livro.id) || '');
             $('#cl_livro_local').val(this._localSelecionado);
             $('#cl_livro_titulo').val(titulo);
             $('#cl_livro_autor').val(autor);
@@ -420,7 +420,14 @@ window.minhas_leituras = {
             return;
         }
 
+        const livroId = String($('#cl_livro_id').val() || '').trim();
+        if (!livroId) {
+            this._mostrarMensagem('danger', 'Não foi possível obter o ID do livro. Selecione o livro novamente.');
+            return;
+        }
+
         const body = new FormData();
+        body.append('id',             livroId);
         body.append('titulo',         titulo);
         body.append('autor',          autor);
         body.append('paginas',        $('#cl_livro_paginas').val());
@@ -466,6 +473,11 @@ window.minhas_leituras = {
                 icon: 'success',
                 confirmButtonText: 'OK',
                 confirmButtonColor: '#28a745'
+            }).then(() => {
+                // Recarrega o cronograma se estiver visível
+                if ($('#tabelaCronogramaLC').length && window.leitura_coletiva && typeof leitura_coletiva.carregarCronogramaLC === 'function') {
+                    leitura_coletiva.carregarCronogramaLC();
+                }
             });
 
         } catch (e) {
@@ -1288,6 +1300,7 @@ window.minhas_leituras = {
         try {
             const body = new FormData();
             body.append('titulo', livro.titulo || '');
+            body.append('local_leitura', $('#ulr_local').val() || '');
 
             const resp = await fetch('/php/api/base/menu_lateral/minhasLeituras/buscar_leituras_para_atualizar.php', {
                 method: 'POST', body

@@ -43,6 +43,7 @@ foreach ($tabelas as $t) {
     try {
         if ($t['completa']) {
             $sql = "SELECT TOP 1
+                        id,
                         ISNULL(titulo,      '') AS titulo,
                         ISNULL(autor,       '') AS autor,
                         ISNULL(CAST(paginas AS NVARCHAR), '') AS paginas,
@@ -52,9 +53,10 @@ foreach ($tabelas as $t) {
                         ISNULL(tema,        '') AS tema,
                         ISNULL(tipo_edicao, '') AS tipo_edicao
                     FROM {$t['sql']}
-                    WHERE titulo = :titulo";
+                    WHERE titulo LIKE :titulo";
         } else {
             $sql = "SELECT TOP 1
+                        id,
                         ISNULL(titulo,  '') AS titulo,
                         ISNULL(autor,   '') AS autor,
                         ISNULL(CAST(paginas AS NVARCHAR), '') AS paginas,
@@ -64,10 +66,10 @@ foreach ($tabelas as $t) {
                         ISNULL(tema,    '') AS tema,
                         ''                  AS tipo_edicao
                     FROM {$t['sql']}
-                    WHERE titulo = :titulo";
+                    WHERE titulo LIKE :titulo";
         }
 
-        $row = $db->GetOne($sql, [':titulo' => $titulo]);
+        $row = $db->GetOne($sql, [':titulo' => '%' . $titulo . '%']);
 
         if ($row && !empty($row['titulo'])) {
             $row['local_leitura'] = $t['local'];
@@ -78,6 +80,31 @@ foreach ($tabelas as $t) {
         // Coluna pode nao existir nesta tabela — tenta a proxima
         continue;
     }
+}
+
+// Fallback: busca somente autor em LivrosAutor (catálogo geral, colunas PascalCase)
+try {
+    $sql = "SELECT TOP 1
+                id,
+                ISNULL(Titulo, '') AS titulo,
+                ISNULL(Autor,  '') AS autor,
+                ''                 AS paginas,
+                ''                 AS sexo_autor,
+                ISNULL(Pais,   '') AS pais,
+                ''                 AS natureza,
+                ''                 AS tema,
+                ''                 AS tipo_edicao
+            FROM [Biblioteca].[dbo].[LivrosAutor]
+            WHERE Titulo = :titulo";
+
+    $row = $db->GetOne($sql, [':titulo' => $titulo]);
+    if ($row && !empty($row['autor'])) {
+        $row['local_leitura'] = '';
+        echo json_encode(['status' => true, 'error' => null, 'data' => $row], JSON_UNESCAPED_UNICODE);
+        exit;
+    }
+} catch (Exception $e) {
+    // Coluna pode não existir — ignora
 }
 
 echo json_encode(['status' => false, 'error' => 'Livro nao encontrado nas tabelas de acervo.', 'data' => null], JSON_UNESCAPED_UNICODE);

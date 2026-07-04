@@ -362,27 +362,27 @@ cadastrarLivro: async function () {
 
         let body = new FormData();
 
-            if (tipo === "codigo") {
-                let codigo = $("#codigo_atualizar").val().trim();
+        if (tipo === "codigo") {
+            let codigo = $("#codigo_atualizar").val().trim();
 
-                if (codigo.length < 3) {
-                    this.mostrarMensagemErro("#codigo_atualizar", "Digite pelo menos 3 caracteres");
-                    return;
-                }
-
-                body.append("codigo", codigo);
+            if (codigo.length < 3) {
+                this.mostrarMensagemErro("#codigo_atualizar", "Digite pelo menos 3 caracteres");
+                return;
             }
 
-            if (tipo === "titulo") {
-                let titulo = $("#titulo_atualizar").val().trim();
+            body.append("codigo", codigo);
+        }
 
-                if (titulo.length < 3) {
-                    this.mostrarMensagemErro("#titulo_atualizar", "Digite pelo menos 3 caracteres");
-                    return;
-                }
+        if (tipo === "titulo") {
+            let titulo = $("#titulo_atualizar").val().trim();
 
-                body.append("titulo", titulo);
+            if (titulo.length < 3) {
+                this.mostrarMensagemErro("#titulo_atualizar", "Digite pelo menos 3 caracteres");
+                return;
             }
+
+            body.append("titulo", titulo);
+        }
 
         try {
             let res = await http.POST('/php/api/base/menu_lateral/biblioteca/buscar_livro.php', body);
@@ -409,6 +409,141 @@ cadastrarLivro: async function () {
         }
     },
 
+consultarLivro: async function () {
+        const msg = document.getElementById("consultaLivroMensagem");
+        if (msg) msg.innerHTML = '';
+        $("#tabelaResultadosConsultar").remove();
+        $("#consultaLivroDetalhes").empty();
+
+        const titulo = $("#titulo_consultar").val().trim();
+        const autor  = $("#autor_consultar").val().trim();
+
+        if (titulo.length < 3 && autor.length < 3) {
+            if (msg) msg.innerHTML = '<div class="alert alert-warning py-1 mb-1">Digite pelo menos 3 caracteres em Título ou Autor.</div>';
+            return;
+        }
+
+        let body = new FormData();
+        if (titulo) body.append('titulo', titulo);
+        if (autor)  body.append('autor', autor);
+
+        try {
+            let res = await http.POST('/php/api/base/menu_lateral/biblioteca/buscar_livro.php', body);
+            if (!res.status) {
+                if (msg) msg.innerHTML = '<div class="alert alert-danger py-1 mb-1">' + (res.error || 'Livro não encontrado') + '</div>';
+                return;
+            }
+
+            if (!Array.isArray(res.data) || res.data.length === 0) {
+                if (msg) msg.innerHTML = '<div class="alert alert-warning py-1 mb-1">Nenhum livro encontrado.</div>';
+                return;
+            }
+
+            this.montarTabelaResultadosConsultar(res.data);
+        } catch (e) {
+            console.error('Erro ao consultar livro:', e);
+            if (msg) msg.innerHTML = '<div class="alert alert-danger py-1 mb-1">Erro ao buscar livro. Tente novamente.</div>';
+        }
+    },
+
+    montarTabelaResultadosConsultar: function(lista) {
+        $("#tabelaResultadosConsultar").remove();
+        let tabela = `
+            <table id="tabelaResultadosConsultar" class="table table-sm table-hover mt-1 mb-1">
+                <thead style="font-size:0.85rem">
+                    <tr>
+                        <th style="padding:0.25rem">Origem</th>
+                        <th style="padding:0.25rem">Título</th>
+                        <th style="padding:0.25rem">Autor</th>
+                        <th style="padding:0.25rem">Editora</th>
+                    </tr>
+                </thead>
+                <tbody style="font-size:0.85rem">
+        `;
+
+        lista.forEach(livro => {
+            const local = livro.local_leitura || 'Biblioteca';
+            tabela += `
+                <tr onclick="biblioteca.selecionarLivroConsultar(${livro.id}, '${local}')" style="cursor:pointer">
+                    <td style="padding:0.25rem"><span class="badge badge-secondary">${local}</span></td>
+                    <td style="padding:0.25rem">${livro.titulo || ''}</td>
+                    <td style="padding:0.25rem">${livro.autor  || ''}</td>
+                    <td style="padding:0.25rem">${livro.editora || ''}</td>
+                </tr>
+            `;
+        });
+
+        tabela += '</tbody></table>';
+        $("#tabelaResultadosConsultar").remove();
+        $("#titulo_consultar").after(tabela);
+    },
+
+    selecionarLivroConsultar: async function(id, local) {
+        try {
+            const body = new FormData();
+            body.append('id', id);
+            body.append('local', local);
+
+            const resp = await http.POST('/php/api/base/menu_lateral/biblioteca/buscar_livro.php', body);
+            if (!resp.status) {
+                const msg = document.getElementById('consultaLivroMensagem');
+                if (msg) msg.innerHTML = '<div class="alert alert-danger py-1 mb-1">' + (resp.error || 'Erro ao carregar dados do livro.') + '</div>';
+                return;
+            }
+
+            this.preencherFormularioConsultar(resp.data);
+            $('#tabelaResultadosConsultar').remove();
+        } catch (e) {
+            console.error('Erro ao selecionar livro:', e);
+            const msg = document.getElementById('consultaLivroMensagem');
+            if (msg) msg.innerHTML = '<div class="alert alert-danger py-1 mb-1">Erro ao carregar dados do livro. Tente novamente.</div>';
+        }
+    },
+
+   preencherFormularioConsultar: function(livro) {
+        $("#id_livro_consultar").val(livro.id);
+        $("#local_leitura_consultar").val(livro.local_leitura || 'Biblioteca');
+        $("#local_leitura_display").val(livro.local_leitura || 'Biblioteca');
+        $("#titulo_consultar").val(livro.titulo || '');
+        $("#autor_consultar").val(livro.autor || '');
+        $("#mes_leitura_consultar").val(livro.mes_leitura || '');
+
+        let html = `
+            <div class="linha">
+                <div class="grupo">
+                    <label>Tipo de Código</label>
+                    <input type="text" class="form-control" readonly value="${livro.tipo_codigo || ''}">
+                </div>
+                <div class="grupo">
+                    <label>Editora</label>
+                    <input type="text" class="form-control" readonly value="${livro.editora || ''}">
+                </div>
+                <div class="grupo">
+                    <label>Páginas</label>
+                    <input type="text" class="form-control" readonly value="${livro.paginas || ''}">
+                </div>
+            </div>
+        `;
+        html += `
+            <div class="linha">
+                <div class="grupo">
+                    <label>Natureza</label>
+                    <input type="text" class="form-control" readonly value="${livro.natureza || ''}">
+                </div>
+                <div class="grupo">
+                    <label>Status</label>
+                    <input type="text" class="form-control" readonly value="${livro.status || ''}">
+                </div>
+                <div class="grupo">
+                    <label>Empréstimo</label>
+                    <input type="text" class="form-control" readonly value="${livro.emprestimo || ''}">
+                </div>
+            </div>
+        `;
+        $("#consultaLivroDetalhes").html(html);
+    },
+
+// *** End Patch
     montarTabelaResultados: function(lista){
         $("#tabelaResultados").remove();
 
@@ -474,6 +609,7 @@ cadastrarLivro: async function () {
 
         $("#id_livro").val(livro.id);
         $("#local_leitura").val(livro.local_leitura || 'Biblioteca');
+        $("#local_leitura_display").val(livro.local_leitura || 'Biblioteca');
         $("#codigo_atualizar").val(livro.codigo);
         $("#tipo_codigo_atualizar").val(livro.tipo_codigo);
         $("#titulo_atualizar").val(livro.titulo);

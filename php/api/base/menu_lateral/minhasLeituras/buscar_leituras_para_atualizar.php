@@ -35,6 +35,11 @@ function PostMethod() {
     }
 
     $params = [':titulo' => '%' . $titulo . '%'];
+    $localFilter = '';
+    if ($local_leitura !== '') {
+        $localFilter = ' AND local_leitura = :local_leitura';
+        $params[':local_leitura'] = $local_leitura;
+    }
 
     // Query completa — inclui data_fim e avaliacao com cast seguro
     $sqlCompleta = "
@@ -46,9 +51,10 @@ function PostMethod() {
             ISNULL(CONVERT(VARCHAR(10), data_fim,    23), '') AS data_fim,
             ISNULL(natureza, '')                              AS natureza,
             ISNULL(CAST(avaliacao AS NVARCHAR(10)), '')       AS avaliacao,
-            ''                                                AS local_leitura
+            ISNULL(local_leitura, '')                         AS local_leitura
         FROM [Biblioteca].[dbo].[Leituras]
         WHERE titulo LIKE :titulo
+          AND data_fim IS NULL{$localFilter}
         ORDER BY data_inicio DESC
     ";
 
@@ -65,6 +71,7 @@ function PostMethod() {
             ''                                                AS local_leitura
         FROM [Biblioteca].[dbo].[Leituras]
         WHERE titulo LIKE :titulo
+          AND data_fim IS NULL{$localFilter}
         ORDER BY data_inicio DESC
     ";
 
@@ -74,7 +81,6 @@ function PostMethod() {
         try {
             $result_data = $db->GetMany($sqlCompleta, $params);
         } catch (Exception $e) {
-            // Alguma coluna não existe — usa query mínima
             $result_data = $db->GetMany($sqlMinima, $params);
         }
 

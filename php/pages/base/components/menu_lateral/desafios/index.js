@@ -284,11 +284,6 @@ let desafios = {
             return;
         }
 
-        const corStatus = {
-            'Lido':  { bg: '#e8f5e9', cor: '#2e7d32' },
-            'Lendo': { bg: '#fff3e0', cor: '#e65100' },
-        };
-
         // Conta totais por desafio para o rodapé
         const totais = {};
         lista.forEach(item => {
@@ -305,7 +300,7 @@ let desafios = {
                         <th style="padding:7px 10px;border-bottom:2px solid #dee2e6;text-align:center;white-space:nowrap">#</th>
                         <th style="padding:7px 10px;border-bottom:2px solid #dee2e6;text-align:left">Título</th>
                         <th style="padding:7px 10px;border-bottom:2px solid #dee2e6;text-align:left">Autor</th>
-                        <th style="padding:7px 10px;border-bottom:2px solid #dee2e6;text-align:center">Status</th>
+                        <th style="padding:7px 10px;border-bottom:2px solid #dee2e6;text-align:left">Categoria</th>
                         <th style="padding:7px 10px;border-bottom:2px solid #dee2e6;text-align:center;white-space:nowrap">Data</th>
                     </tr>
                 </thead>
@@ -321,19 +316,13 @@ let desafios = {
             }
 
             const rowBg = bgAlterna ? 'background:#fafafa' : '';
-            const cores  = corStatus[item.status_leitura] || { bg: '#f5f5f5', cor: '#555' };
 
             html += `<tr style="border-bottom:1px solid #dee2e6;${rowBg}">
                 <td style="padding:6px 10px;font-weight:500;max-width:200px;word-break:break-word">${item.tematica || ''}</td>
                 <td style="padding:6px 10px;text-align:center;color:#6c757d;font-size:0.8rem;white-space:nowrap">Leitura ${item.sequencia}</td>
                 <td style="padding:6px 10px;max-width:260px;word-break:break-word">${item.titulo || ''}</td>
                 <td style="padding:6px 10px;color:#555;max-width:180px;word-break:break-word">${item.autor || '—'}</td>
-                <td style="padding:6px 10px;text-align:center">
-                    <span style="padding:2px 10px;border-radius:12px;font-size:0.78rem;font-weight:600;
-                                 background:${cores.bg};color:${cores.cor}">
-                        ${item.status_leitura}
-                    </span>
-                </td>
+                <td style="padding:6px 10px;color:#555;max-width:160px;word-break:break-word">${item.categoria || '—'}</td>
                 <td style="padding:6px 10px;text-align:center;font-size:0.8rem;white-space:nowrap">${item.data_referencia || '—'}</td>
             </tr>`;
         });
@@ -429,10 +418,13 @@ let desafios = {
 
     // ─── INCLUIR LIVRO NO DESAFIO ────────────────────────────────
 
+    _timerBuscaLivro: null,
+    _ultimasBuscasLivros: [],
+
     iniciarModalLivroDesafio: function () {
-        $('#ld_local').val('');
-        $('#ld_livro').val('').prop('disabled', true)
-            .html('<option value="">— Selecione o local primeiro —</option>');
+        $('#ld_busca_titulo').val('');
+        $('#ld_sugestoes').hide().empty();
+        $('#ld_id_leitura').val('');
         $('#ld_painel_dados').hide();
         $('#ld_autor, #ld_sexo, #ld_paginas, #ld_nacionalidade, #ld_tema, #ld_mes').val('');
         const seq = $('#ld_sequencia').empty().append('<option value="">—</option>');
@@ -456,59 +448,81 @@ let desafios = {
         }
     },
 
-    carregarLivrosPorLocal: async function () {
-        const local = $('#ld_local').val();
-        const sel   = $('#ld_livro');
+    buscarLivroDesafio: function (valor) {
+        const q   = (valor || '').trim();
+        const box = $('#ld_sugestoes');
 
-        sel.prop('disabled', true).html('<option value="">Carregando...</option>');
-        $('#ld_painel_dados').hide();
-        $('#ld_autor, #ld_sexo, #ld_paginas, #ld_nacionalidade, #ld_tema, #ld_mes').val('');
-
-        if (!local) {
-            sel.html('<option value="">— Selecione o local primeiro —</option>');
+        if (q.length === 0) {
+            box.hide().empty();
+            $('#ld_id_leitura').val('');
+            $('#ld_painel_dados').hide();
+            return;
+        }
+        if (q.length < 3) {
+            box.hide().empty();
             return;
         }
 
-        if (this._livrosDesafioCache[local]) {
-            this._popularSelectLivros(sel, this._livrosDesafioCache[local]);
-            return;
-        }
+        clearTimeout(this._timerBuscaLivro);
+        this._timerBuscaLivro = setTimeout(() => this._buscarLivroDesafioAgora(q), 300);
+    },
+
+    _buscarLivroDesafioAgora: async function (q) {
+        const box = $('#ld_sugestoes');
+        box.show().html('<div style="padding:8px 10px;color:#6c757d;font-size:0.85rem">Buscando...</div>');
 
         try {
             const resp = await fetch(
-                '/php/api/base/menu_lateral/desafios/buscar_leituras_desafio.php?local_leitura=' +
-                encodeURIComponent(local)
+                '/php/api/base/menu_lateral/desafios/buscar_leituras_desafio.php?titulo=' +
+                encodeURIComponent(q)
             );
             const json = await resp.json();
 
-            if (!json.status) {
-                sel.html('<option value="">Erro ao carregar</option>');
+            if (!json.status || !json.data || !json.data.length) {
+                box.html('<div style="padding:8px 10px;color:#6c757d;font-size:0.85rem">Nenhuma leitura encontrada.</div>');
                 return;
             }
 
-            this._livrosDesafioCache[local] = json.data || [];
-            this._popularSelectLivros(sel, this._livrosDesafioCache[local]);
+            this._ultimasBuscasLivros = json.data;
+            this._renderSugestoesLivro(json.data);
         } catch (e) {
-            console.error('Erro ao carregar livros:', e);
-            sel.html('<option value="">Erro ao carregar</option>');
+            console.error('Erro ao buscar livros:', e);
+            box.html('<div style="padding:8px 10px;color:#dc3545;font-size:0.85rem">Erro ao buscar.</div>');
         }
     },
 
-    _popularSelectLivros: function (sel, lista) {
-        sel.html('<option value="">— Selecione —</option>');
+    _renderSugestoesLivro: function (lista) {
+        const box = $('#ld_sugestoes');
+        const corStatus = { 'Lido': '#28a745', 'Em andamento': '#fd7e14' };
+        let html = '';
         lista.forEach(l => {
-            sel.append(`<option value="${l.id}">${l.titulo}${l.autor ? ' — ' + l.autor : ''}</option>`);
+            const cor  = corStatus[l.status_leitura] || '#6c757d';
+            const info = [
+                l.autor         || '',
+                l.local_leitura || '',
+                l.mes           || '',
+            ].filter(Boolean).join(' · ');
+            html += `
+                <div style="padding:7px 10px;cursor:pointer;border-bottom:1px solid #f0f0f0;font-size:0.85rem"
+                     onclick="desafios.selecionarLivroDesafio(${l.id})"
+                     onmouseover="this.style.background='#f8f9fa'"
+                     onmouseout="this.style.background=''">
+                    <div style="font-weight:500">${l.titulo}</div>
+                    <div style="font-size:0.78rem;color:#6c757d">
+                        ${info ? info + ' · ' : ''}<span style="color:${cor}">${l.status_leitura}</span>
+                    </div>
+                </div>`;
         });
-        sel.prop('disabled', false);
+        box.html(html).show();
     },
 
-    preencherDadosLivro: function () {
-        const local = $('#ld_local').val();
-        const id    = parseInt($('#ld_livro').val());
-        const lista = this._livrosDesafioCache[local] || [];
-        const livro = lista.find(l => parseInt(l.id) === id);
+    selecionarLivroDesafio: function (id) {
+        const livro = (this._ultimasBuscasLivros || []).find(l => parseInt(l.id) === id);
+        if (!livro) return;
 
-        if (!livro) { $('#ld_painel_dados').hide(); return; }
+        $('#ld_busca_titulo').val(livro.titulo);
+        $('#ld_id_leitura').val(livro.id);
+        $('#ld_sugestoes').hide().empty();
 
         $('#ld_autor').val(livro.autor || '');
         $('#ld_sexo').val(livro.sexo_autor || '');
@@ -520,17 +534,17 @@ let desafios = {
     },
 
     salvarLivroDesafio: async function () {
-        const id_leitura   = $('#ld_livro').val();
+        const id_leitura   = $('#ld_id_leitura').val();
         const nome_desafio = $('#ld_nome_desafio').val();
         const sequencia    = $('#ld_sequencia').val();
 
-        if (!id_leitura)   { this._msg('ld', 'danger', 'Selecione um livro.'); return; }
+        if (!id_leitura)   { this._msg('ld', 'danger', 'Selecione um livro da lista de sugestões.'); return; }
         if (!nome_desafio) { this._msg('ld', 'danger', 'Selecione o nome do desafio.'); return; }
         if (!sequencia)    { this._msg('ld', 'danger', 'Selecione a sequência.'); return; }
 
         const body = new FormData();
         body.append('id_leitura',       id_leitura);
-        body.append('local_leitura',    $('#ld_local').val());
+        body.append('local_leitura',    '');
         body.append('nome_desafio',     nome_desafio);
         body.append('sequencia',        sequencia);
         body.append('natureza_desafio', $('#ld_natureza').val().trim());

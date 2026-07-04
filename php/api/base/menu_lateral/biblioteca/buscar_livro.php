@@ -70,6 +70,7 @@ function PostMethod() {
 
     $codigo = trim($_POST['codigo'] ?? '');
     $titulo = trim($_POST['titulo'] ?? '');
+    $autor  = trim($_POST['autor']  ?? '');
     $id     = trim($_POST['id']     ?? '');
     $local  = trim($_POST['local']  ?? '');  // usado na busca por id
 
@@ -115,28 +116,34 @@ function PostMethod() {
             return;
         }
 
-        // ── Busca por título — UNION ALL em todas as tabelas ──────────────────
-        if ($titulo !== '') {
-            // PDO (ODBC) não reutiliza o mesmo named param — cada ocorrência precisa de nome único
-            $like = "%{$titulo}%";
-            $union = "
-                SELECT id, titulo, autor, editora, 'Biblioteca'       AS local_leitura FROM [Biblioteca].[dbo].[Livros]                WHERE titulo LIKE :t0
-                UNION ALL
-                SELECT id, titulo, autor, editora, 'Skeelo'           AS local_leitura FROM [Biblioteca].[dbo].[LeiturasSKEELO]         WHERE titulo LIKE :t1
-                UNION ALL
-                SELECT id, titulo, autor, editora, 'Biblion'          AS local_leitura FROM [Biblioteca].[dbo].[LivrosBiblion]          WHERE titulo LIKE :t2
-                UNION ALL
-                SELECT id, titulo, autor, editora, 'MEC_Livros'       AS local_leitura FROM [Biblioteca].[dbo].[LivrosMEC]              WHERE titulo LIKE :t3
-                UNION ALL
-                SELECT id, titulo, autor, editora, 'Audible'          AS local_leitura FROM [Biblioteca].[dbo].[LivrosAudible]          WHERE titulo LIKE :t4
-                UNION ALL
-                SELECT id, titulo, autor, editora, 'Kindle_Unlimited' AS local_leitura FROM [Biblioteca].[dbo].[LivrosKindleUnlimited]  WHERE titulo LIKE :t5
-                ORDER BY local_leitura, titulo
-            ";
-            $result = $db->GetMany($union, [
-                ':t0' => $like, ':t1' => $like, ':t2' => $like,
-                ':t3' => $like, ':t4' => $like, ':t5' => $like,
-            ]);
+        // ── Busca por título e autor — UNION ALL em todas as tabelas ───────────
+        if ($titulo !== '' || $autor !== '') {
+            $params     = [];
+            $queryParts = [];
+            $index = 0;
+
+            foreach ($TABELAS as $tabelaInfo) {
+                $index++;
+                $conditions = [];
+
+                if ($titulo !== '') {
+                    $paramTitulo = ':titulo_' . $index;
+                    $conditions[] = "titulo LIKE {$paramTitulo}";
+                    $params[$paramTitulo] = "%{$titulo}%";
+                }
+
+                if ($autor !== '') {
+                    $paramAutor = ':autor_' . $index;
+                    $conditions[] = "autor LIKE {$paramAutor}";
+                    $params[$paramAutor] = "%{$autor}%";
+                }
+
+                $where = implode(' OR ', $conditions);
+                $queryParts[] = "SELECT id, titulo, autor, editora, '{$tabelaInfo['local']}' AS local_leitura FROM {$tabelaInfo['tabela']} WHERE {$where}";
+            }
+
+            $union = implode("\nUNION ALL\n", $queryParts) . "\nORDER BY local_leitura, titulo";
+            $result = $db->GetMany($union, $params);
 
             if (!$result || count($result) === 0) {
                 $result_error = 'Nenhum livro encontrado.';
@@ -147,7 +154,7 @@ function PostMethod() {
             return;
         }
 
-        $result_error = 'Nenhum parâmetro informado (codigo, titulo ou id+local).';
+        $result_error = 'Nenhum parâmetro informado (codigo, titulo, autor ou id+local).';
 
     } catch (Exception $e) {
         $result_error = 'Erro ao buscar livro: ' . $e->getMessage();

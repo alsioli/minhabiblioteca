@@ -112,6 +112,7 @@ let dashboard = {
                     <tr>
                         ${thEl('titulo',      'Título',    false)}
                         ${thEl('autor',       'Autor',     false)}
+                        ${thEl('vLocalLeitura','Local',     false)}
                         ${thEl('data_inicio', 'Início',    true)}
                         ${thEl('dias_lendo',  'Dias',      true)}
                         ${thEl('percentual',  'Progresso', true)}
@@ -137,6 +138,7 @@ let dashboard = {
             html += `<tr style="border-bottom:1px solid #f0f0f0">
                 <td style="padding:3px 6px;max-width:180px;word-break:break-word">${l.titulo || ''}</td>
                 <td style="padding:3px 6px;max-width:110px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${l.autor || '—'}</td>
+                <td style="padding:3px 6px;max-width:110px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${l.local_leitura || '—'}</td>
                 <td style="padding:3px 6px;text-align:center;white-space:nowrap">${dashboard._fmtData(l.data_inicio)}</td>
                 <td style="padding:3px 6px;text-align:center">
                     <span style="padding:1px 7px;border-radius:4px;background:${diasBg};color:${diasCor};font-weight:bold">${dias}</span>

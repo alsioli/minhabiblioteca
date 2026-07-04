@@ -81,7 +81,7 @@ function PostMethod() {
         return;
     }
 
-    // Auto-calcula o campo faltante com base no total de páginas
+ // Auto-calcula o campo faltante com base no total de páginas
     $pagTotal = $paginas !== '' ? (int)$paginas : 0;
     if ($tipo_input === 'percentual' && $percentual !== '' && $pagina_atual === '' && $pagTotal > 0) {
         $pagina_atual = (string)round((float)$percentual / 100 * $pagTotal);
@@ -101,6 +101,7 @@ function PostMethod() {
         }
     }
 
+    // SQL: NÃO inserir a coluna id (IDENTITY). Inserir id_leitura.
     $sql = "
         INSERT INTO [Biblioteca].[dbo].[LeiturasEmAndamento]
             (id_leitura, titulo, autor, paginas, tipo_midia, data_inicio,
@@ -127,14 +128,17 @@ function PostMethod() {
         ':p11' => $avaliacao   !== '' ? (float)$avaliacao : null,
     ];
 
-    try {
-        $db = new DataBase();
 
-        // Bloqueia se a leitura já foi finalizada em Leituras
+ try {
+        $db = new DataBase();      
+
+        // Bloqueia se a leitura já foi finalizada em Leituras (usar id_leitura)
+
         $jaFinalizada = $db->GetOne(
-            "SELECT id FROM [Biblioteca].[dbo].[Leituras] WHERE id = :id AND data_fim IS NOT NULL",
+            "SELECT id_leitura FROM [Biblioteca].[dbo].[Leituras] WHERE id_leitura = :id AND data_fim IS NOT NULL",
             [':id' => (int)$id_leitura]
         );
+
         if ($jaFinalizada) {
             $result_error = 'Esta leitura já foi finalizada e não aceita novas atualizações.';
             return;
@@ -150,22 +154,80 @@ function PostMethod() {
         if ($concluido) {
             $jaConcluido = $db->GetOne(
                 "SELECT TOP 1 id FROM [Biblioteca].[dbo].[LeiturasEmAndamento]
-                 WHERE id_leitura = :id
+                 WHERE id_leitura = :id_leitura
                    AND (percentual >= 100 OR (paginas > 0 AND pagina_atual >= paginas))",
-                [':id' => (int)$id_leitura]
+                [':id_leitura' => (int)$id_leitura]
             );
+              echo $jaConcluido;
             if ($jaConcluido) {
                 $result_error = 'Já existe uma atualização de conclusão registrada para esta leitura.';
                 return;
             }
         }
 
+        // Se concluído: remover da LeiturasEmAndamento e marcar Leituras.data_fim
+        if ($concluido) {
+            // Recomendo usar transação para garantir atomicidade
+            if (method_exists($db, 'BeginTransaction')) $db->BeginTransaction();
+
+            try {
+                $db->ExecuteNonQuery(
+                    "DELETE FROM [Biblioteca].[dbo].[LeiturasEmAndamento]
+                     WHERE id_leitura = :id_leitura",
+                    [':id_leitura' => (int)$id_leitura]
+                );
+
+                $db->ExecuteNonQuery(
+                    "UPDATE [Biblioteca].[dbo].[Leituras]
+                     SET data_fim = GETDATE()
+                     WHERE id = :id",
+                    [':id' => (int)$id_leitura]
+                );
+
+                atualizarStatusNaTabela($db, $local_leitura, $titulo, $autor, 'Lido');
+
+                try {
+                    $db->ExecuteNonQuery(
+                        "UPDATE [Biblioteca].[dbo].[CronogramaLCs]
+                         SET situacao = 'Lido'
+                         WHERE titulo = :titulo
+                           AND situacao <> 'Lido'",
+                        [':titulo' => $titulo]
+                    );
+                } catch (Exception $e) {
+                    error_log('[create_atualizacao_leitura] Erro ao atualizar CronogramaLCs: ' . $e->getMessage());
+                }
+
+                if (method_exists($db, 'Commit')) $db->Commit();
+
+                $result_status = true;
+                $result_data   = ['message' => 'Leitura concluída e movida para a tabela finalizada.'];
+                return;
+            } catch (Exception $e) {
+                if (method_exists($db, 'Rollback')) $db->Rollback();
+                throw $e;
+            }
+        }
+
+        // Se não concluído, insere atualização em andamento
         $db->ExecuteNonQuery($sql, $params);
 
         $statusTabela = $pctFinal > 0.1 ? ($concluido ? 'Lido' : 'Lendo') : null;
 
         if ($statusTabela !== null) {
             atualizarStatusNaTabela($db, $local_leitura, $titulo, $autor, $statusTabela);
+
+            // Atualiza situação no CronogramaLCs se o livro estiver vinculado
+            try {
+                $db->ExecuteNonQuery("
+                    UPDATE [Biblioteca].[dbo].[CronogramaLCs]
+                    SET situacao = :situacao
+                    WHERE titulo = :titulo
+                      AND situacao <> :situacao
+                ", [':situacao' => $statusTabela, ':titulo' => $titulo]);
+            } catch (Exception $e) {
+                error_log('[create_atualizacao_leitura] Erro ao atualizar CronogramaLCs: ' . $e->getMessage());
+            }
         }
 
         $result_status = true;

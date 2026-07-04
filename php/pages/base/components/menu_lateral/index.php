@@ -20,6 +20,7 @@
                 <ul class="submenu">
                     <li><a class="btn-submenu" href="#" onclick="menuLateral.abrirModalNovoLivro()">Cadastro de livro</a></li>
                     <li><a class="btn-submenu" href="#" onclick="menuLateral.abrirModalAtualizarLivro()">Alterar cadastro</a></li>
+                    <li><a class="btn-submenu" href="#" onclick="menuLateral.abrirModalConsultarLivro()">Consultar livro</a></li>
                     <li><a class="btn-submenu" href="#" onclick="menuLateral.abrirModalCadastroAutor()">Cadastrar Autor</a></li>
                     <li><a class="btn-submenu" href="#" onclick="menuLateral.abrirModalListaEscritores()">Lista de Escritores</a></li>
                 </ul>

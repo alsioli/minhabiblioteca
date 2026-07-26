@@ -35,6 +35,8 @@ function GetMethod() {
     }
 
     [$ano, $mes_num] = explode('-', $mes);
+    $mes_num = (int)$mes_num;
+    $ano     = (int)$ano;
 
     $sql = "
         SELECT
@@ -42,7 +44,7 @@ function GetMethod() {
             titulo,
             autor,
             natureza,
-            tipo_midia,
+            tipo_leitura,
             paginas,
             avaliacao,
             data_inicio,
@@ -50,15 +52,15 @@ function GetMethod() {
             DATEDIFF(day, data_inicio, data_fim) AS tempo_dias
         FROM [Biblioteca].[dbo].[Leituras]
         WHERE data_fim IS NOT NULL
-          AND YEAR(data_fim)  = :ano
-          AND MONTH(data_fim) = :mes_num
+          AND YEAR(data_fim)  = $ano 
+          AND MONTH(data_fim) = $mes_num
           AND ISNULL(natureza, '') NOT IN ('Abandonado', 'Interrompido')
         ORDER BY data_fim ASC
     ";
 
     try {
         $db            = new DataBase();
-        $result_data   = $db->GetMany($sql, [':ano' => (int)$ano, ':mes_num' => (int)$mes_num]);
+        $result_data   = $db->GetMany($sql);
         $result_status = true;
     } catch (Exception $e) {
         $result_error = 'Erro ao carregar leituras do mês: ' . $e->getMessage();

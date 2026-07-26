@@ -166,6 +166,7 @@
 
         <!-- Hidden fields -->
         <input type="hidden" id="atualizar_id_leitura">
+        <input type="hidden" id="atualizar_id_livros">
         <input type="hidden" id="atualizar_titulo">
         <input type="hidden" id="atualizar_autor">
         <input type="hidden" id="atualizar_paginas">

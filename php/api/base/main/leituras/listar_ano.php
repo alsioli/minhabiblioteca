@@ -35,22 +35,23 @@ function GetMethod() {
 
     $sql = "
         SELECT
-            id,
-            titulo,
-            autor,
-            natureza,
-            tipo_midia,
-            paginas,
-            avaliacao,
-            data_inicio,
-            data_fim,
-            DATEDIFF(day, data_inicio, data_fim) AS tempo_dias
-        FROM [Biblioteca].[dbo].[Leituras]
-        WHERE data_fim IS NOT NULL
-          AND YEAR(data_fim) = :ano
-        ORDER BY data_fim ASC
-    ";
-
+        l.id,
+        l.titulo,
+        l.autor,
+        lv.natureza,   -- natureza correta vem da tabela Livros
+        l.tipo_leitura,
+        l.paginas,
+        l.avaliacao,
+        l.data_inicio,
+        l.data_fim,
+        DATEDIFF(day, l.data_inicio, l.data_fim) AS tempo_dias
+    FROM [Biblioteca].[dbo].[Leituras] l
+    LEFT JOIN [Biblioteca].[dbo].[Livros] lv
+        ON lv.titulo = l.titulo
+    WHERE l.data_fim IS NOT NULL
+      AND YEAR(l.data_fim) = :ano
+    ORDER BY l.data_fim ASC
+";
     try {
         $db            = new DataBase();
         $result_data   = $db->GetMany($sql, [':ano' => (int)$ano]);

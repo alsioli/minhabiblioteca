@@ -27,10 +27,11 @@ function GetMethod() {
     global $result_status, $result_error, $result_data;
 
     $sql = "
-        SELECT DISTINCT tipo_midia
+        SELECT DISTINCT CAST(tipo_midia AS NVARCHAR(100)) AS tipo_leitura
         FROM [Biblioteca].[dbo].[Leituras]
-        WHERE tipo_midia IS NOT NULL AND tipo_midia <> ''
-        ORDER BY tipo_midia ASC
+        WHERE tipo_midia IS NOT NULL
+          AND LTRIM(RTRIM(CAST(tipo_midia AS NVARCHAR(100)))) <> ''
+        ORDER BY tipo_leitura ASC
     ";
 
     try {
@@ -38,6 +39,6 @@ function GetMethod() {
         $result_data   = $db->GetMany($sql);
         $result_status = true;
     } catch (Exception $e) {
-        $result_error = 'Erro ao listar tipos de mídia: ' . $e->getMessage();
+        $result_error = 'Erro ao listar tipos de leitura: ' . $e->getMessage();
     }
 }

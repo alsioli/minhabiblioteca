@@ -37,12 +37,17 @@ function GetMethod() {
     $mes_num = (int)$mm;
     $ano     = (int)$yyyy;
 
+
+    var_dump($ano . ' - ' . $mes_num);
+    die();
+
+    
     $sql = "
         SELECT id, titulo, autor, avaliacao
         FROM Leituras
         WHERE data_fim IS NOT NULL
-          AND YEAR(data_fim)  = :ano
-          AND MONTH(data_fim) = :mes_num
+          AND YEAR(data_fim)  = $ano  
+          AND MONTH(data_fim) = $mes_num
           AND NOT EXISTS (
               SELECT 1 FROM Resenhas r WHERE r.id_leitura = Leituras.id
           )
@@ -51,7 +56,7 @@ function GetMethod() {
 
     try {
         $db   = new DataBase();
-        $rows = $db->GetMany($sql, [':ano' => $ano, ':mes_num' => $mes_num]);
+        $rows = $db->GetMany($sql);
 
         $result_status = true;
         $result_data   = $rows;

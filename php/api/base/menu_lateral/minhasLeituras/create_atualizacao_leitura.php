@@ -49,6 +49,7 @@ function PostMethod() {
     global $result_status, $result_error, $result_data;
 
     $id_leitura    = trim($_POST['id_leitura']    ?? '');
+    $id_livros    = trim($_POST['id_livros']    ?? '');
     $titulo        = trim($_POST['titulo']        ?? '');
     $autor         = trim($_POST['autor']         ?? '');
     $paginas       = trim($_POST['paginas']       ?? '');
@@ -61,10 +62,15 @@ function PostMethod() {
     $avaliacao     = trim($_POST['avaliacao']     ?? '');
     $local_leitura = trim($_POST['local_leitura'] ?? '');
 
-    if (empty($id_leitura)) {
+    if (empty($id_leitura)) {  // ESTÁ NA TABELA DE LEITURAS EM ANDAMENTO
         $result_error = 'ID da leitura é obrigatório.';
         return;
     }
+
+    //     if (empty($id_livros)) {  // ESTÁ NA TABELA DE LEITURAS
+    //     $result_error = 'ID do livro é obrigatório.';
+    //     return;
+    // }
 
     if (empty($tipo_input) || !in_array($tipo_input, ['percentual', 'pagina'])) {
         $result_error = 'Tipo de input inválido.';
@@ -101,48 +107,78 @@ function PostMethod() {
         }
     }
 
-    // SQL: NÃO inserir a coluna id (IDENTITY). Inserir id_leitura.
+     try {
+        $db = new DataBase();
+
+            $id_local_leitura = null;
+
+            if ($local_leitura !== '') {
+                $localMap = $db->GetOne(
+                    "SELECT id FROM [Biblioteca].[dbo].[LocalLeitura] WHERE vLocal_Leitura = :local",
+                    [':local' => $local_leitura]
+                );
+
+                if ($localMap && isset($localMap['id'])) {
+                    $id_local_leitura = (int)$localMap['id'];
+                }
+            }
+
+              if ($id_local_leitura == null) {
+            $ultimaAtualizacao = $db->GetOne(
+                "SELECT TOP 1 id_local_leitura
+                 FROM [Biblioteca].[dbo].[LeiturasEmAndamento]
+                 WHERE id_leitura = :id_leitura
+                 ORDER BY dt_alteracao DESC, id DESC",
+                [':id_leitura' => (int)$id_leitura]
+            );
+            if ($ultimaAtualizacao && isset($ultimaAtualizacao['id_local_leitura'])) {
+                $id_local_leitura = (int)$ultimaAtualizacao['id_local_leitura'];
+            }
+        }
+
     $sql = "
         INSERT INTO [Biblioteca].[dbo].[LeiturasEmAndamento]
-            (id_leitura, titulo, autor, paginas, tipo_midia, data_inicio,
+            (id_leitura, titulo, autor, paginas, id_local_leitura, tipo_midia, data_inicio,
              dt_alteracao, tipo_input, percentual, pagina_atual, tempo_leitura,
              impressoes, avaliacao)
         VALUES
-            (:p0, :p1, :p2, :p3, :p4, :p5,
+            (:p0, :p1, :p2, :p3, :p12, :p4, :p5,
              GETDATE(), :p6, :p7, :p8, :p9,
              :p10, :p11)
     ";
 
-    $params = [
-        ':p0'  => (int)$id_leitura,
-        ':p1'  => $titulo    ?: null,
-        ':p2'  => $autor     ?: null,
-        ':p3'  => $paginas   !== '' ? (int)$paginas : null,
-        ':p4'  => $tipo_midia ?: null,
-        ':p5'  => $data_inicio ?: null,
-        ':p6'  => $tipo_input,
-        ':p7'  => $percentual  !== '' ? (float)$percentual  : null,
-        ':p8'  => $pagina_atual !== '' ? (int)$pagina_atual : null,
-        ':p9'  => $tempo_leitura,
-        ':p10' => $impressoes  ?: null,
-        ':p11' => $avaliacao   !== '' ? (float)$avaliacao : null,
-    ];
 
-
- try {
-        $db = new DataBase();      
+        $params = [
+            ':p0'  => (int)$id_leitura,
+            ':p1'  => $titulo    ?: null,
+            ':p2'  => $autor     ?: null,
+            ':p3'  => $paginas   !== '' ? (int)$paginas : null,
+            ':p4'  => $tipo_midia ?: null,
+            ':p5'  => $data_inicio ?: null,
+            ':p6'  => $tipo_input,
+            ':p7'  => $percentual  !== '' ? (float)$percentual  : null,
+            ':p8'  => $pagina_atual !== '' ? (int)$pagina_atual : null,
+            ':p9'  => $tempo_leitura,
+            ':p10' => $impressoes  ?: null,
+            ':p11' => $avaliacao   !== '' ? (float)$avaliacao : null,
+            ':p12' => $id_local_leitura ?: null,
+        ];
 
         // Bloqueia se a leitura já foi finalizada em Leituras (usar id_leitura)
 
-        $jaFinalizada = $db->GetOne(
-            "SELECT id_leitura FROM [Biblioteca].[dbo].[Leituras] WHERE id_leitura = :id AND data_fim IS NOT NULL",
-            [':id' => (int)$id_leitura]
-        );
+            $jaFinalizada = $db->GetOne(
+                "SELECT id_livros FROM [Biblioteca].[dbo].[Leituras]
+                WHERE id = :id AND data_fim IS NOT NULL",
+                [':id' => (int)$id_leitura]
+            );
 
-        if ($jaFinalizada) {
+    
+        if ($jaFinalizada !== null && $jaFinalizada !== false) {
             $result_error = 'Esta leitura já foi finalizada e não aceita novas atualizações.';
             return;
         }
+
+        
 
         // Calcula conclusão antes do INSERT para poder checar duplicata
         $pctFinal  = $percentual !== '' ? (float)$percentual : 0;
@@ -158,7 +194,6 @@ function PostMethod() {
                    AND (percentual >= 100 OR (paginas > 0 AND pagina_atual >= paginas))",
                 [':id_leitura' => (int)$id_leitura]
             );
-              echo $jaConcluido;
             if ($jaConcluido) {
                 $result_error = 'Já existe uma atualização de conclusão registrada para esta leitura.';
                 return;
@@ -177,12 +212,12 @@ function PostMethod() {
                     [':id_leitura' => (int)$id_leitura]
                 );
 
-                $db->ExecuteNonQuery(
-                    "UPDATE [Biblioteca].[dbo].[Leituras]
-                     SET data_fim = GETDATE()
-                     WHERE id = :id",
-                    [':id' => (int)$id_leitura]
-                );
+$db->ExecuteNonQuery(
+    "UPDATE [Biblioteca].[dbo].[Leituras]
+     SET data_fim = GETDATE()
+     WHERE id = :id",
+    [':id' => (int)$id_leitura]   // correto: id da leitura, não id_livros
+);
 
                 atualizarStatusNaTabela($db, $local_leitura, $titulo, $autor, 'Lido');
 
@@ -209,8 +244,38 @@ function PostMethod() {
             }
         }
 
-        // Se não concluído, insere atualização em andamento
-        $db->ExecuteNonQuery($sql, $params);
+        // Se não concluído, tenta atualizar o registro existente ou inserir novo
+        $registroExistente = $db->GetOne(
+            "SELECT TOP 1 id FROM [Biblioteca].[dbo].[LeiturasEmAndamento]
+             WHERE id_leitura = :id_leitura
+             ORDER BY dt_alteracao DESC, id DESC",
+            [':id_leitura' => (int)$id_leitura]
+        );
+
+        if ($registroExistente) {
+            // UPDATE do registro existente
+            $sqlUpdate = "
+                UPDATE [Biblioteca].[dbo].[LeiturasEmAndamento]
+                SET dt_alteracao = GETDATE(),
+                    tipo_input = :p6,
+                    percentual = :p7,
+                    pagina_atual = :p8,
+                    tempo_leitura = :p9,
+                    impressoes = :p10,
+                    avaliacao = :p11,
+                    id_local_leitura = :p12,
+                    titulo = :p1,
+                    autor = :p2,
+                    paginas = :p3,
+                    tipo_midia = :p4,
+                    data_inicio = :p5
+                WHERE id_leitura = :p0
+            ";
+            $db->ExecuteNonQuery($sqlUpdate, $params);
+        } else {
+            // INSERT novo registro
+            $db->ExecuteNonQuery($sql, $params);
+        }
 
         $statusTabela = $pctFinal > 0.1 ? ($concluido ? 'Lido' : 'Lendo') : null;
 

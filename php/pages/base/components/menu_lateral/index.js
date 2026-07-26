@@ -214,7 +214,9 @@ let menuLateral = {
             method: 'GET',
             success: function (html) {
                 $('body').append(html);
-                $('#' + modalId).modal('show');
+                const modalEl = document.getElementById(modalId);
+                const modal = new bootstrap.Modal(modalEl);
+                modal.show();
                 $.getScript('/php/pages/base/components/menu_lateral/minhas_leituras/index.js')
                     .done(function () {
                         if (window.minhas_leituras && typeof minhas_leituras[initFn] === 'function') {

@@ -16,7 +16,7 @@
  */
 function getTabela(string $local_leitura): ?string {
     $local = trim($local_leitura);
-    $local = mb_strtolower($local, 'UTF-8');
+    $local = strtolower($local);
     $local = preg_replace('/[\s_]+/', '_', $local);
 
     $mapa = [

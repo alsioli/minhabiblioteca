@@ -101,7 +101,10 @@ window.minhas_leituras = {
 
             if (json.status && json.data && json.data.length > 0) {
                 json.data.forEach(row => {
-                    sel.append(`<option value="${row.tipo_midia}">${row.tipo_midia}</option>`);
+                    const valor = row.tipo_leitura || row.tipo_midia || '';
+                    if (valor) {
+                        sel.append(`<option value="${valor}">${valor}</option>`);
+                    }
                 });
             } else {
                 // Fallback com valores padrão
@@ -425,9 +428,9 @@ window.minhas_leituras = {
             this._mostrarMensagem('danger', 'Não foi possível obter o ID do livro. Selecione o livro novamente.');
             return;
         }
-
+//ALTEREI AQUI - ALESSANDRA 25072026
         const body = new FormData();
-        body.append('id',             livroId);
+        body.append('id_livros',      livroId);
         body.append('titulo',         titulo);
         body.append('autor',          autor);
         body.append('paginas',        $('#cl_livro_paginas').val());
@@ -675,6 +678,9 @@ window.minhas_leituras = {
         const id_leitura = $('#al_id_leitura').val();
         const motivo     = $('#al_abandonar').val();
 
+        console.log('>>> salvarAtualizacao CHAMADA <<<');
+
+
         if (!id_leitura) {
             this._mostrarMensagemAL('danger', 'Selecione um livro antes de salvar.');
             return;
@@ -721,8 +727,13 @@ window.minhas_leituras = {
         const idx   = $('#al_leitura').val();
         const l     = this._leiturasAndamento[parseInt(idx)];
 
+console.log('DEBUG l completo:', l);
+console.log('DEBUG id_livros:', l ? l.id_livros : 'l é null/undefined');
+
+
         const body = new FormData();
         body.append('id_leitura',    id_leitura);
+        body.append('id_livros', l ? (l.id_livros || '') : '');
         body.append('titulo',        l ? (l.titulo        || '') : '');
         body.append('autor',         l ? (l.autor         || '') : '');
         body.append('paginas',       l ? (l.paginas       || '') : '');
@@ -734,6 +745,7 @@ window.minhas_leituras = {
         body.append('impressoes',    $('#al_impressoes').val());
         body.append('avaliacao',     $('#al_avaliacao').val());
         body.append('local_leitura', l ? (l.local_leitura || '') : '');
+        
 
         try {
             const resp = await fetch('/php/api/base/menu_lateral/minhasLeituras/create_atualizacao_leitura.php', {
@@ -1037,7 +1049,7 @@ window.minhas_leituras = {
         $('#ff_mensagem').empty();
 
         try {
-            const resp = await fetch('/php/api/base/menu_lateral/minhasLeituras/listar_leituras_andamento.php');
+            const resp = await fetch('/php/api/base/menu_lateral/minhasLeituras/listar_todas_leituras.php');
             const json = await resp.json();
             this._leiturasFF = json.status ? (json.data || []) : [];
 
@@ -1045,7 +1057,7 @@ window.minhas_leituras = {
             sel.empty().append('<option value="">Selecione o livro...</option>');
 
             if (this._leiturasFF.length === 0) {
-                sel.append('<option value="" disabled>Nenhuma leitura em andamento</option>');
+                sel.append('<option value="" disabled>Nenhuma leitura listada</option>');
                 return;
             }
 

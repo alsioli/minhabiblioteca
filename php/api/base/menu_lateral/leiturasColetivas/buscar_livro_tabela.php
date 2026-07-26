@@ -110,7 +110,9 @@ function PostMethod(array $tabelasPermitidas) {
         $where = "titulo LIKE :titulo AND (status IS NULL OR status <> 'Lido')";
     }
 
-    $sql = "SELECT {$campos} FROM {$tabelaSQL} WHERE {$where} ORDER BY titulo ASC";
+    $sql = "SELECT {$campos} FROM {$tabelaSQL} WHERE {$where}
+    AND status <> 'Lido'
+    ORDER BY titulo ASC";
 
     try {
         $db        = new DataBase();

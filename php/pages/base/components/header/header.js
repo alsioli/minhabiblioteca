@@ -75,15 +75,38 @@
             // Card 2: Média mensal
             const elMedia   = document.getElementById('hc-media');
             const elPeriodo = document.getElementById('hc-media-periodo');
+
             if (elMedia) {
                 elMedia.textContent = d.media_mensal != null
                     ? parseFloat(d.media_mensal).toFixed(1)
                     : '—';
             }
+
             if (elPeriodo && d.periodo_media_fmt) {
                 elPeriodo.textContent = d.periodo_media_fmt;
             }
 
+
+                        
+            // Card 4: Livros lidos no mês anterior
+            const elLidos   = document.getElementById('hc-lidos');
+            const elMesAnt  = document.getElementById('hc-mes-anterior');
+
+            if (elLidos) {
+                const count = d.total_mes_anterior ?? null;
+                elLidos.textContent = count !== null ? count : '—';
+            }
+            if (elMesAnt) {
+                const hoje = new Date();
+                const mesAnterior = new Date(hoje.getFullYear(), hoje.getMonth() - 1, 1);
+
+                const nomeMes = mesAnterior.toLocaleString('pt-BR', { month: 'long' });
+                const anoMes = mesAnterior.getFullYear();
+
+                elMesAnt.textContent = `${nomeMes.charAt(0).toUpperCase() + nomeMes.slice(1)} / ${anoMes}`;
+            }
+
+                            
             // Card 3: Top países
             const elTop = document.getElementById('hc-top-paises');
             if (elTop && d.top_paises && d.top_paises.length > 0) {

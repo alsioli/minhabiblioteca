@@ -28,14 +28,9 @@ function GetMethod() {
 
     // Unifica desafios da tabela legada Desafio50Antes50 e da nova tabela Desafios
     $sql = "
-        SELECT DISTINCT tematica FROM (
-            SELECT tematica FROM [Biblioteca].[dbo].[Desafio50Antes50]
-            WHERE tematica IS NOT NULL AND tematica <> ''
-            UNION
-            SELECT tematica FROM [Biblioteca].[dbo].[Desafios]
-            WHERE tematica IS NOT NULL AND tematica <> ''
-        ) AS t
-        ORDER BY tematica ASC
+        SELECT DISTINCT [vNomeDesafio] FROM [Biblioteca].[dbo].[Desafios]
+            WHERE vNomeDesafio IS NOT NULL AND vNomeDesafio <> ''
+        ORDER BY vNomeDesafio ASC
     ";
 
     try {

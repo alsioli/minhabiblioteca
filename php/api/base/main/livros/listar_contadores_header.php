@@ -33,12 +33,20 @@ function GetMethod() {
     // Ex: maio/2026 → mai/2025 até abr/2026
     $tsStart  = strtotime('first day of this month -12 months');
     $tsEnd    = strtotime('last day of last month');
-
     $startDate  = date('Y-m-d', $tsStart);
-    $endDate    = date('Y-m-d', $tsEnd);
+    $endDate    = date('Y-m-d', $tsEnd);    
     $periodoFmt = $meses_pt[(int)date('n', $tsStart)] . '/' . date('y', $tsStart) .
                   ' – ' .
                   $meses_pt[(int)date('n', $tsEnd)]   . '/' . date('y', $tsEnd);
+
+    
+    
+    $tsStartMA = strtotime('first day of last month 00:00:00'); // timestamp do 1º dia do mês anterior, início do dia
+    $tsEndMA   = strtotime('last day of last month 23:59:59');
+    
+    $startDateMesAnterior  = date('Y-m-d', $tsStartMA);
+    $endDateMesAnterior    = date('Y-m-d', $tsEndMA);
+
 
     try {
         $db = new DataBase();
@@ -77,6 +85,19 @@ function GetMethod() {
         $totalMedia   = (int)($rowMedia['total'] ?? 0);
         $mediaDecimal = round($totalMedia / 12.0, 1);
 
+
+          // ── Card 4: Lidos no mês anterior ────────────────
+        $sqlMedia = "
+            SELECT COUNT(*) AS total
+            FROM [Biblioteca].[dbo].[Leituras]
+            WHERE data_fim IS NOT NULL
+              AND data_fim >= :startDateMA
+              AND data_fim <= :endDateMA
+        ";
+
+        $rowMesAnterior    = $db->GetOne($sqlMedia, [':startDateMA' => $startDateMesAnterior, ':endDateMA' => $endDateMesAnterior]);
+        $totalMesAnterior  = (int)($rowMesAnterior['total'] ?? 0);
+
         // ── Card 3: Top 3 países — baseado em Leituras concluídas ─
         $sqlPaises = "
             SELECT TOP 3
@@ -97,6 +118,7 @@ function GetMethod() {
             'media_mensal'      => $mediaDecimal,
             'periodo_media_fmt' => $periodoFmt,
             'top_paises'        => $topPaises,
+            'total_mes_anterior' => $totalMesAnterior
         ];
 
     } catch (Exception $e) {

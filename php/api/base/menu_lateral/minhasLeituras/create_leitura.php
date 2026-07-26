@@ -28,7 +28,12 @@ function PostMethod() {
     global $result_status, $result_error, $result_data;
 
     //$id_leitura    = trim($_POST['id'] ?? $_POST['id_leitura'] ?? '');
-    $id_leitura    = trim($_POST['id'] ?? '');
+    $id_livros = trim($_POST['id'] ?? '');
+    
+    if ($id_livros <= 0) {
+        throw new Exception('ID do livro inválido.');
+    }
+   //  $id_livros    = trim($_POST['id_livros'] ?? '');
     $titulo      = trim($_POST['titulo']      ?? '');
     $autor       = trim($_POST['autor']       ?? '');
     $paginas     = trim($_POST['paginas']     ?? '');
@@ -59,6 +64,7 @@ function PostMethod() {
         return;
     }
 
+
     $dt = DateTime::createFromFormat('Y-m-d', $data_inicio);
     if (!$dt) {
         $result_error = 'Data de início inválida.';
@@ -66,9 +72,9 @@ function PostMethod() {
     }
     $mes = $dt->format('m/Y');
 
-    $campos  = ['id_leitura', 'titulo', 'autor', 'natureza', 'tipo_midia', 'paginas', 'mes', 'data_inicio'];
+    $campos  = ['id_livros', 'titulo', 'autor', 'natureza', 'tipo_midia', 'paginas', 'mes', 'data_inicio'];
     $valores = [        
-        $id_leitura,
+        $id_leitura, 
         $titulo,
         $autor,
         $natureza   ?: null,
@@ -84,12 +90,37 @@ function PostMethod() {
     if ($tema          !== '') { $campos[] = 'tema';          $valores[] = $tema; }
     if ($avaliacao     !== '') { $campos[] = 'avaliacao';     $valores[] = (float)$avaliacao; }
 
-    // Campos sem local_leitura (fallback caso a coluna não exista ainda)
+    // Converte local_leitura para id_local_leitura
+    $id_local_leitura = null;
+    if ($local_leitura !== '') {
+        $db = new DataBase();
+        $localMap = $db->GetOne(
+            "SELECT id FROM [Biblioteca].[dbo].[LocalLeitura] WHERE vLocal_Leitura = :local",
+            [':local' => $local_leitura]
+        );
+        if ($localMap) {
+            $id_local_leitura = (int)$localMap['id'];
+        }
+    }
+
+    // Campos sem id_local_leitura (fallback caso a coluna não exista ainda)
     $camposSemLocal = $campos;
     $valoresSemLocal = $valores;
 
+    // Adiciona id_local_leitura se foi encontrado
+    if ($id_local_leitura !== null) { 
+        $campos[] = 'id_local_leitura'; 
+        $valores[] = $id_local_leitura; 
+    }
 
-    if ($local_leitura !== '') { $campos[] = 'local_leitura'; $valores[] = $local_leitura; }
+    // Fallback caso a tabela alvo não aceite a coluna tipo_midia.
+    $camposSemTipo = array_values(array_filter($campos, fn($campo) => $campo !== 'tipo_midia'));
+    $valoresSemTipo = [];
+    foreach ($campos as $i => $campo) {
+        if ($campo !== 'tipo_midia') {
+            $valoresSemTipo[] = $valores[$i];
+        }
+    }
 
     function buildInsert(array $campos, array $valores): array {
         $colList   = implode(', ', array_map(fn($c) => "[{$c}]", $campos));
@@ -100,19 +131,25 @@ function PostMethod() {
         return [$sql, $params];
     }
 
-    try {
+
+     try {
         $db = new DataBase();
 
         [$sql, $params] = buildInsert($campos, $valores);
         try {
             $row = $db->GetOne($sql, $params);
         } catch (Exception $e) {
-            // local_leitura pode não existir — tenta sem ela
-            [$sql, $params] = buildInsert($camposSemLocal, $valoresSemLocal);
-            $row = $db->GetOne($sql, $params);
+            try {
+                [$sql, $params] = buildInsert($camposSemTipo, $valoresSemTipo);
+                $row = $db->GetOne($sql, $params);
+            } catch (Exception $e2) {
+                // local_leitura pode não existir — tenta sem ela
+                [$sql, $params] = buildInsert($camposSemLocal, $valoresSemLocal);
+                $row = $db->GetOne($sql, $params);
+            }
         }
 
-        $idLeitura = isset($row['id']) ? (int)$row['id'] : 0;
+        $id_leitura = trim($_POST['id'] ?? '');
         if ($idLeitura <= 0) {
             throw new Exception('Não foi possível obter o ID da leitura criada.');
         }
@@ -121,23 +158,43 @@ function PostMethod() {
         $sqlLA = "
             INSERT INTO [Biblioteca].[dbo].[LeiturasEmAndamento]
                 (id_leitura, titulo, autor, paginas, tipo_midia, data_inicio,
-                 dt_alteracao, tipo_input, percentual, pagina_atual, tempo_leitura, local_leitura)
+                 dt_alteracao, tipo_input, percentual, pagina_atual, tempo_leitura, id_local_leitura)
             VALUES
                 (:id, :titulo, :autor, :paginas, :tipo_midia, :data_inicio,
-                 GETDATE(), 'percentual', 0, 0, 0, :local_leitura)
+                 GETDATE(), 'percentual', 0, 0, 0, :id_local_leitura)
         ";
 
         $paramsLA = [
-            ':id'         => $idLeitura,
-            ':titulo'     => $titulo,
-            ':autor'      => $autor,
-            ':paginas'    => $paginas !== '' ? (int)$paginas : null,
-            ':tipo_midia' => $tipo_midia ?: null,
-            ':data_inicio'=> $data_inicio,
-            ':local_leitura' => $local_leitura ?: null,
+            ':id'               => $id_livros,
+            ':titulo'           => $titulo,
+            ':autor'            => $autor,
+            ':paginas'          => $paginas !== '' ? (int)$paginas : null,
+            ':tipo_midia'       => $tipo_midia ?: null,
+            ':data_inicio'      => $data_inicio,
+            ':id_local_leitura' => $id_local_leitura ?: null,
         ];
 
-        $db->ExecuteNonQuery($sqlLA, $paramsLA);
+        try {
+            $db->ExecuteNonQuery($sqlLA, $paramsLA);
+        } catch (Exception $e) {
+            $sqlLA = "
+                INSERT INTO [Biblioteca].[dbo].[LeiturasEmAndamento]
+                    (id_leitura, titulo, autor, paginas, data_inicio,
+                     dt_alteracao, tipo_input, percentual, pagina_atual, tempo_leitura, id_local_leitura)
+                VALUES
+                    (:id, :titulo, :autor, :paginas, :data_inicio,
+                     GETDATE(), 'percentual', 0, 0, 0, :id_local_leitura)
+            ";
+            $paramsLA = [
+                ':id'               => $id_leitura,
+                ':titulo'           => $titulo,
+                ':autor'            => $autor,
+                ':paginas'          => $paginas !== '' ? (int)$paginas : null,
+                ':data_inicio'      => $data_inicio,
+                ':id_local_leitura' => $id_local_leitura ?: null,
+            ];
+            $db->ExecuteNonQuery($sqlLA, $paramsLA);
+        }
 
         // Remove automaticamente da fila "Quero Ler Logo" se estiver lá
         try {

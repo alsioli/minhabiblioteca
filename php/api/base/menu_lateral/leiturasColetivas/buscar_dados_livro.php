@@ -16,21 +16,26 @@ if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
 
 header('Content-Type: application/json; charset=utf-8');
 
-$titulo = trim($_GET['titulo'] ?? '');
+$titulo        = trim($_GET['titulo'] ?? '');
+$local_leitura = trim($_GET['local_leitura'] ?? '');
+
 if (empty($titulo)) {
     echo json_encode(['status' => false, 'error' => 'Titulo e obrigatorio.', 'data' => null]);
     exit;
 }
 
-// Tabelas em ordem de prioridade (Livros tem o schema mais completo)
-$tabelas = [
-    ['sql' => '[Biblioteca].[dbo].[Livros]',                'local' => 'Biblioteca',       'completa' => true],
-    ['sql' => '[Biblioteca].[dbo].[LeiturasSKEELO]',        'local' => 'Skeelo',           'completa' => false],
-    ['sql' => '[Biblioteca].[dbo].[LivrosBiblion]',         'local' => 'Biblion',          'completa' => false],
-    ['sql' => '[Biblioteca].[dbo].[LivrosMEC]',             'local' => 'MEC_Livros',       'completa' => false],
-    ['sql' => '[Biblioteca].[dbo].[LivrosAudible]',         'local' => 'Audible',          'completa' => false],
-    ['sql' => '[Biblioteca].[dbo].[LivrosKindleUnlimited]', 'local' => 'Kindle_Unlimited', 'completa' => false],
+// Tabelas permitidas com ordem de prioridade (Livros tem o schema mais completo)
+$TABELAS_PERMITIDAS = [
+    'Biblioteca'         => ['sql' => '[Biblioteca].[dbo].[Livros]',                'completa' => true],
+    'Skeelo'             => ['sql' => '[Biblioteca].[dbo].[LeiturasSKEELO]',        'completa' => false],
+    'Biblion'            => ['sql' => '[Biblioteca].[dbo].[LivrosBiblion]',         'completa' => false],
+    'MEC_Livros'         => ['sql' => '[Biblioteca].[dbo].[LivrosMEC]',             'completa' => false],
+    'Audible'            => ['sql' => '[Biblioteca].[dbo].[LivrosAudible]',         'completa' => false],
+    'Kindle_Unlimited'   => ['sql' => '[Biblioteca].[dbo].[LivrosKindleUnlimited]', 'completa' => false],
 ];
+
+// Ordem de prioridade de busca
+$ordem_prioridade = ['Biblioteca', 'Skeelo', 'Biblion', 'MEC_Livros', 'Audible', 'Kindle_Unlimited'];
 
 try {
     $db = new DataBase();
@@ -39,7 +44,21 @@ try {
     exit;
 }
 
-foreach ($tabelas as $t) {
+// Se local_leitura foi passado, busca apenas naquela tabela
+if (!empty($local_leitura)) {
+    if (!isset($TABELAS_PERMITIDAS[$local_leitura])) {
+        echo json_encode(['status' => false, 'error' => 'Local de leitura inválido.', 'data' => null]);
+        exit;
+    }
+    
+    $ordem_busca = [$local_leitura];
+} else {
+    // Caso contrário, usa a ordem de prioridade padrão
+    $ordem_busca = $ordem_prioridade;
+}
+
+foreach ($ordem_busca as $local) {
+    $t = $TABELAS_PERMITIDAS[$local];
     try {
         if ($t['completa']) {
             $sql = "SELECT TOP 1
@@ -62,7 +81,7 @@ foreach ($tabelas as $t) {
                         ISNULL(CAST(paginas AS NVARCHAR), '') AS paginas,
                         ''                  AS sexo_autor,
                         ISNULL(pais,    '') AS pais,
-                        ''                  AS natureza,
+                        ISNULL(natureza, '') AS natureza,
                         ISNULL(tema,    '') AS tema,
                         ''                  AS tipo_edicao
                     FROM {$t['sql']}
@@ -71,8 +90,8 @@ foreach ($tabelas as $t) {
 
         $row = $db->GetOne($sql, [':titulo' => '%' . $titulo . '%']);
 
-        if ($row && !empty($row['titulo'])) {
-            $row['local_leitura'] = $t['local'];
+        if ($row) {
+            $row['local_leitura'] = $local;
             echo json_encode(['status' => true, 'error' => null, 'data' => $row], JSON_UNESCAPED_UNICODE);
             exit;
         }
@@ -80,31 +99,6 @@ foreach ($tabelas as $t) {
         // Coluna pode nao existir nesta tabela — tenta a proxima
         continue;
     }
-}
-
-// Fallback: busca somente autor em LivrosAutor (catálogo geral, colunas PascalCase)
-try {
-    $sql = "SELECT TOP 1
-                id,
-                ISNULL(Titulo, '') AS titulo,
-                ISNULL(Autor,  '') AS autor,
-                ''                 AS paginas,
-                ''                 AS sexo_autor,
-                ISNULL(Pais,   '') AS pais,
-                ''                 AS natureza,
-                ''                 AS tema,
-                ''                 AS tipo_edicao
-            FROM [Biblioteca].[dbo].[LivrosAutor]
-            WHERE Titulo = :titulo";
-
-    $row = $db->GetOne($sql, [':titulo' => $titulo]);
-    if ($row && !empty($row['autor'])) {
-        $row['local_leitura'] = '';
-        echo json_encode(['status' => true, 'error' => null, 'data' => $row], JSON_UNESCAPED_UNICODE);
-        exit;
-    }
-} catch (Exception $e) {
-    // Coluna pode não existir — ignora
 }
 
 echo json_encode(['status' => false, 'error' => 'Livro nao encontrado nas tabelas de acervo.', 'data' => null], JSON_UNESCAPED_UNICODE);

@@ -28,46 +28,48 @@ function GetMethod() {
 
     // LeiturasEmAndamento é a fonte de verdade para livros em leitura.
     // Pega o registro mais recente por livro e faz JOIN com Leituras para obter local_leitura.
-    $sqlComLocal = "
-        WITH ranked AS (
-            SELECT *,
-                   ROW_NUMBER() OVER (PARTITION BY id_leitura ORDER BY dt_alteracao DESC) AS rn
-            FROM [Biblioteca].[dbo].[LeiturasEmAndamento]
-        )
-        SELECT
-            r.id_leitura                        AS id,
-            r.titulo,
-            r.autor,
-            r.paginas,
-            r.tipo_midia,
-            r.data_inicio,
-            ISNULL(lt.tema,          '')        AS tema,
-            ISNULL(lt.local_leitura, '')        AS local_leitura
-        FROM ranked r
-        LEFT JOIN [Biblioteca].[dbo].[Leituras] lt ON lt.id = r.id_leitura
-        WHERE r.rn = 1
-        ORDER BY r.dt_alteracao DESC
-    ";
-
-    $sqlSemLocal = "
-        WITH ranked AS (
-            SELECT *,
-                   ROW_NUMBER() OVER (PARTITION BY id_leitura ORDER BY dt_alteracao DESC) AS rn
-            FROM [Biblioteca].[dbo].[LeiturasEmAndamento]
-        )
-        SELECT
-            r.id_leitura AS id,
-            r.titulo,
-            r.autor,
-            r.paginas,
-            r.tipo_midia,
-            r.data_inicio,
-            '' AS tema,
-            '' AS local_leitura
-        FROM ranked r
-        WHERE r.rn = 1
-        ORDER BY r.dt_alteracao DESC
-    ";
+  $sqlComLocal = "
+    WITH ranked AS (
+        SELECT *,
+               ROW_NUMBER() OVER (PARTITION BY id_leitura ORDER BY dt_alteracao DESC) AS rn
+        FROM [Biblioteca].[dbo].[LeiturasEmAndamento]
+    )
+    SELECT
+        r.id_leitura                        AS id,
+        r.titulo,
+        r.autor,
+        r.paginas,
+        r.tipo_midia,
+        r.data_inicio,
+        ISNULL(lt.tema,          '')        AS tema,
+        ISNULL(lt.local_leitura, '')        AS local_leitura,
+        lt.id_livros                        AS id_livros
+    FROM ranked r
+    LEFT JOIN [Biblioteca].[dbo].[Leituras] lt ON lt.id = r.id_leitura
+    WHERE r.rn = 1
+    ORDER BY r.dt_alteracao DESC
+";
+ $sqlSemLocal = "
+    WITH ranked AS (
+        SELECT *,
+               ROW_NUMBER() OVER (PARTITION BY id_leitura ORDER BY dt_alteracao DESC) AS rn
+        FROM [Biblioteca].[dbo].[LeiturasEmAndamento]
+    )
+    SELECT
+        r.id_leitura AS id,
+        r.titulo,
+        r.autor,
+        r.paginas,
+        r.tipo_midia,
+        r.data_inicio,
+        '' AS tema,
+        '' AS local_leitura,
+        lt.id_livros AS id_livros
+    FROM ranked r
+    LEFT JOIN [Biblioteca].[dbo].[Leituras] lt ON lt.id = r.id_leitura
+    WHERE r.rn = 1
+    ORDER BY r.dt_alteracao DESC
+";
 
     try {
         $db = new DataBase();

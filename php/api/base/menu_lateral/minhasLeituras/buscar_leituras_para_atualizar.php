@@ -27,53 +27,86 @@ function PostMethod() {
     global $result_status, $result_error, $result_data;
 
     $titulo        = trim($_POST['titulo']        ?? '');
+    $id = trim($_POST['id'] ?? '');
     $local_leitura = trim($_POST['local_leitura'] ?? '');
+
+
+        // Tabelas permitidas (origem do livro)
+    $TABELAS_PERMITIDAS = [
+        'Biblioteca'                => '[Biblioteca].[dbo].[Livros]',
+        'Skeelo'                    => '[Biblioteca].[dbo].[LeiturasSKEELO]',
+        'Biblion'                   => '[Biblioteca].[dbo].[LivrosBiblion]',
+        'MEC_Livros'                => '[Biblioteca].[dbo].[LivrosMEC]',
+        'Audible'                   => '[Biblioteca].[dbo].[LivrosAudible]',
+        'Kindle_Unlimited'          => '[Biblioteca].[dbo].[LivrosKindleUnlimited]',
+    ];
+
+    if (!isset($TABELAS_PERMITIDAS[$local_leitura])) {
+        $result_error = "Tabela de origem inválida: {$local_leitura}";
+        return;
+    }
+     
 
     if (strlen($titulo) < 3) {
         $result_error = 'Digite pelo menos 3 caracteres para buscar.';
         return;
     }
 
-    $params = [':titulo' => '%' . $titulo . '%'];
-    $localFilter = '';
-    if ($local_leitura !== '') {
-        $localFilter = ' AND local_leitura = :local_leitura';
-        $params[':local_leitura'] = $local_leitura;
-    }
+        $params = [ '%' . $titulo . '%' ];
+        $localFilter = '';
+
+        if ($id!== '') {
+            $localFilter = ' AND id= ? ';
+            $params[] = $id ;
+        }
+
+         $tabelaSQL = $TABELAS_PERMITIDAS[$local_leitura];
 
     // Query completa — inclui data_fim e avaliacao com cast seguro
     $sqlCompleta = "
         SELECT
-            id,
-            titulo,
-            autor,
-            ISNULL(CONVERT(VARCHAR(10), data_inicio, 23), '') AS data_inicio,
-            ISNULL(CONVERT(VARCHAR(10), data_fim,    23), '') AS data_fim,
-            ISNULL(natureza, '')                              AS natureza,
-            ISNULL(CAST(avaliacao AS NVARCHAR(10)), '')       AS avaliacao,
-            ISNULL(local_leitura, '')                         AS local_leitura
-        FROM [Biblioteca].[dbo].[Leituras]
-        WHERE titulo LIKE :titulo
-          AND data_fim IS NULL{$localFilter}
-        ORDER BY data_inicio DESC
+            ORIGEM.id,
+            ORIGEM.titulo,
+            ORIGEM.autor,
+            ISNULL(CONVERT(VARCHAR(10), LEITURAS.data_inicio, 23), '') AS data_inicio,
+            CONVERT(VARCHAR(10), ORIGEM.data_fim,    23) AS data_fim,
+            ORIGEM.natureza AS natureza,
+            CAST(ORIGEM.avaliacao AS NVARCHAR(10)) AS avaliacao,
+            LOCAL.vLocal_Leitura AS vLocal_Leitura
+        FROM {$tabelaSQL} ORIGEM
+        LEFT JOIN [Biblioteca].[dbo].[LocalLeitura] LOCAL
+            ON ORIGEM.tipo_midia = LOCAL.vLocal_Leitura
+        LEFT JOIN [Biblioteca].[dbo].[Leituras] LEITURAS
+            ON ORIGEM.id = LEITURAS.id_livros     
+        WHERE ORIGEM.titulo LIKE ?
+        {$localFilter}
+        ORDER BY LEITURAS.data_inicio DESC
     ";
 
+
+    //para levantar a data inicio se houver tem que linkar com Leituras
     // Fallback mínimo — apenas colunas garantidas do schema base
     $sqlMinima = "
         SELECT
-            id,
-            titulo,
-            autor,
-            ISNULL(CONVERT(VARCHAR(10), data_inicio, 23), '') AS data_inicio,
-            ''                                                AS data_fim,
-            ISNULL(natureza, '')                              AS natureza,
-            ''                                                AS avaliacao,
-            ''                                                AS local_leitura
-        FROM [Biblioteca].[dbo].[Leituras]
-        WHERE titulo LIKE :titulo
-          AND data_fim IS NULL{$localFilter}
-        ORDER BY data_inicio DESC
-    ";
+            ORIGEM.id,
+            ORIGEM.titulo,
+            ORIGEM.autor,
+            ISNULL(CONVERT(VARCHAR(10), LEITURAS.data_inicio, 23), '') AS data_inicio,
+            '' AS data_fim,
+            ORIGEM.natureza AS natureza,
+            '' AS avaliacao,
+            LOCAL.vLocal_Leitura AS local_leitura
+        FROM {$tabelaSQL} ORIGEM
+        LEFT JOIN [Biblioteca].[dbo].[LocalLeitura] LOCAL
+            ON ORIGEM.tipo_midia = LOCAL.vLocal_Leitura
+        LEFT JOIN [Biblioteca].[dbo].[Leituras] LEITURAS
+            ON ORIGEM.id = LEITURAS.id_livros     
+        WHERE ORIGEM.titulo LIKE ?
+        {$localFilter}
+        ORDER BY LEITURAS.data_inicio DESC
+";
+
+
 
     try {
         $db = new DataBase();

@@ -592,7 +592,7 @@
           <legend class="w-auto px-2" style="font-size:0.9rem;font-weight:bold;">Livro</legend>
 
           <div class="form-group mb-0">
-            <label>Leitura em Andamento <span class="text-danger">*</span></label>
+            <label>Leitura em andamento ou finalizadas <span class="text-danger">*</span></label>
             <select id="ff_leitura" class="form-control"
                     onchange="minhas_leituras.onLeituraFraseChange()">
               <option value="">Carregando...</option>

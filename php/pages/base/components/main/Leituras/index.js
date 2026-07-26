@@ -103,7 +103,34 @@ let leituras_view = {
                 return;
             }
 
-            this._andDados = json.data || [];
+            const listaBase = (json.data || []).filter(Boolean);
+            const mapa = new Map();
+
+            listaBase.forEach(item => {
+                const key = item.id_leitura ?? item.id;
+                if (!key) return;
+
+                const atual = item.ultima_atualizacao || item.dt_alteracao || '';
+                const existente = mapa.get(key);
+
+                if (!existente) {
+                    mapa.set(key, item);
+                    return;
+                }
+
+                const anterior = existente.ultima_atualizacao || existente.dt_alteracao || '';
+                if (!atual || (anterior && atual <= anterior)) {
+                    return;
+                }
+
+                mapa.set(key, item);
+            });
+
+            this._andDados = Array.from(mapa.values()).sort((a, b) => {
+                const da = a.ultima_atualizacao || a.dt_alteracao || '';
+                const db = b.ultima_atualizacao || b.dt_alteracao || '';
+                return da === db ? 0 : (da > db ? -1 : 1);
+            });
             this._andSortCol = ''; this._andSortDir = 'asc';
             this._renderAndamento(this._andDados);
         } catch (e) {
@@ -231,7 +258,7 @@ let leituras_view = {
                         ${thMes('titulo',     'Título')}
                         ${thMes('autor',      'Autor')}
                         ${thMes('natureza',   'Natureza')}
-                        ${thMes('tipo_midia', 'Mídia')}
+                        ${thMes('tipo_leitura', 'Mídia')}
                         ${thMes('paginas',    'Páginas',  'center')}
                         ${thMes('avaliacao',  'Avaliação','center')}
                         ${thMes('data_inicio','Início',   'center')}
@@ -248,7 +275,7 @@ let leituras_view = {
                     <td style="padding:5px 8px;white-space:normal;word-break:break-word;max-width:260px">${l.titulo || ''}</td>
                     <td style="padding:5px 8px;white-space:normal;max-width:160px">${l.autor || '—'}</td>
                     <td style="padding:5px 8px;white-space:nowrap">${l.natureza || '—'}</td>
-                    <td style="padding:5px 8px;white-space:nowrap">${l.tipo_midia || '—'}</td>
+                    <td style="padding:5px 8px;white-space:nowrap">${l.tipo_leitura || '—'}</td>
                     <td style="padding:5px 8px;text-align:center">${l.paginas || '—'}</td>
                     <td style="padding:5px 8px;text-align:center">${this._estrelas(l.avaliacao)}</td>
                     <td style="padding:5px 8px;text-align:center;white-space:nowrap">${this._fmtData(l.data_inicio)}</td>
@@ -266,13 +293,27 @@ let leituras_view = {
     //  LEITURAS DO ANO
     // ─────────────────────────────────────────────────────────────
 
-    _classGrupoMidia: function (tipo) {
-        const t = (tipo || '').toLowerCase().trim();
-        if (t.includes('epub') || t.includes('ebook') || t.includes('e-book') ||
-            t.includes('kindle') || t.includes('digital')) return 'ebook';
-        if (t === 'tag') return 'tag';
+_classGrupoMidia: function (tipo_leitura, natureza) {
+    const t = (tipo_leitura || '').toLowerCase().trim();
+    const n = (natureza || '').toLowerCase().trim();
+
+    // 1) Se natureza for TAG → conta como tag
+    if (n === 'tag') return 'tag';
+
+    // 2) Se for digital → ebook
+    if (t.includes('epub') || t.includes('ebook') || t.includes('e-book') ||
+        t.includes('kindle') || t.includes('digital')) {
+        return 'ebook';
+    }
+
+    // 3) Se for brochura/capa dura/com abas → físico
+    if (t.includes('brochura') || t.includes('capa dura') || t.includes('abas')) {
         return 'fisico';
-    },
+    }
+
+    // 4) Padrão
+    return 'fisico';
+},
 
     carregarAno: async function (ano) {
         if (!ano) return;
@@ -296,9 +337,10 @@ let leituras_view = {
             const lista  = json.data || [];
             const total  = lista.length;
             const self   = this;
-            const ebooks = lista.filter(l => self._classGrupoMidia(l.tipo_midia) === 'ebook').length;
-            const tags   = lista.filter(l => self._classGrupoMidia(l.tipo_midia) === 'tag').length;
-            const fisico = lista.filter(l => self._classGrupoMidia(l.tipo_midia) === 'fisico').length;
+            const ebooks = lista.filter(l => self._classGrupoMidia(l.tipo_leitura, l.natureza) === 'ebook').length;
+            const tags   = lista.filter(l => self._classGrupoMidia(l.tipo_leitura, l.natureza) === 'tag').length;
+            const fisico = lista.filter(l => self._classGrupoMidia(l.tipo_leitura, l.natureza) === 'fisico').length;
+
             const pct    = n => total > 0 ? ((n / total) * 100).toFixed(1) + '%' : '0%';
 
             $('#leiturasAnoTotal').text(`${total} livro${total !== 1 ? 's' : ''}`);
@@ -337,7 +379,7 @@ let leituras_view = {
                         ${thAno('titulo',     'Título')}
                         ${thAno('autor',      'Autor')}
                         ${thAno('natureza',   'Natureza')}
-                        ${thAno('tipo_midia', 'Mídia')}
+                        ${thAno('tipo_leitura', 'Mídia')}
                         ${thAno('paginas',    'Páginas',  'center')}
                         ${thAno('avaliacao',  'Avaliação','center')}
                         ${thAno('data_inicio','Início',   'center')}
@@ -355,7 +397,7 @@ let leituras_view = {
                     <td style="padding:5px 8px;white-space:normal;word-break:break-word;max-width:260px">${l.titulo || ''}</td>
                     <td style="padding:5px 8px;white-space:normal;max-width:160px">${l.autor || '—'}</td>
                     <td style="padding:5px 8px;white-space:nowrap">${l.natureza || '—'}</td>
-                    <td style="padding:5px 8px;white-space:nowrap">${l.tipo_midia || '—'}</td>
+                    <td style="padding:5px 8px;white-space:nowrap">${l.tipo_leitura || '—'}</td>
                     <td style="padding:5px 8px;text-align:center">${l.paginas || '—'}</td>
                     <td style="padding:5px 8px;text-align:center">${this._estrelas(l.avaliacao)}</td>
                     <td style="padding:5px 8px;text-align:center;white-space:nowrap">${this._fmtData(l.data_inicio)}</td>

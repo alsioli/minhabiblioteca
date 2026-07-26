@@ -45,6 +45,15 @@
                 <small class="hc-periodo" id="hc-media-periodo">últimos 12 meses</small>
             </div>
 
+             <!-- Card 4: Livros lidos no mês-->
+            <div class="header-card header-card-lg" style="align-items:center">
+                <p class="hc-titulo" style="text-align:center">Lidos no mês anterior</p>
+                <span class="header-card-numero" id="hc-lidos">—</span>
+                <span class="header-card-label">livros</span>
+                <span class="header-card-label"  id="hc-mes-anterior"></span>  
+
+            </div>
+
             <!-- Card 3: Top 3 países -->
             <div class="header-card header-card-lg">
                 <p class="hc-titulo">Top Países</p>

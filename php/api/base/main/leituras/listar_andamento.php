@@ -31,29 +31,35 @@ function GetMethod() {
     // Busca diretamente da tabela LeiturasEmAndamento,
     // pegando o registro mais recente por id_leitura.
     // JOIN com Leituras para obter local_leitura (usado ao marcar livro como Lido).
-    $sqlComLocal = "
-       WITH ranked AS (
-            SELECT *,
-                   ROW_NUMBER() OVER (PARTITION BY id_leitura ORDER BY dt_alteracao DESC) AS rn
-            FROM [Biblioteca].[dbo].[LeiturasEmAndamento]
-        )
-        SELECT
-            r.id_leitura                              AS id,
-            r.titulo,
-            r.autor,
-            r.paginas,
-            r.tipo_midia,
-            r.data_inicio,
-            r.percentual,
-            r.pagina_atual,
-            r.dt_alteracao                            AS ultima_atualizacao,
-            DATEDIFF(day, r.data_inicio, GETDATE())   AS dias_lendo,
-            ISNULL(lt.vLocal_Leitura, '')              AS local_leitura
-        FROM ranked r
-        LEFT JOIN [Biblioteca].[dbo].[LocalLeitura] lt ON lt.id = r.id_localLeitura
-        WHERE r.rn = 1
-        ORDER BY r.dt_alteracao DESC
-    ";
+   $sqlComLocal = "
+   WITH ranked AS (
+        SELECT *,
+               ROW_NUMBER() OVER (
+                   PARTITION BY id_leitura
+                   ORDER BY COALESCE(dt_alteracao, '1900-01-01') DESC, id DESC
+               ) AS rn
+        FROM [Biblioteca].[dbo].[LeiturasEmAndamento]
+    )
+    SELECT
+        r.id_leitura                              AS id,
+        r.id_leitura                              AS id_leitura,
+        r.titulo,
+        r.autor,
+        r.paginas,
+        r.tipo_midia,
+        r.data_inicio,
+        r.percentual,
+        r.pagina_atual,
+        r.dt_alteracao                            AS ultima_atualizacao,
+        DATEDIFF(day, r.data_inicio, GETDATE())   AS dias_lendo,
+        ISNULL(lt.vLocal_Leitura, '')              AS local_leitura,
+        leit.id_livros                            AS id_livros
+    FROM ranked r
+    LEFT JOIN [Biblioteca].[dbo].[LocalLeitura] lt ON lt.id = r.id_local_leitura
+    LEFT JOIN [Biblioteca].[dbo].[Leituras] leit ON leit.id = r.id_leitura
+    WHERE r.rn = 1
+    ORDER BY COALESCE(r.dt_alteracao, '1900-01-01') DESC, r.id DESC
+";
 
    try {
         $result_data = $db->GetMany($sqlComLocal);

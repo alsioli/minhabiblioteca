@@ -162,6 +162,7 @@ let dashboard = {
         if (!item) return;
 
         $('#atualizar_id_leitura').val(item.id);
+        $('#atualizar_id_livros').val(item.id_livros || '');
         $('#atualizar_titulo').val(item.titulo || '');
         $('#atualizar_autor').val(item.autor || '');
         $('#atualizar_paginas').val(item.paginas || '');
@@ -195,6 +196,7 @@ let dashboard = {
         const tipo = $('input[name="atualizar_tipo"]:checked').val();
         const body = new FormData();
         body.append('id_leitura',    $('#atualizar_id_leitura').val());
+        body.append('id_livros',     $('#atualizar_id_livros').val()); 
         body.append('titulo',        $('#atualizar_titulo').val());
         body.append('autor',         $('#atualizar_autor').val());
         body.append('paginas',       $('#atualizar_paginas').val());

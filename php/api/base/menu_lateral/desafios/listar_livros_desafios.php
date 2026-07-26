@@ -51,7 +51,7 @@ function GetMethod() {
                 d50.tematica,
                 d50.titulo,
                 d50.autor                      AS autor,
-                ISNULL(d50.status, 'Para Ler') AS status_leitura,
+                ISNULL(d50.status, 'Não Lido') AS status_leitura,
                 NULL                           AS data_ordem,
                 CAST(NULL AS INT)  AS seq_origem,
                 d50.categoria     AS categoria
@@ -85,7 +85,7 @@ function GetMethod() {
                 dp.tematica,
                 dp.titulo,
                 dp.autor                       AS autor,
-                ISNULL(dp.status, 'Para Ler')  AS status_leitura,
+                ISNULL(dp.status, 'Não Lido')  AS status_leitura,
                 NULL                           AS data_ordem,
                 dp.id                          AS seq_origem,
                 dp.categoria                   AS categoria
@@ -119,7 +119,6 @@ function GetMethod() {
         )
         SELECT tematica, sequencia, titulo, autor, status_leitura, categoria, data_referencia
         FROM numerado
-        WHERE status_leitura = 'Lido'
         ORDER BY tematica ASC, sequencia ASC
     ";
 

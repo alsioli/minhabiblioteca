@@ -45,7 +45,7 @@ function GetMethod() {
 
         // ── Livros físicos (estante, 1a. prateleira, presente) ─────
         $fisicos = contarPorStatus($db,
-            "natureza IN ('Estante', '1a. prateleira', 'Presente')"
+            "natureza IN ('Estante', 'Presente')"
         );
 
         // ── Tag ────────────────────────────────────────────────────
@@ -55,8 +55,8 @@ function GetMethod() {
 
         // ── Ebooks / Kindle ────────────────────────────────────────
         $ebooks = contarPorStatus($db,
-            "natureza = 'Compra Kindle'
-              OR tipo_edicao IN ('Ebook', 'Digital', 'Kindle', 'E-book')"
+            "natureza IN ('Compra kindle', 'Epub')
+              OR tipo_edicao IN ('Ebook', 'Digital', 'Kindle', 'E-book', 'Epub' )"
         );
 
         // ── Geral por status (para o gráfico de rosca geral) ──────

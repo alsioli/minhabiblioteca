@@ -149,10 +149,10 @@ window.consulta_geral_view = {
             this._sortDir = 'asc';
         }
         const dir    = this._sortDir === 'asc' ? 1 : -1;
-        const numCol = col === 'paginas';
+        const numCol = ['id', 'paginas'].indexOf(col) !== -1;
         this._dadosCompletos.sort(function (a, b) {
-            const va = numCol ? (parseFloat(a[col]) || 0) : String(a[col] || '').toLowerCase();
-            const vb = numCol ? (parseFloat(b[col]) || 0) : String(b[col] || '').toLowerCase();
+            const va = numCol ? (parseInt(a[col], 10) || 0) : String(a[col] || '').toLowerCase();
+            const vb = numCol ? (parseInt(b[col], 10) || 0) : String(b[col] || '').toLowerCase();
             return va < vb ? -dir : va > vb ? dir : 0;
         });
         this._pagina = 0;

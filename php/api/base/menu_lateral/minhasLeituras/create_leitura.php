@@ -27,13 +27,7 @@ echo json_encode([
 function PostMethod() {
     global $result_status, $result_error, $result_data;
 
-    //$id_leitura    = trim($_POST['id'] ?? $_POST['id_leitura'] ?? '');
-    $id_livros = trim($_POST['id'] ?? '');
-    
-    if ($id_livros <= 0) {
-        throw new Exception('ID do livro inválido.');
-    }
-   //  $id_livros    = trim($_POST['id_livros'] ?? '');
+    $id_livro = trim($_POST['id'] ?? '');
     $titulo      = trim($_POST['titulo']      ?? '');
     $autor       = trim($_POST['autor']       ?? '');
     $paginas     = trim($_POST['paginas']     ?? '');
@@ -41,15 +35,13 @@ function PostMethod() {
     $natureza    = trim($_POST['natureza']    ?? '');
     $data_inicio = trim($_POST['data_inicio'] ?? '');
     $avaliacao   = trim($_POST['avaliacao']   ?? '');
-
     $local_leitura = trim($_POST['local_leitura'] ?? '');
-
     $sexo_autor = trim($_POST['sexo_autor'] ?? '');
     $pais       = trim($_POST['pais']       ?? '');
     $raca       = trim($_POST['raca']       ?? '');
     $tema       = trim($_POST['tema']       ?? '');
 
-    if (empty($id_leitura)) {
+    if (empty($id_livro)) {
         $result_error = 'ID do livro é obrigatório.';
         return;
     }    
@@ -74,7 +66,7 @@ function PostMethod() {
 
     $campos  = ['id_livros', 'titulo', 'autor', 'natureza', 'tipo_midia', 'paginas', 'mes', 'data_inicio'];
     $valores = [        
-        $id_leitura, 
+        $id_livro, 
         $titulo,
         $autor,
         $natureza   ?: null,
@@ -150,7 +142,7 @@ function PostMethod() {
         }
 
         $id_leitura = trim($_POST['id'] ?? '');
-        if ($idLeitura <= 0) {
+        if ($id_leitura <= 0) {
             throw new Exception('Não foi possível obter o ID da leitura criada.');
         }
 
@@ -165,7 +157,7 @@ function PostMethod() {
         ";
 
         $paramsLA = [
-            ':id'               => $id_livros,
+            ':id'               => $id_livro,
             ':titulo'           => $titulo,
             ':autor'            => $autor,
             ':paginas'          => $paginas !== '' ? (int)$paginas : null,
@@ -222,7 +214,7 @@ function PostMethod() {
         }
 
         $result_status = true;
-        $result_data   = ['message' => 'Leitura registrada com sucesso.', 'id' => $idLeitura];
+        $result_data   = ['message' => 'Leitura registrada com sucesso.', 'id' => $id_leitura];
 
     } catch (Exception $e) {
         $result_error = 'Erro ao salvar leitura: ' . $e->getMessage();

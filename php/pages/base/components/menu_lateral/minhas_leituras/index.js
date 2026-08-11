@@ -423,14 +423,16 @@ window.minhas_leituras = {
             return;
         }
 
-        const livroId = String($('#cl_livro_id').val() || '').trim();
+        const livroId = parseInt($('#cl_livro_id').val(), 10);
         if (!livroId) {
             this._mostrarMensagem('danger', 'Não foi possível obter o ID do livro. Selecione o livro novamente.');
             return;
         }
+
+     
 //ALTEREI AQUI - ALESSANDRA 25072026
         const body = new FormData();
-        body.append('id_livros',      livroId);
+        body.append('id',      livroId);
         body.append('titulo',         titulo);
         body.append('autor',          autor);
         body.append('paginas',        $('#cl_livro_paginas').val());
@@ -443,6 +445,7 @@ window.minhas_leituras = {
         body.append('raca',           $('#cl_livro_raca').val());
         body.append('tema',           $('#cl_livro_tema').val());
         body.append('local_leitura',  this._localSelecionado || '');
+
 
         try {
             const resp = await fetch('/php/api/base/menu_lateral/minhasLeituras/create_leitura.php', {

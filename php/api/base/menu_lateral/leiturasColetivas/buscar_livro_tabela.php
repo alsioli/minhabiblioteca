@@ -118,6 +118,10 @@ function PostMethod(array $tabelasPermitidas) {
         $db        = new DataBase();
         $params    = [':titulo' => '%' . $titulo . '%'];
         $resultado = $db->GetMany($sql, $params);
+        // echo "SQL Executado: $sql\n"; // Debugging line
+        // echo "Parâmetros: " . json_encode($params) . "\n"; // Debugging line
+        // echo "Resultado: " . json_encode($resultado) . "\n";
+  
 
         if (empty($resultado)) {
             $result_error = 'Nenhum livro encontrado.';

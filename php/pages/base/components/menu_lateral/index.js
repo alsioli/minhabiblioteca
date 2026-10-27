@@ -589,12 +589,24 @@ let menuLateral = {
                     </div>
                     <hr style="margin:12px 0">
                     <p id="modalResenhaTexto" style="font-size:0.88rem;line-height:1.8;white-space:pre-wrap;word-break:break-word"></p>
+                    <textarea id="modalResenhaEditor" class="form-control d-none" rows="14"
+                              style="font-size:0.88rem;line-height:1.6"></textarea>
+                    <div id="modalResenhaMsg" class="mt-2"></div>
                   </div>
                   <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary btn-sm" data-dismiss="modal">Fechar</button>
-                    <button type="button" class="btn btn-outline-dark btn-sm" onclick="resenhas_view.gerarPDF()">
-                        📄 Gerar PDF
-                    </button>
+                    <div id="modalResenhaAcoesVer">
+                        <button type="button" class="btn btn-secondary btn-sm" data-dismiss="modal">Fechar</button>
+                        <button type="button" class="btn btn-outline-primary btn-sm" onclick="resenhas_view.editar()">
+                            ✏️ Editar
+                        </button>
+                        <button type="button" class="btn btn-outline-dark btn-sm" onclick="resenhas_view.gerarPDF()">
+                            📄 Gerar PDF
+                        </button>
+                    </div>
+                    <div id="modalResenhaAcoesEditar" class="d-none">
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="resenhas_view.cancelarEdicao()">Cancelar</button>
+                        <button type="button" class="btn btn-primary btn-sm" onclick="resenhas_view.salvarEdicao()">Salvar</button>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -719,6 +731,48 @@ let menuLateral = {
             })
             .fail(function () {
                 console.error('Erro ao carregar o script de Leitura Coletiva.');
+                $('#tabelaCronogramaLC').html('<div class="alert alert-danger">Erro ao carregar dados.</div>');
+            });
+    },
+
+      abrirLcsAtuais: function () {
+        this._carregarCSSCronograma();
+
+        // Limpa o conteúdo atual do main e injeta container do cronograma
+        $('#menu_lateral').css('width', '250px');
+        $('#menu_lateral').addClass('oculto');
+        $('#mainConteudo').html(`
+            <div id="cronogramaLCContainer" class="container-fluid mt-4">
+                <h3 class="mb-3 d-flex justify-content-between align-items-center">
+                    Cronograma das Leituras Coletivas
+                    <span style="background:#ff9800; color:#fff; font-size:0.85rem; padding:4px 12px; border-radius:6px; font-weight:normal;">
+                        ${new Date().toLocaleDateString('pt-BR')}
+                    </span>
+                </h3>
+                <div id="tabelaCronogramaLC"></div>
+            </div>
+        `);
+
+        // Injeta o HTML dos modais (editar, nova LC) no DOM, sem abrir nenhum deles
+        if ($('#modalEditarCronogramaLC').length === 0) {
+            $.ajax({
+                url: '/php/pages/base/components/menu_lateral/leituras_coletivas/index.php',
+                method: 'GET',
+                success: function (html) {
+                    $('body').append(html);
+                }
+            });
+        }
+
+        // Carrega o script antes de chamar a função
+        $.getScript('/php/pages/base/components/menu_lateral/leituras_coletivas/index.js')
+            .done(function () {
+                if (window.leitura_coletiva && typeof leitura_coletiva.carregarCronogramaLC_Atuais === 'function') {
+                    leitura_coletiva.carregarCronogramaLC_Atuais();
+                }
+            })
+            .fail(function () {
+                console.error('Erro ao carregar o script de Leitura Coletiva Atual.');
                 $('#tabelaCronogramaLC').html('<div class="alert alert-danger">Erro ao carregar dados.</div>');
             });
     },
@@ -1797,6 +1851,13 @@ let menuLateral = {
                         <label class="mb-1 d-block" style="font-size:0.82rem;font-weight:600">Natureza</label>
                         <select id="cgNatureza" class="form-control form-control-sm" style="width:160px">
                             <option value="">Todas</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="mb-1 d-block" style="font-size:0.82rem;font-weight:600">Tema</label>
+                        <select id="cgTema" class="form-control form-control-sm" style="width:160px">
+                            <option value="">Todos</option>
                         </select>
                     </div>
 

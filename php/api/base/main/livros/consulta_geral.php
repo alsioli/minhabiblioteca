@@ -32,6 +32,7 @@ function GetMethod() {
     $lido        = trim($_GET['lido']        ?? ''); // 'sim'|'nao'|'lendo'|'abandonado'|'interrompido'
     $paginas     = trim($_GET['paginas']     ?? ''); // 'ate100'|'101_200'|'201_300'|'301_400'|'mais400'
     $natureza    = trim($_GET['natureza']    ?? '');
+    $tema        = trim($_GET['tema']        ?? '');
     $sexo        = trim($_GET['sexo']        ?? ''); // 'F'|'M'
     $raca        = trim($_GET['raca']        ?? '');
     $pais        = trim($_GET['pais']        ?? '');
@@ -80,6 +81,11 @@ function GetMethod() {
     if ($natureza !== '') {
         $where[]             = "l.natureza = :natureza";
         $params[':natureza'] = $natureza;
+    }
+
+    if ($tema !== '') {
+        $where[]         = "l.tema = :tema";
+        $params[':tema'] = $tema;
     }
 
     if ($sexo !== '') {

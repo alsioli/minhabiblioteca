@@ -37,6 +37,11 @@ $TABELAS_PERMITIDAS = [
     'dbo.LivrosKindleUnlimited'                     => '[Biblioteca].[dbo].[LivrosKindleUnlimited]',
     'LivrosKindleUnlimited'                         => '[Biblioteca].[dbo].[LivrosKindleUnlimited]',
     '[Biblioteca].[dbo].[LivrosKindleUnlimited]'    => '[Biblioteca].[dbo].[LivrosKindleUnlimited]',
+
+    // ── Emprestimos ─────────────────────────────────────────
+    'dbo.LivrosEmprestimos'                     => '[Biblioteca].[dbo].[LivrosEmprestimos]',
+    'LivrosEmprestimos'                         => '[Biblioteca].[dbo].[LivrosEmprestimos]',
+    '[Biblioteca].[dbo].[LivrosEmprestimos]'    => '[Biblioteca].[dbo].[LivrosEmprestimos]',
 ];
 
 // Tabelas que têm colunas completas (sexo_autor, pais, natureza, tema, tipo_edicao, status)

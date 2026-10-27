@@ -188,6 +188,7 @@ let biblioteca = {
             'Audible':           ['secao_audible'],
             'Biblion':           ['secao_biblion',    'secao_emprestimo'],
             'MEC_Livros':        ['secao_emprestimo'],
+            'Emprestimos':       ['secao_emprestimo'],
         };
 
         (mapa[local] || []).forEach(id => $('#' + id).show());

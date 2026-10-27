@@ -40,7 +40,13 @@
 
             <div class="grupo">
               <label>Natureza</label>
-              <input type="text" name="natureza">
+              <select name="natureza" required>
+                <option value="">Selecione</option>
+                <option value="mensal">Mensal</option>
+                <option value="bimestral">Bimestral</option>
+                <option value="trimestral">Trimestral</option>
+                <option value="semestral">Semestral</option>
+               </select>
             </div>
           </div>
 

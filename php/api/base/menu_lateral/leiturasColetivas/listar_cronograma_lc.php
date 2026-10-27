@@ -17,9 +17,17 @@ try {
     $db = new DataBase();
 
     $sql = "
-        SELECT id, titulo, lc, data_cadastro, data_final, paginas, mes, situacao
-        FROM [Biblioteca].[dbo].[CronogramaLCs]
-        ORDER BY data_final ASC
+        SELECT c.id, c.titulo, c.lc, c.data_cadastro, c.data_final, c.paginas, c.mes, c.situacao,
+               a.percentual
+        FROM [Biblioteca].[dbo].[CronogramaLCs] c
+        OUTER APPLY (
+            -- Batimento com LeiturasEmAndamento (por título): registro mais recente do livro
+            SELECT TOP 1 e.percentual
+            FROM [Biblioteca].[dbo].[LeiturasEmAndamento] e
+            WHERE LTRIM(RTRIM(e.titulo)) = LTRIM(RTRIM(c.titulo))
+            ORDER BY e.dt_alteracao DESC, e.id DESC
+        ) a
+        ORDER BY c.data_final ASC
     ";
 
     $result = $db->GetMany($sql);

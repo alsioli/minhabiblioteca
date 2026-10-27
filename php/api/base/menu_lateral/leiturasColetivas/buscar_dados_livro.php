@@ -32,10 +32,11 @@ $TABELAS_PERMITIDAS = [
     'MEC_Livros'         => ['sql' => '[Biblioteca].[dbo].[LivrosMEC]',             'completa' => false],
     'Audible'            => ['sql' => '[Biblioteca].[dbo].[LivrosAudible]',         'completa' => false],
     'Kindle_Unlimited'   => ['sql' => '[Biblioteca].[dbo].[LivrosKindleUnlimited]', 'completa' => false],
+    'Emprestimos'        => ['sql' => '[Biblioteca].[dbo].[LivrosEmprestimos]',     'completa' => false],
 ];
 
 // Ordem de prioridade de busca
-$ordem_prioridade = ['Biblioteca', 'Skeelo', 'Biblion', 'MEC_Livros', 'Audible', 'Kindle_Unlimited'];
+$ordem_prioridade = ['Biblioteca', 'Skeelo', 'Biblion', 'MEC_Livros', 'Audible', 'Kindle_Unlimited', 'Emprestimos'];
 
 try {
     $db = new DataBase();

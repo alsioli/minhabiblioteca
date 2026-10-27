@@ -59,9 +59,9 @@ function GetMethod() {
 
         $sqlAnos = "
             SELECT
-                SUM(CASE WHEN YEAR(data_fim) = :a0 THEN 1 ELSE 0 END) AS y0,
-                SUM(CASE WHEN YEAR(data_fim) = :a1 THEN 1 ELSE 0 END) AS y1,
-                SUM(CASE WHEN YEAR(data_fim) = :a2 THEN 1 ELSE 0 END) AS y2
+                SUM(CASE WHEN (iAno) = :a0 THEN 1 ELSE 0 END) AS y0,
+                SUM(CASE WHEN (iAno) = :a1 THEN 1 ELSE 0 END) AS y1,
+                SUM(CASE WHEN (iAno) = :a2 THEN 1 ELSE 0 END) AS y2
             FROM [Biblioteca].[dbo].[Leituras]
             WHERE data_fim IS NOT NULL
         ";

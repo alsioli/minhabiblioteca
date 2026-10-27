@@ -37,6 +37,11 @@ $TABELAS_PERMITIDAS = [
     'dbo.LivrosKindleUnlimited'                     => '[Biblioteca].[dbo].[LivrosKindleUnlimited]',
     'LivrosKindleUnlimited'                         => '[Biblioteca].[dbo].[LivrosKindleUnlimited]',
     '[Biblioteca].[dbo].[LivrosKindleUnlimited]'    => '[Biblioteca].[dbo].[LivrosKindleUnlimited]',
+
+    // ── Emprestimos ─────────────────────────────────────────
+    'dbo.LivrosEmprestimos'                     => '[Biblioteca].[dbo].[LivrosEmprestimos]',
+    'LivrosEmprestimos'                         => '[Biblioteca].[dbo].[LivrosEmprestimos]',
+    '[Biblioteca].[dbo].[LivrosEmprestimos]'    => '[Biblioteca].[dbo].[LivrosEmprestimos]',
 ];
 
 // Tabela Livros: tem tipo_edicao e status; demais podem não ter essas colunas
@@ -95,7 +100,7 @@ function PostMethod(array $tabelasPermitidas) {
     // Livros tem tipo_edicao e status; outras tabelas retornam NULL nesses campos
     if ($ehLivros) {
         $campos = "id, titulo, autor, natureza, tipo_midia, paginas, tema, tipo_edicao";
-        $where  = "titulo LIKE :titulo AND (status IS NULL OR status <> 'Lido')";
+        $where  = "titulo LIKE :titulo";
     } else {
         $campos = "id, titulo, autor, natureza, tipo_midia, paginas, tema, NULL AS tipo_edicao";
         $where  = "titulo LIKE :titulo";
@@ -107,20 +112,19 @@ function PostMethod(array $tabelasPermitidas) {
     $hasStatus = in_array($tabelaSQL, $statusTables, true);
 
     if ($hasStatus) {
-        $where = "titulo LIKE :titulo AND (status IS NULL OR status <> 'Lido')";
+        $where = "titulo LIKE :titulo";
     }
 
     $sql = "SELECT {$campos} FROM {$tabelaSQL} WHERE {$where}
-    AND status <> 'Lido'
     ORDER BY titulo ASC";
 
-    try {
+   try {
         $db        = new DataBase();
         $params    = [':titulo' => '%' . $titulo . '%'];
         $resultado = $db->GetMany($sql, $params);
-        // echo "SQL Executado: $sql\n"; // Debugging line
-        // echo "Parâmetros: " . json_encode($params) . "\n"; // Debugging line
-        // echo "Resultado: " . json_encode($resultado) . "\n";
+        //  echo "SQL Executado: $sql\n"; // Debugging line
+        //  echo "Parâmetros: " . json_encode($params) . "\n"; // Debugging line
+        //  echo "Resultado: " . json_encode($resultado) . "\n";
   
 
         if (empty($resultado)) {

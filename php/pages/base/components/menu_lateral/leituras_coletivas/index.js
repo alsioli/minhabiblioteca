@@ -411,6 +411,18 @@ let leitura_coletiva = {
             return (item.paginas && tot > 0) ? Math.ceil(item.paginas / tot) : 0;
         };
 
+        // Batimento com LeiturasEmAndamento: percentual vem do registro mais recente do livro.
+        // Lido = 100% (o registro sai de LeiturasEmAndamento ao concluir); sem registro = não iniciado.
+        const calcPercentual = item => {
+            if (item.situacao === 'Lido') return 100;
+            if (item.percentual === null || item.percentual === undefined) return null;
+            return Math.round(parseFloat(item.percentual));
+        };
+        const calcSituacao = item => {
+            if (item.situacao === 'Lido') return 'Lido';
+            return calcPercentual(item) !== null ? 'Lendo' : (item.situacao || 'A começar');
+        };
+
         const sorted = [...lista].sort((a, b) => {
             let vA, vB;
             switch (col) {
@@ -420,9 +432,10 @@ let leitura_coletiva = {
                 case 3: vA = new Date(a.data_final);    vB = new Date(b.data_final);    break;
                 case 4: vA = a.paginas  || 0; vB = b.paginas  || 0; break;
                 case 5: vA = new Date(a.mes);           vB = new Date(b.mes);           break;
-                case 6: return dir * (a.situacao || '').localeCompare(b.situacao || '', 'pt-BR');
+                case 6: return dir * calcSituacao(a).localeCompare(calcSituacao(b), 'pt-BR');
                 case 7: vA = calcDiff(a);  vB = calcDiff(b);  break;
                 case 8: vA = calcMedia(a); vB = calcMedia(b); break;
+                case 9: vA = calcPercentual(a) ?? -1; vB = calcPercentual(b) ?? -1; break;
                 default: return 0;
             }
             return dir * (vA < vB ? -1 : vA > vB ? 1 : 0);
@@ -445,6 +458,7 @@ let leitura_coletiva = {
                         ${th(6,'Situação')}
                         ${th(7,'Prazo(dias)')}
                         ${th(8,'Média Páginas')}
+                        ${th(9,'% Lido')}
                         <th>Ações</th>
                     </tr>
                 </thead>
@@ -483,9 +497,10 @@ let leitura_coletiva = {
                     <td>${this.formatarDataBR(item.data_final)}</td>
                     <td>${item.paginas}</td>
                     <td>${this.formatarMes(item.mes)}</td>
-                    <td>${item.situacao}</td>
+                    <td>${calcSituacao(item)}</td>
                     <td style="${diasStyle}">${diasTexto}</td>
                     <td>${media}</td>
+                    <td>${calcPercentual(item) === null ? '—' : calcPercentual(item) + '%'}</td>
                     <td style="white-space:nowrap">
                         <button class="btn btn-sm btn-warning text-dark fw-bold"
                                 style="background-color:#ff9800; border-color:#e68900;"
@@ -496,20 +511,6 @@ let leitura_coletiva = {
                                 onclick="leitura_coletiva.excluirLC(${item.id}, '${(item.titulo || '').replace(/'/g, "\\'")}')">
                             🗑️ Excluir
                         </button>
-                        <button class="btn btn-sm btn-info text-dark fw-bold ml-1"
-                                onclick="leitura_coletiva.abrirTBRdaLC(${item.id})">
-                            📚 TBR
-                        </button>
-                        ${item.situacao === 'A começar'
-                            ? `<button class="btn btn-sm btn-success text-white fw-bold ml-1"
-                                       onclick="leitura_coletiva.abrirIniciarDaLC(${item.id})">
-                                   ▶ Iniciar
-                               </button>`
-                            : `<button class="btn btn-sm btn-secondary text-white fw-bold ml-1" disabled
-                                       title="Disponível apenas para livros 'A começar'">
-                                   ▶ Iniciar
-                               </button>`
-                        }
                     </td>
                 </tr>
             `;
@@ -522,6 +523,62 @@ let leitura_coletiva = {
                 ${html}
             </div>
         `);
+    },
+    
+     carregarCronogramaLC_Atuais: async function () {
+        try {
+            const resp = await fetch('/php/api/base/menu_lateral/leiturasColetivas/listar_cronograma_lc_atual.php');
+
+            const text = await resp.text();
+
+            let response;
+            try {
+                response = text ? JSON.parse(text) : null;
+            } catch (e) {
+                // Tenta recuperar JSON mesmo que haja mensagens antes/ depois
+                try {
+                    const start = text.indexOf('{');
+                    const end = text.lastIndexOf('}');
+                    if (start !== -1 && end !== -1 && end > start) {
+                        const sub = text.substring(start, end + 1);
+                        response = JSON.parse(sub);
+                        console.warn('Resposta limpada de ruído antes do JSON.');
+                    } else {
+                        throw e;
+                    }
+                } catch (e2) {
+                    console.error('Resposta inválida JSON ao carregar cronograma:', e, text);
+                    $('#tabelaCronogramaLC').html(`
+                        <div class="alert alert-danger">Erro ao carregar dados (resposta inválida).</div>
+                    `);
+                    return;
+                }
+            }
+
+            if (!resp.ok) {
+                console.error('Erro HTTP ao carregar cronograma:', resp.status, text);
+                $('#tabelaCronogramaLC').html(`
+                    <div class="alert alert-danger">Erro ao carregar dados (código ${resp.status}).</div>
+                `);
+                return;
+            }
+
+            if (!response || !response.status) {
+                const errMsg = response && response.error ? response.error : 'Resposta vazia do servidor.';
+                $('#tabelaCronogramaLC').html(`
+                    <div class="alert alert-danger">${errMsg}</div>
+                `);
+                return;
+            }
+
+            this.montarTabelaCronograma(response.data || []);
+
+        } catch (error) {
+            console.error("Erro ao carregar cronograma:", error);
+            $('#tabelaCronogramaLC').html(`
+                <div class="alert alert-danger">Erro ao carregar dados.</div>
+            `);
+        }
     },
 
     abrirModalEditarLC: function (id) {
@@ -619,140 +676,6 @@ let leitura_coletiva = {
             });
         } catch (e) {
             Swal.fire({ icon: 'error', title: 'Erro', text: 'Erro inesperado ao excluir.' });
-        }
-    },
-
-    _buscarDadosLivro: async function (titulo) {
-        try {
-            const resp = await fetch(
-                '/php/api/base/menu_lateral/leiturasColetivas/buscar_dados_livro.php?titulo=' +
-                encodeURIComponent(titulo)
-            );
-            const json = await resp.json();
-            return (json.status && json.data) ? json.data : null;
-        } catch (e) {
-            console.error('[LC] Erro ao buscar dados do livro:', e);
-            return null;
-        }
-    },
-
-    abrirTBRdaLC: async function (id) {
-        try {
-            const item = this._lista.find(i => i.id == id);
-            if (!item) throw new Error('Item id=' + id + ' nao encontrado na lista.');
-
-            // Busca dados completos nas tabelas de acervo
-            const dadosLivro = await this._buscarDadosLivro(item.titulo);
-            const livro = {
-                titulo:      (dadosLivro && dadosLivro.titulo)      || item.titulo,
-                paginas:     (dadosLivro && dadosLivro.paginas)     || item.paginas || '',
-                autor:       (dadosLivro && dadosLivro.autor)       || item.autor || '',
-                sexo_autor:  (dadosLivro && dadosLivro.sexo_autor)  || '',
-                pais:        (dadosLivro && dadosLivro.pais)        || '',
-                natureza:    (dadosLivro && dadosLivro.natureza)    || item.natureza || '',
-                tema:        (dadosLivro && dadosLivro.tema)        || item.tema || '',
-                tipo_edicao: (dadosLivro && dadosLivro.tipo_edicao) || item.tipo_edicao || ''
-            };
-
-            $('#modalTBRMensal').remove();
-
-            $.ajax({
-                url: '/php/pages/base/components/menu_lateral/tbr_mensal/index.php',
-                method: 'GET',
-                success: function (html) {
-                    try {
-                        $('body').append(html);
-                        $.getScript('/php/pages/base/components/menu_lateral/tbr_mensal/index.js')
-                            .done(function () {
-                                try {
-                                    if (!window.tbr_mensal || typeof tbr_mensal.abrirComLivroPreenchido !== 'function') {
-                                        throw new Error('tbr_mensal.abrirComLivroPreenchido nao disponivel.');
-                                    }
-                                    tbr_mensal.abrirComLivroPreenchido(livro);
-                                } catch (e) {
-                                    console.error('[TBR] Erro ao abrir modal:', e);
-                                    alert('Erro ao abrir modal TBR: ' + e.message);
-                                }
-                            })
-                            .fail(function () {
-                                console.error('[TBR] Falha ao carregar tbr_mensal/index.js');
-                                alert('Erro ao carregar script do modal TBR.');
-                            });
-                    } catch (e) {
-                        console.error('[TBR] Erro ao injetar HTML:', e);
-                        alert('Erro ao montar modal TBR: ' + e.message);
-                    }
-                },
-                error: function (xhr, status, err) {
-                    console.error('[TBR] Erro AJAX:', status, err);
-                    alert('Erro ao carregar modal TBR.');
-                }
-            });
-        } catch (e) {
-            console.error('[TBR] Erro geral em abrirTBRdaLC:', e);
-            alert('Erro: ' + e.message);
-        }
-    },
-
-    abrirIniciarDaLC: async function (id) {
-        try {
-            const item = this._lista.find(i => i.id == id);
-            if (!item) throw new Error('Item id=' + id + ' nao encontrado na lista.');
-
-            // Busca dados completos nas tabelas de acervo
-            const dadosLivro = await this._buscarDadosLivro(item.titulo);
-            const livro = {
-                id:            (dadosLivro && dadosLivro.id)            || '',
-                titulo:        (dadosLivro && dadosLivro.titulo)        || item.titulo,
-                paginas:       (dadosLivro && dadosLivro.paginas)       || item.paginas || '',
-                autor:         (dadosLivro && dadosLivro.autor)         || item.autor || '',
-                sexo_autor:    (dadosLivro && dadosLivro.sexo_autor)    || '',
-                pais:          (dadosLivro && dadosLivro.pais)          || '',
-                natureza:      (dadosLivro && dadosLivro.natureza)      || '',
-                tema:          (dadosLivro && dadosLivro.tema)          || item.tema || '',
-                tipo_edicao:   (dadosLivro && dadosLivro.tipo_edicao)   || item.tipo_edicao || '',
-                local_leitura: (dadosLivro && dadosLivro.local_leitura) || '',
-            };
-
-            const contexto = { cronograma_id: item.id, cronograma_lc: item.lc };
-
-            $('#modalComecarLivro').remove();
-
-            $.ajax({
-                url: '/php/pages/base/components/menu_lateral/minhas_leituras/index.php',
-                method: 'GET',
-                success: function (html) {
-                    try {
-                        $('body').append(html);
-                        $.getScript('/php/pages/base/components/menu_lateral/minhas_leituras/index.js')
-                            .done(function () {
-                                try {
-                                    if (!window.minhas_leituras || typeof minhas_leituras.abrirComLivroPreenchido !== 'function') {
-                                        throw new Error('minhas_leituras.abrirComLivroPreenchido nao disponivel.');
-                                    }
-                                    minhas_leituras.abrirComLivroPreenchido(livro, contexto);
-                                } catch (e) {
-                                    console.error('[Iniciar] Erro ao abrir modal:', e);
-                                    alert('Erro ao abrir modal Iniciar: ' + e.message);
-                                }
-                            })
-                            .fail(function () {
-                                console.error('[Iniciar] Falha ao carregar minhas_leituras/index.js');
-                                alert('Erro ao carregar script do modal Iniciar.');
-                            });
-                    } catch (e) {
-                        console.error('[Iniciar] Erro ao injetar HTML:', e);
-                        alert('Erro ao montar modal Iniciar: ' + e.message);
-                    }
-                },
-                error: function (xhr, status, err) {
-                    console.error('[Iniciar] Erro AJAX:', status, err);
-                    alert('Erro ao carregar modal Iniciar.');
-                }
-            });
-        } catch (e) {
-            console.error('[Iniciar] Erro geral em abrirIniciarDaLC:', e);
-            alert('Erro: ' + e.message);
         }
     },
 

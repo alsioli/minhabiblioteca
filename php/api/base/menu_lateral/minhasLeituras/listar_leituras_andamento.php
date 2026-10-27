@@ -27,11 +27,13 @@ function GetMethod() {
     global $result_status, $result_error, $result_data;
 
     // LeiturasEmAndamento é a fonte de verdade para livros em leitura.
-    // Pega o registro mais recente por livro e faz JOIN com Leituras para obter local_leitura.
+    // Pega o registro mais recente por livro + local.
+    // id_leitura = ID do livro na origem; casa com Leituras.id_livros (leitura em aberto)
+    // e o nome do local vem de LocalLeitura.
   $sqlComLocal = "
     WITH ranked AS (
         SELECT *,
-               ROW_NUMBER() OVER (PARTITION BY id_leitura ORDER BY dt_alteracao DESC) AS rn
+               ROW_NUMBER() OVER (PARTITION BY id_leitura, id_local_leitura ORDER BY dt_alteracao DESC) AS rn
         FROM [Biblioteca].[dbo].[LeiturasEmAndamento]
     )
     SELECT
@@ -41,11 +43,19 @@ function GetMethod() {
         r.paginas,
         r.tipo_midia,
         r.data_inicio,
-        ISNULL(lt.tema,          '')        AS tema,
-        ISNULL(lt.local_leitura, '')        AS local_leitura,
-        lt.id_livros                        AS id_livros
+        ISNULL(lt.tema,           '')       AS tema,
+        ISNULL(ll.vLocal_Leitura, '')       AS local_leitura,
+        r.id_leitura                        AS id_livros
     FROM ranked r
-    LEFT JOIN [Biblioteca].[dbo].[Leituras] lt ON lt.id = r.id_leitura
+    LEFT JOIN [Biblioteca].[dbo].[LocalLeitura] ll ON ll.id = r.id_local_leitura
+    OUTER APPLY (
+        SELECT TOP 1 l.tema
+        FROM [Biblioteca].[dbo].[Leituras] l
+        WHERE l.id_livros        = r.id_leitura
+          AND l.id_local_leitura = r.id_local_leitura
+          AND l.data_fim IS NULL
+        ORDER BY l.data_inicio DESC, l.id DESC
+    ) lt
     WHERE r.rn = 1
     ORDER BY r.dt_alteracao DESC
 ";
@@ -64,9 +74,8 @@ function GetMethod() {
         r.data_inicio,
         '' AS tema,
         '' AS local_leitura,
-        lt.id_livros AS id_livros
+        r.id_leitura AS id_livros
     FROM ranked r
-    LEFT JOIN [Biblioteca].[dbo].[Leituras] lt ON lt.id = r.id_leitura
     WHERE r.rn = 1
     ORDER BY r.dt_alteracao DESC
 ";

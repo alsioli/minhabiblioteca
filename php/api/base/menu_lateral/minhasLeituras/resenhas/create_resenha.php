@@ -4,14 +4,12 @@
  * DDL — execute no SQL Server antes de usar este endpoint:
  *
  * CREATE TABLE [Biblioteca].[dbo].[Resenhas] (
- *     id          INT IDENTITY(1,1) PRIMARY KEY,
  *     id_leitura  INT NOT NULL,
- *     nome_livro  NVARCHAR(255),
- *     autor       NVARCHAR(255),
- *     mes_leitura NVARCHAR(20),
- *     avaliacao   DECIMAL(3,1),
- *     resenha     VARCHAR(MAX),
- *     created_at  DATETIME DEFAULT GETDATE()
+ *     nome_livro  VARCHAR(255),
+ *     autor       VARCHAR(255),
+ *     mes_leitura VARCHAR(20),
+ *     avaliacao   FLOAT,
+ *     resenhas    VARCHAR(MAX)
  * );
  */
 
@@ -77,8 +75,8 @@ function PostMethod() {
             $result_data = ['message' => 'Resenha atualizada com sucesso.'];
         } else {
             $db->ExecuteNonQuery(
-                "INSERT INTO Resenhas (id_leitura, nome_livro, autor, mes_leitura, avaliacao, resenhas, created_at)
-                 VALUES (:id, :nome, :autor, :mes, :avaliacao, :resenha, GETDATE())",
+                "INSERT INTO Resenhas (id_leitura, nome_livro, autor, mes_leitura, avaliacao, resenhas)
+                 VALUES (:id, :nome, :autor, :mes, :avaliacao, :resenha)",
                 [
                     ':id'       => (int)$id_leitura,
                     ':nome'     => $nome_livro  ?: null,
@@ -93,11 +91,11 @@ function PostMethod() {
 
         try {
             $db->ExecuteNonQuery(
-                "UPDATE Leituras SET resenhas = 'sim' WHERE id = :id",
+                "UPDATE Leituras SET resenhas = 'S' WHERE id = :id",
                 [':id' => (int)$id_leitura]
             );
         } catch (Exception $ignored) {
-            // Coluna resenhas pode não existir — não bloqueia o salvamento
+            // Não bloqueia o salvamento da resenha
         }
 
         $result_status = true;

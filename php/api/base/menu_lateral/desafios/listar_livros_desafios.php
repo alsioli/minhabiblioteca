@@ -27,99 +27,100 @@ function GetMethod() {
     global $result_status, $result_error, $result_data;
 
     $sql = "
-        WITH base AS (
+        WITH lt AS (
 
-            -- ── Desafio50Antes50: Lidos (confirmado em Leituras) ─────────
+            -- ── Leituras agregadas por título ───────────────────────────
             SELECT
-                d50.tematica,
-                d50.titulo,
-                MAX(l.autor)      AS autor,
-                'Lido'            AS status_leitura,
-                MIN(l.data_fim)   AS data_ordem,
-                CAST(NULL AS INT) AS seq_origem,
-                MAX(d50.categoria) AS categoria
-            FROM [Biblioteca].[dbo].[Desafio50Antes50] d50
-            INNER JOIN [Biblioteca].[dbo].[Leituras] l
-                ON  l.titulo   = d50.titulo
-                AND l.data_fim IS NOT NULL
-            GROUP BY d50.tematica, d50.titulo
-
-            UNION ALL
-
-            -- ── Desafio50Antes50: não iniciados (usa status da própria tabela)
-            SELECT
-                d50.tematica,
-                d50.titulo,
-                d50.autor                      AS autor,
-                ISNULL(d50.status, 'Não Lido') AS status_leitura,
-                NULL                           AS data_ordem,
-                CAST(NULL AS INT)  AS seq_origem,
-                d50.categoria     AS categoria
-            FROM [Biblioteca].[dbo].[Desafio50Antes50] d50
-            WHERE NOT EXISTS (
-                SELECT 1 FROM [Biblioteca].[dbo].[Leituras] l
-                WHERE l.titulo = d50.titulo
-            )
-
-            UNION ALL
-
-            -- ── DesafioPrompts: Lidos (confirmado em Leituras) ──────────
-            SELECT
-                dp.tematica,
-                dp.titulo,
-                MAX(l.autor)      AS autor,
-                'Lido'            AS status_leitura,
-                MIN(l.data_fim)   AS data_ordem,
-                dp.id             AS seq_origem,
-                MAX(dp.categoria) AS categoria
-            FROM [Biblioteca].[dbo].[DesafioPrompts] dp
-            INNER JOIN [Biblioteca].[dbo].[Leituras] l
-                ON  l.titulo   = dp.titulo
-                AND l.data_fim IS NOT NULL
-            GROUP BY dp.tematica, dp.titulo, dp.id
-
-            UNION ALL
-
-            -- ── DesafioPrompts: não iniciados (usa status da própria tabela)
-            SELECT
-                dp.tematica,
-                dp.titulo,
-                dp.autor                       AS autor,
-                ISNULL(dp.status, 'Não Lido')  AS status_leitura,
-                NULL                           AS data_ordem,
-                dp.id                          AS seq_origem,
-                dp.categoria                   AS categoria
-            FROM [Biblioteca].[dbo].[DesafioPrompts] dp
-            WHERE NOT EXISTS (
-                SELECT 1 FROM [Biblioteca].[dbo].[Leituras] l
-                WHERE l.titulo = dp.titulo
-            )
+                l.titulo,
+                MAX(l.autor)    AS autor,
+                MIN(l.data_fim) AS data_fim   -- MIN ignora NULL: 1ª conclusão
+            FROM [Biblioteca].[dbo].[Leituras] l
+            GROUP BY l.titulo
 
         ),
-        numerado AS (
+        base AS (
+
+            -- ── Desafio50Antes50: todos os livros da lista ──────────────
             SELECT
-                tematica,
-                ROW_NUMBER() OVER (
-                    PARTITION BY tematica
-                    ORDER BY
-                        CASE WHEN data_ordem IS NULL THEN 1 ELSE 0 END,
-                        data_ordem  ASC,
-                        seq_origem  ASC,
-                        titulo      ASC
-                ) AS sequencia,
-                titulo,
-                autor,
-                status_leitura,
-                categoria,
-                CASE WHEN data_ordem IS NOT NULL
-                     THEN CONVERT(VARCHAR(10), data_ordem, 103)
-                     ELSE NULL
-                END AS data_referencia
-            FROM base
+                'D50'                              AS origem,
+                d50.tematica,
+                d50.titulo,
+                COALESCE(lt.autor, d50.autor)      AS autor,
+                CASE
+                    WHEN lt.data_fim IS NOT NULL THEN 'Lido'
+                    WHEN lt.titulo   IS NOT NULL THEN 'Lendo'
+                    ELSE ISNULL(d50.status, 'Não Lido')
+                END                                AS status_leitura,
+                lt.data_fim                        AS data_ordem,
+                d50.id                             AS seq_origem,
+                d50.categoria,
+                d50.tema,
+                d50.paginas
+            FROM [Biblioteca].[dbo].[Desafio50Antes50] d50
+            LEFT JOIN lt ON lt.titulo = d50.titulo
+
+            UNION ALL
+
+            -- ── DesafioPrompts: todas as opções de cada prompt ──────────
+            SELECT
+                'PROMPT'                           AS origem,
+                dp.tematica,
+                dp.titulo,
+                COALESCE(lt.autor, dp.autor)       AS autor,
+                CASE
+                    WHEN lt.data_fim IS NOT NULL THEN 'Lido'
+                    WHEN lt.titulo   IS NOT NULL THEN 'Lendo'
+                    ELSE ISNULL(dp.status, 'Não Lido')
+                END                                AS status_leitura,
+                lt.data_fim                        AS data_ordem,
+                dp.id                              AS seq_origem,
+                dp.categoria,
+                dp.tema,
+                dp.paginas
+            FROM [Biblioteca].[dbo].[DesafioPrompts] dp
+            LEFT JOIN lt ON lt.titulo = dp.titulo
+
+        ),
+        marcado AS (
+            SELECT
+                b.*,
+                SUM(CASE WHEN b.status_leitura = 'Lido' THEN 1 ELSE 0 END)
+                    OVER (PARTITION BY b.tematica, b.categoria) AS lidos_categoria
+            FROM base b
+        ),
+        filtrado AS (
+            -- Desafio50Antes50 mostra sempre a lista completa.
+            -- DesafioPrompts: se o prompt (categoria) já tem um livro lido,
+            -- esconde as demais opções daquele prompt.
+            SELECT *
+            FROM marcado
+            WHERE origem = 'D50'
+               OR lidos_categoria = 0
+               OR status_leitura = 'Lido'
         )
-        SELECT tematica, sequencia, titulo, autor, status_leitura, categoria, data_referencia
-        FROM numerado
-        ORDER BY tematica ASC, sequencia ASC
+        SELECT
+            origem,
+            tematica,
+            ROW_NUMBER() OVER (
+                PARTITION BY tematica
+                ORDER BY
+                    CASE WHEN data_ordem IS NULL THEN 1 ELSE 0 END,
+                    data_ordem  ASC,
+                    seq_origem  ASC,
+                    titulo      ASC
+            ) AS sequencia,
+            titulo,
+            autor,
+            status_leitura,
+            categoria,
+            tema,
+            paginas,
+            CASE WHEN data_ordem IS NOT NULL
+                 THEN CONVERT(VARCHAR(10), data_ordem, 103)
+                 ELSE NULL
+            END AS data_referencia
+        FROM filtrado
+        ORDER BY tematica ASC, sequencia ASC;
     ";
 
     try {

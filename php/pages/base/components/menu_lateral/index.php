@@ -32,6 +32,7 @@
                 <li><a class="btn-submenu" href="#" onclick="menuLateral.abrirModalNovaLC()">Cadastro de Grupo de LC</a></li>
                 <li><a class="btn-submenu" href="#" onclick="menuLateral.abrirModalNovaCronogramaLC()">Nova LC</a></li>
                 <li><a class="btn-submenu" href="#" onclick="menuLateral.abrirCronogramaLC()">Acompanhamento das LC´s</a></li>
+                <li><a class="btn-submenu" href="#" onclick="menuLateral.abrirLcsAtuais()">LC´s Atuais</a></li>
             </ul>
         </div>
 

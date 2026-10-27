@@ -22,12 +22,13 @@ function mapLivroCodigoTipo(array $row): array {
 
 // Mapeamento local → tabela SQL completa
 $TABELAS = [
-    'Biblioteca'       => ['tabela' => '[Biblioteca].[dbo].[Livros]',                'local' => 'Biblioteca'],
+    'Biblioteca'       => ['tabela' => '[Biblioteca].[dbo].[Livros]',                 'local' => 'Biblioteca'],
     'Skeelo'           => ['tabela' => '[Biblioteca].[dbo].[LeiturasSKEELO]',         'local' => 'Skeelo'],
     'Biblion'          => ['tabela' => '[Biblioteca].[dbo].[LivrosBiblion]',          'local' => 'Biblion'],
     'MEC_Livros'       => ['tabela' => '[Biblioteca].[dbo].[LivrosMEC]',              'local' => 'MEC_Livros'],
     'Audible'          => ['tabela' => '[Biblioteca].[dbo].[LivrosAudible]',          'local' => 'Audible'],
     'Kindle_Unlimited' => ['tabela' => '[Biblioteca].[dbo].[LivrosKindleUnlimited]',  'local' => 'Kindle_Unlimited'],
+    'Emprestimnos'     => ['tabela' => '[Biblioteca].[dbo].[LivrosEmprestimos]',      'local' => 'Emprestimos'],
 ];
 
 // Inicializar variáveis de resposta

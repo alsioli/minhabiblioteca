@@ -107,6 +107,7 @@ let resenhas_view = {
                         ${th('mes_leitura',  'Mês',      '100px')}
                         ${th('avaliacao',    'Avaliação','80px')}
                         ${th('resenhas',     'Resenha (prévia)')}
+                        <th style="${thSt};width:80px;text-align:center;cursor:default">Ações</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -133,6 +134,13 @@ let resenhas_view = {
                     <td style="${tdCtr}">${row.mes_leitura || '—'}</td>
                     <td style="${tdCtr}">${row.avaliacao != null ? row.avaliacao : '—'}</td>
                     <td style="${tdSt};max-width:400px;color:#555">${preview}</td>
+                    <td style="${tdCtr}">
+                        <button type="button" class="btn btn-outline-primary btn-sm py-0 px-2"
+                                onclick="event.stopPropagation(); resenhas_view.abrirModal(${idx}, true)"
+                                title="Editar esta resenha">
+                            ✏️ Editar
+                        </button>
+                    </td>
                 </tr>
             `;
         });
@@ -141,7 +149,7 @@ let resenhas_view = {
         box.innerHTML = html;
     },
 
-    abrirModal: function (idx) {
+    abrirModal: function (idx, editar) {
         const row = this._dados[idx];
         if (!row) return;
 
@@ -152,7 +160,77 @@ let resenhas_view = {
         document.getElementById('modalResenhaTexto').textContent     = row.resenhas      || '';
 
         this._modalAtual = row;
+        this.cancelarEdicao();
+        $('#modalResenhaMsg').empty();
+        if (editar) this.editar();
         $('#modalVerResenha').modal('show');
+    },
+
+    editar: function () {
+        const row = this._modalAtual;
+        if (!row) return;
+
+        $('#modalResenhaMsg').empty();
+        $('#modalResenhaEditor').val(row.resenhas || '').removeClass('d-none').focus();
+        $('#modalResenhaTexto').addClass('d-none');
+        $('#modalResenhaAcoesVer').addClass('d-none');
+        $('#modalResenhaAcoesEditar').removeClass('d-none');
+    },
+
+    cancelarEdicao: function () {
+        $('#modalResenhaEditor').addClass('d-none').val('');
+        $('#modalResenhaTexto').removeClass('d-none');
+        $('#modalResenhaAcoesEditar').addClass('d-none');
+        $('#modalResenhaAcoesVer').removeClass('d-none');
+    },
+
+    salvarEdicao: async function () {
+        const row = this._modalAtual;
+        if (!row) return;
+
+        const texto = $('#modalResenhaEditor').val().trim();
+        if (!texto) {
+            $('#modalResenhaMsg').html('<div class="alert alert-warning py-2 mb-0">A resenha não pode estar em branco.</div>');
+            return;
+        }
+
+        const confirmacao = await Swal.fire({
+            title: 'Salvar alterações?',
+            text: 'A resenha de "' + (row.nome_livro || '') + '" será atualizada.',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'Sim, salvar',
+            cancelButtonText: 'Cancelar'
+        });
+        if (!confirmacao.isConfirmed) return;
+
+        const body = new FormData();
+        body.append('id_leitura', row.id_leitura);
+        body.append('resenha',    texto);
+
+        try {
+            const resp = await fetch('/php/api/base/main/resenhas/update_resenha.php', { method: 'POST', body });
+            const json = await resp.json();
+
+            if (!json.status) {
+                $('#modalResenhaMsg').html('<div class="alert alert-danger py-2 mb-0">' + (json.error || 'Erro ao salvar resenha.') + '</div>');
+                return;
+            }
+
+            row.resenhas = texto;
+            document.getElementById('modalResenhaTexto').textContent = texto;
+            this.cancelarEdicao();
+            this._renderTabela(this._dados);
+            Swal.fire({
+                icon: 'success',
+                title: 'Resenha atualizada!',
+                timer: 1800,
+                showConfirmButton: false
+            });
+        } catch (e) {
+            console.error('Erro ao salvar resenha:', e);
+            $('#modalResenhaMsg').html('<div class="alert alert-danger py-2 mb-0">Erro inesperado. Tente novamente.</div>');
+        }
     },
 
     gerarPDF: function () {

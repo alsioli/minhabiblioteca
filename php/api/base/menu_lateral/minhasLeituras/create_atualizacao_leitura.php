@@ -136,6 +136,30 @@ function PostMethod() {
             }
         }
 
+        // Nome do local é necessário para atualizar o status na tabela de origem
+        if ($local_leitura === '' && $id_local_leitura) {
+            $localNome = $db->GetOne(
+                "SELECT vLocal_Leitura FROM [Biblioteca].[dbo].[LocalLeitura] WHERE id = :id",
+                [':id' => $id_local_leitura]
+            );
+            if ($localNome) {
+                $local_leitura = (string)$localNome['vLocal_Leitura'];
+            }
+        }
+
+        // id_leitura (LeiturasEmAndamento) = ID do livro na tabela de origem.
+        // IDs se repetem entre origens, então filtra também pelo local.
+        $filtroLocal       = $id_local_leitura ? ' AND id_local_leitura = :id_local' : '';
+        $paramsFiltroLocal = $id_local_leitura ? [':id_local' => $id_local_leitura] : [];
+
+        // Leitura em aberto (data_fim NULL) deste livro em Leituras — cobre releituras
+        $leituraAberta = $db->GetOne(
+            "SELECT TOP 1 id FROM [Biblioteca].[dbo].[Leituras]
+             WHERE id_livros = :id_livro AND data_fim IS NULL{$filtroLocal}
+             ORDER BY data_inicio DESC, id DESC",
+            [':id_livro' => (int)$id_leitura] + $paramsFiltroLocal
+        );
+
     $sql = "
         INSERT INTO [Biblioteca].[dbo].[LeiturasEmAndamento]
             (id_leitura, titulo, autor, paginas, id_local_leitura, tipo_midia, data_inicio,
@@ -164,16 +188,18 @@ function PostMethod() {
             ':p12' => $id_local_leitura ?: null,
         ];
 
-        // Bloqueia se a leitura já foi finalizada em Leituras (usar id_leitura)
-
+        // Bloqueia só se o livro já foi finalizado e não há leitura em aberto
+        // (se houver uma leitura em aberto, é releitura e pode atualizar)
+        $jaFinalizada = false;
+        if (!$leituraAberta) {
             $jaFinalizada = $db->GetOne(
-                "SELECT id_livros FROM [Biblioteca].[dbo].[Leituras]
-                WHERE id = :id AND data_fim IS NOT NULL",
-                [':id' => (int)$id_leitura]
+                "SELECT TOP 1 id FROM [Biblioteca].[dbo].[Leituras]
+                 WHERE id_livros = :id_livro AND data_fim IS NOT NULL{$filtroLocal}",
+                [':id_livro' => (int)$id_leitura] + $paramsFiltroLocal
             );
+        }
 
-    
-        if ($jaFinalizada !== null && $jaFinalizada !== false) {
+        if ($jaFinalizada) {
             $result_error = 'Esta leitura já foi finalizada e não aceita novas atualizações.';
             return;
         }
@@ -190,9 +216,9 @@ function PostMethod() {
         if ($concluido) {
             $jaConcluido = $db->GetOne(
                 "SELECT TOP 1 id FROM [Biblioteca].[dbo].[LeiturasEmAndamento]
-                 WHERE id_leitura = :id_leitura
+                 WHERE id_leitura = :id_leitura{$filtroLocal}
                    AND (percentual >= 100 OR (paginas > 0 AND pagina_atual >= paginas))",
-                [':id_leitura' => (int)$id_leitura]
+                [':id_leitura' => (int)$id_leitura] + $paramsFiltroLocal
             );
             if ($jaConcluido) {
                 $result_error = 'Já existe uma atualização de conclusão registrada para esta leitura.';
@@ -208,16 +234,26 @@ function PostMethod() {
             try {
                 $db->ExecuteNonQuery(
                     "DELETE FROM [Biblioteca].[dbo].[LeiturasEmAndamento]
-                     WHERE id_leitura = :id_leitura",
-                    [':id_leitura' => (int)$id_leitura]
+                     WHERE id_leitura = :id_leitura{$filtroLocal}",
+                    [':id_leitura' => (int)$id_leitura] + $paramsFiltroLocal
                 );
 
-$db->ExecuteNonQuery(
-    "UPDATE [Biblioteca].[dbo].[Leituras]
-     SET data_fim = GETDATE()
-     WHERE id = :id",
-    [':id' => (int)$id_leitura]   // correto: id da leitura, não id_livros
-);
+                // Finaliza a leitura em aberto (Leituras.id), não o ID do livro
+                if ($leituraAberta) {
+                    $db->ExecuteNonQuery(
+                        "UPDATE [Biblioteca].[dbo].[Leituras]
+                         SET data_fim   = CAST(GETDATE() AS DATE),
+                             tempo_dias = DATEDIFF(day, data_inicio, CAST(GETDATE() AS DATE)),
+                             mes        = FORMAT(GETDATE(), 'MM/yyyy'),
+                             avaliacao  = COALESCE(:avaliacao, avaliacao)
+                         WHERE id = :id",
+                        [
+                            ':avaliacao' => $avaliacao !== '' ? (float)$avaliacao : null,
+                            ':id'        => (int)$leituraAberta['id'],
+                        ]
+                    );
+                    completarDadosLeitura($db, (int)$leituraAberta['id'], (int)$id_leitura, $id_local_leitura);
+                }
 
                 atualizarStatusNaTabela($db, $local_leitura, $titulo, $autor, 'Lido');
 
@@ -247,9 +283,9 @@ $db->ExecuteNonQuery(
         // Se não concluído, tenta atualizar o registro existente ou inserir novo
         $registroExistente = $db->GetOne(
             "SELECT TOP 1 id FROM [Biblioteca].[dbo].[LeiturasEmAndamento]
-             WHERE id_leitura = :id_leitura
+             WHERE id_leitura = :id_leitura{$filtroLocal}
              ORDER BY dt_alteracao DESC, id DESC",
-            [':id_leitura' => (int)$id_leitura]
+            [':id_leitura' => (int)$id_leitura] + $paramsFiltroLocal
         );
 
         if ($registroExistente) {
@@ -269,12 +305,19 @@ $db->ExecuteNonQuery(
                     paginas = :p3,
                     tipo_midia = :p4,
                     data_inicio = :p5
-                WHERE id_leitura = :p0
+                WHERE id = :id_registro
             ";
-            $db->ExecuteNonQuery($sqlUpdate, $params);
+            $paramsUpdate = $params;
+            unset($paramsUpdate[':p0']);
+            $paramsUpdate[':id_registro'] = (int)$registroExistente['id'];
+            $db->ExecuteNonQuery($sqlUpdate, $paramsUpdate);
         } else {
             // INSERT novo registro
             $db->ExecuteNonQuery($sql, $params);
+        }
+
+        if ($leituraAberta) {
+            completarDadosLeitura($db, (int)$leituraAberta['id'], (int)$id_leitura, $id_local_leitura);
         }
 
         $statusTabela = $pctFinal > 0.1 ? ($concluido ? 'Lido' : 'Lendo') : null;
@@ -299,5 +342,47 @@ $db->ExecuteNonQuery(
         $result_data   = ['message' => 'Atualização registrada com sucesso.'];
     } catch (Exception $e) {
         $result_error = 'Erro ao salvar atualização: ' . $e->getMessage();
+    }
+}
+
+/**
+ * Preenche em Leituras os campos vazios que vêm do cadastro do livro
+ * (tema, tipo_leitura) e marca resenhas = 'S' se já houver resenha.
+ * Silencia erros para não quebrar o fluxo principal.
+ */
+function completarDadosLeitura($db, int $idLeituraRegistro, int $idLivro, ?int $idLocal): void {
+    try {
+        if ($idLocal) {
+            $local  = $db->GetOne(
+                "SELECT vTabelaVinculada FROM [Biblioteca].[dbo].[LocalLeitura] WHERE id = :id",
+                [':id' => $idLocal]
+            );
+            $tabela = $local ? trim((string)$local['vTabelaVinculada']) : '';
+
+            if (preg_match('/^dbo\.(\w+)$/', $tabela, $m)) {
+                // Só a tabela Livros tem tipo_edicao; nas demais usa tipo_midia
+                $colTipo = $m[1] === 'Livros' ? 'tipo_edicao' : 'tipo_midia';
+
+                $db->ExecuteNonQuery(
+                    "UPDATE l
+                     SET l.tema         = COALESCE(NULLIF(l.tema, ''),         o.tema),
+                         l.tipo_leitura = COALESCE(NULLIF(l.tipo_leitura, ''), CAST(o.{$colTipo} AS VARCHAR(100)))
+                     FROM [Biblioteca].[dbo].[Leituras] l
+                     INNER JOIN [Biblioteca].[dbo].[{$m[1]}] o ON o.id = :id_livro
+                     WHERE l.id = :id",
+                    [':id_livro' => $idLivro, ':id' => $idLeituraRegistro]
+                );
+            }
+        }
+
+        $db->ExecuteNonQuery(
+            "UPDATE [Biblioteca].[dbo].[Leituras]
+             SET resenhas = 'S'
+             WHERE id = :id
+               AND EXISTS (SELECT 1 FROM [Biblioteca].[dbo].[Resenhas] r WHERE r.id_leitura = :id_r)",
+            [':id' => $idLeituraRegistro, ':id_r' => $idLeituraRegistro]
+        );
+    } catch (Exception $e) {
+        error_log('[create_atualizacao_leitura] Erro ao completar dados da leitura: ' . $e->getMessage());
     }
 }

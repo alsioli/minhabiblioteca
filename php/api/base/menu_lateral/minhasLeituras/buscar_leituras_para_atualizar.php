@@ -39,6 +39,9 @@ function PostMethod() {
         'MEC_Livros'                => '[Biblioteca].[dbo].[LivrosMEC]',
         'Audible'                   => '[Biblioteca].[dbo].[LivrosAudible]',
         'Kindle_Unlimited'          => '[Biblioteca].[dbo].[LivrosKindleUnlimited]',
+        'Emprestimos'          => '[Biblioteca].[dbo].[LivrosEmprestimos]',
+
+       
     ];
 
     if (!isset($TABELAS_PERMITIDAS[$local_leitura])) {

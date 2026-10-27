@@ -29,6 +29,7 @@ function GetMethod() {
     $sql = "
         SELECT id, nome_lc, participando, natureza
         FROM [Biblioteca].[dbo].[CadastroLeiturasColetivas]
+        where participando = 'Sim'
         ORDER BY nome_lc ASC
     ";
 

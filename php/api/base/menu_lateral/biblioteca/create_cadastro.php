@@ -174,6 +174,7 @@ function PostMethod() {
         'Audible'           => '[Biblioteca].[dbo].[LivrosAudible]',
         'Kindle_Unlimited'  => '[Biblioteca].[dbo].[LivrosKindleUnlimited]',
         'Biblioteca'        => '[Biblioteca].[dbo].[Livros]',
+        'Emprestimos'       => '[Biblioteca].[dbo].[LivrosEmprestimos]',
     ];
     $localCadastro = trim($data['local_cadastro'] ?? 'Biblioteca');
     $tabelaDestino = $tabelaMap[$localCadastro] ?? '[Biblioteca].[dbo].[Livros]';

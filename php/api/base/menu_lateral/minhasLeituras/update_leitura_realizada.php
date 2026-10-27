@@ -37,6 +37,10 @@ function PostMethod() {
     $data_fim      = trim($_POST['data_fim']      ?? '');
     $natureza      = trim($_POST['natureza']      ?? '');
     $avaliacao     = trim($_POST['avaliacao']     ?? '');
+    $tipo_leitura  = trim($_POST['tipo_leitura']  ?? '');
+    $sexo_autor    = trim($_POST['sexo_autor']    ?? '');
+    $pais          = trim($_POST['pais']          ?? '');
+    $raca          = trim($_POST['raca']          ?? '');
 
 
 
@@ -52,6 +56,7 @@ function PostMethod() {
         'MEC_Livros'                => '[Biblioteca].[dbo].[LivrosMEC]',
         'Audible'                   => '[Biblioteca].[dbo].[LivrosAudible]',
         'Kindle_Unlimited'          => '[Biblioteca].[dbo].[LivrosKindleUnlimited]',
+        'Emprestimos'                => '[Biblioteca].[dbo].[LivrosEmprestimos]',
     ];
 
     if (!isset($TABELAS_PERMITIDAS[$local_leitura])) {
@@ -98,11 +103,14 @@ function PostMethod() {
         // ─────────────────────────────────────────────────────────────
         $tabelaSQL = $TABELAS_PERMITIDAS[$local_leitura];
 
+        // Só a tabela Livros tem tipo_edicao; nas demais usa tipo_midia
+        $colTipoEdicao = ($local_leitura === 'Biblioteca') ? 'tipo_edicao' : 'tipo_midia AS tipo_edicao';
+
         $dadosLivro = $db->GetOne("
             SELECT TOP 1
                 natureza,
                 tema,
-                tipo_midia,
+                {$colTipoEdicao},
                 paginas
             FROM {$tabelaSQL}
             WHERE id = :id_livro
@@ -113,9 +121,10 @@ function PostMethod() {
             return;
         }
 
+
         $naturezaLivro = $dadosLivro['natureza'] ?? null;
         $tema       = $dadosLivro['tema']       ?? null;
-        $tipo_midiaLivro = $dadosLivro['tipo_midia'] ?? null;
+        $tipo_leituraLivro = $dadosLivro['tipo_edicao'] ?? null;
         $paginasLivro = $dadosLivro['paginas']  ?? null;
 
         // Se natureza não vier do POST, usa a do livro
@@ -128,10 +137,28 @@ function PostMethod() {
             $paginas = (string)$paginasLivro;
         }
 
+       
         // Se tipo de mídia não vier do POST, usa o do livro
-        if ($tipo_midia === '' && $tipo_midiaLivro !== null) {
-            $tipo_midia = (string)$tipo_midiaLivro;
+        if ($tipo_leitura === '' && $tipo_leituraLivro !== null) {
+            $tipo_leitura = (string)$tipo_leituraLivro;
         }
+
+        // ─────────────────────────────────────────────────────────────
+        // CONVERTE local_leitura PARA id_local_leitura
+        // (IDs de livro se repetem entre tabelas de origem, então o
+        //  local precisa entrar nos filtros por id_livros / id_leitura)
+        // ─────────────────────────────────────────────────────────────
+        $localMap = $db->GetOne(
+            "SELECT id FROM [Biblioteca].[dbo].[LocalLeitura] WHERE vLocal_Leitura = :local",
+            [':local' => $local_leitura]
+        );
+
+        if (!$localMap) {
+            $result_error = "Local de leitura não cadastrado em LocalLeitura: {$local_leitura}";
+            return;
+        }
+
+        $id_local_leitura = (int)$localMap['id'];
 
         // ─────────────────────────────────────────────────────────────
         // VERIFICA SE JÁ EXISTE LEITURA PARA ESTE LIVRO
@@ -139,9 +166,11 @@ function PostMethod() {
         $leituraExistente = $db->GetOne(
             "SELECT TOP 1 id, data_fim, avaliacao, natureza
              FROM [Biblioteca].[dbo].[Leituras]
-             WHERE id_leitura = :id_livro",
-            [':id_livro' => (int)$id]
+             WHERE id_livros = :id_livro
+               AND id_local_leitura = :id_local",
+            [':id_livro' => (int)$id, ':id_local' => $id_local_leitura]
         );
+
 
         $fim = $data_fim !== '' ? $data_fim : null;
 
@@ -187,7 +216,7 @@ function PostMethod() {
             // SE NÃO EXISTE, INSERIR NOVO REGISTRO
             // ─────────────────────────────────────────────────────────────
             $camposBase = [
-                'id_leitura',   // ID do livro (chave de referência)
+                'id_livros',    // ID do livro (chave de referência)
                 'titulo',
                 'autor',
                 'mes',
@@ -197,7 +226,7 @@ function PostMethod() {
                 'raça',
                 'natureza',
                 'tema',
-                'tipo_midia',
+                'tipo_leitura',
                 'paginas',
             ];
 
@@ -212,35 +241,21 @@ function PostMethod() {
                 $raca ?: null,
                 $natureza ?: null,
                 $tema ?: null,
-                $tipo_midia ?: null,
+                $tipo_leitura ?: null,
                 $paginas !== '' ? (int)$paginas : null,
             ];
 
+        
             // Campos opcionais
             if ($avaliacao !== '') {
                 $camposBase[] = 'avaliacao';
                 $valsBase[]   = (float)$avaliacao;
             }
 
-            // Converte local_leitura para id_local_leitura
-            $id_local_leitura = null;
-            if ($local_leitura !== '') {
-                $localMap = $db->GetOne(
-                    "SELECT id FROM [Biblioteca].[dbo].[LocalLeitura] WHERE vLocal_Leitura = :local",
-                    [':local' => $local_leitura]
-                );
-                if ($localMap) {
-                    $id_local_leitura = (int)$localMap['id'];
-                }
-            }
-
-            $camposComLocal = $camposBase;
-            $valsComLocal   = $valsBase;
-
-            if ($id_local_leitura !== null) {
-                $camposComLocal[] = 'id_local_leitura';
-                $valsComLocal[]   = $id_local_leitura;
-            }
+            $camposComLocal   = $camposBase;
+            $valsComLocal     = $valsBase;
+            $camposComLocal[] = 'id_local_leitura';
+            $valsComLocal[]   = $id_local_leitura;
 
             // Função para montar INSERT
             $makeInsert = function(array $cols, array $vals, ?string $dataFim, ?int $tempoDias): array {
@@ -299,8 +314,9 @@ function PostMethod() {
         try {
             $db->ExecuteNonQuery(
                 "DELETE FROM [Biblioteca].[dbo].[LeiturasEmAndamento]
-                 WHERE id_leitura = :id_livro",
-                [':id_livro' => (int)$id]
+                 WHERE id_leitura = :id_livro
+                   AND id_local_leitura = :id_local",
+                [':id_livro' => (int)$id, ':id_local' => $id_local_leitura]
             );
         } catch (Exception $e) {
             // silencioso

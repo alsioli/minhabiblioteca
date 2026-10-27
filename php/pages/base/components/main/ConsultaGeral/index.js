@@ -25,6 +25,15 @@ window.consulta_geral_view = {
                 });
             }
 
+            const selTema = document.getElementById('cgTema');
+            if (selTema) {
+                (json.data.tema || []).filter(Boolean).sort().forEach(function (v) {
+                    const opt = document.createElement('option');
+                    opt.value = opt.textContent = v;
+                    selTema.appendChild(opt);
+                });
+            }
+
             const selRaca = document.getElementById('cgRaca');
             if (selRaca) {
                 (json.data.raca || []).filter(Boolean).sort().forEach(function (v) {
@@ -65,6 +74,7 @@ window.consulta_geral_view = {
             const lido        = (document.getElementById('cgLido')       || {}).value || '';
             const paginas     = (document.getElementById('cgPaginas')    || {}).value || '';
             const natureza    = (document.getElementById('cgNatureza')   || {}).value || '';
+            const tema        = (document.getElementById('cgTema')       || {}).value || '';
             const sexo        = (document.getElementById('cgSexo')       || {}).value || '';
             const raca        = (document.getElementById('cgRaca')       || {}).value || '';
             const pais        = (document.getElementById('cgPais')       || {}).value || '';
@@ -82,6 +92,7 @@ window.consulta_geral_view = {
             if (lido)           params.set('lido',        lido);
             if (paginas)        params.set('paginas',     paginas);
             if (natureza)       params.set('natureza', natureza);
+            if (tema)           params.set('tema',     tema);
             if (sexo)           params.set('sexo',     sexo);
             if (raca)           params.set('raca',     raca);
             if (pais)           params.set('pais',     pais);
@@ -105,7 +116,7 @@ window.consulta_geral_view = {
 
     limpar: function () {
         try {
-            const ids = ['cgTitulo', 'cgAutor', 'cgTipoEdicao', 'cgLido', 'cgPaginas', 'cgNatureza', 'cgSexo', 'cgRaca', 'cgPais', 'cgMes'];
+            const ids = ['cgTitulo', 'cgAutor', 'cgTipoEdicao', 'cgLido', 'cgPaginas', 'cgNatureza', 'cgTema', 'cgSexo', 'cgRaca', 'cgPais', 'cgMes'];
             ids.forEach(function (id) {
                 const el = document.getElementById(id);
                 if (el) el.value = '';
@@ -124,14 +135,16 @@ window.consulta_geral_view = {
 
     _statusStyle: function (s) {
         if (!s) return '';
+        // Normaliza (minúsculas, sem acento, sem espaços extras) para evitar que
+        // 'Não lido' seja confundido com 'Lido' (substring) na comparação.
+        var norm = s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
         var map = {
-            'Lido':          'background:#d4edda;color:#155724',
-            'Lendo':         'background:#cce5ff;color:#004085',
-            'Nao quero ler': 'background:#f8d7da;color:#721c24',
+            'lido':          'background:#d4edda;color:#155724',
+            'nao lido':      'background:#f8d7da;color:#b30000',
+            'lendo':         'background:#cce5ff;color:#004085',
+            'nao quero ler': 'background:#f8d7da;color:#721c24',
         };
-        for (var key in map) {
-            if (s.toLowerCase().indexOf(key.toLowerCase()) !== -1) return map[key];
-        }
+        if (map[norm]) return map[norm];
         return 'background:#fff3cd;color:#856404';
     },
 

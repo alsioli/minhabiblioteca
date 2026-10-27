@@ -22,6 +22,106 @@ let desafios = {
         `);
     },
 
+    // ─── FILTROS (padrão Consulta Geral) ─────────────────────────
+    // Cada aba registra seus campos em _filtros[prefixo] = { campos, fn }.
+    // Os filtros são aplicados no cliente sobre a lista já carregada.
+
+    _filtros: {},
+
+    _esc: function (s) {
+        return String(s == null ? '' : s)
+            .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    },
+
+    // minúsculas, sem acento — "Não Lido" vira "nao lido"
+    _norm: function (s) {
+        return String(s == null ? '' : s).toLowerCase()
+            .normalize('NFD').replace(/[̀-ͯ]/g, '').trim();
+    },
+
+    _contem: function (valor, termo) {
+        return !termo || this._norm(valor).indexOf(this._norm(termo)) !== -1;
+    },
+
+    _opcoesUnicas: function (lista, campo) {
+        const set = new Set();
+        lista.forEach(item => { if (item[campo] != null && item[campo] !== '') set.add(String(item[campo])); });
+        return Array.from(set).sort((a, b) => a.localeCompare(b, 'pt-BR'));
+    },
+
+    // Monta a barra de filtros + div de resultado dentro do container,
+    // preservando os valores que já estavam selecionados (ex.: após salvar).
+    _montarFiltros: function (containerSel, prefixo, campos, fn) {
+        const anteriores = this._valoresFiltros(prefixo);
+        this._filtros[prefixo] = { campos, fn };
+
+        const lblSt = 'font-size:0.82rem;font-weight:600';
+        let html = '<div class="mb-3 d-flex flex-wrap align-items-end" style="gap:8px">';
+
+        campos.forEach(c => {
+            const id = `${prefixo}_${c.key}`;
+            html += `<div><label class="mb-1 d-block" style="${lblSt}" for="${id}">${c.label}</label>`;
+            if (c.tipo === 'select') {
+                html += `<select id="${id}" class="form-control form-control-sm" style="width:${c.width || 160}px"
+                                 onchange="desafios._aplicarFiltros('${prefixo}')">
+                            <option value="">${c.todos || 'Todos'}</option>`;
+                (c.opcoes || []).forEach(o => {
+                    const v = typeof o === 'object' ? o.v : o;
+                    const t = typeof o === 'object' ? o.t : o;
+                    html += `<option value="${this._esc(v)}">${this._esc(t)}</option>`;
+                });
+                html += '</select>';
+            } else {
+                html += `<input type="text" id="${id}" class="form-control form-control-sm"
+                                style="width:${c.width || 180}px" placeholder="${c.placeholder || ''}"
+                                autocomplete="off" oninput="desafios._aplicarFiltros('${prefixo}')">`;
+            }
+            html += '</div>';
+        });
+
+        html += `<button class="btn btn-outline-secondary btn-sm" onclick="desafios._limparFiltros('${prefixo}')">
+                     Limpar
+                 </button>
+            </div>
+            <div id="${prefixo}Resultado"></div>`;
+
+        $(containerSel).html(html);
+
+        Object.entries(anteriores).forEach(([key, val]) => {
+            $(`#${prefixo}_${key}`).val(val);
+        });
+    },
+
+    _valoresFiltros: function (prefixo) {
+        const cfg = this._filtros[prefixo];
+        const valores = {};
+        if (!cfg) return valores;
+        cfg.campos.forEach(c => {
+            const el = document.getElementById(`${prefixo}_${c.key}`);
+            valores[c.key] = el ? (el.value || '').trim() : '';
+        });
+        return valores;
+    },
+
+    _aplicarFiltros: function (prefixo) {
+        const cfg = this._filtros[prefixo];
+        if (cfg) cfg.fn.call(this, this._valoresFiltros(prefixo));
+    },
+
+    _limparFiltros: function (prefixo) {
+        const cfg = this._filtros[prefixo];
+        if (!cfg) return;
+        cfg.campos.forEach(c => $(`#${prefixo}_${c.key}`).val(''));
+        this._aplicarFiltros(prefixo);
+    },
+
+    _contador: function (qtd, total, singular, plural) {
+        const txt = (qtd !== total ? `${qtd} de ${total}` : `${total}`)
+                  + ` ${total === 1 ? singular : plural}`;
+        return `<div style="margin-bottom:6px;font-size:0.82rem;color:#555">${txt}</div>`;
+    },
+
     // ─── NOVO DESAFIO ────────────────────────────────────────────
 
     iniciarNovoDesafio: function () {
@@ -97,18 +197,41 @@ let desafios = {
             }
 
             this._lista = json.data || [];
-            this._renderTabela(this._lista);
+
+            const anos = this._opcoesUnicas(this._lista, 'ano').reverse();
+            this._montarFiltros('#desafiosContainer', 'dsf', [
+                { key: 'tematica', tipo: 'texto',  label: 'Temática', width: 220, placeholder: 'Digite a temática...' },
+                { key: 'ano',      tipo: 'select', label: 'Ano',      width: 110, opcoes: anos },
+                { key: 'situacao', tipo: 'select', label: 'Situação', width: 150, todos: 'Todas',
+                  opcoes: ['Em andamento', 'Pausado', 'Concluído'] },
+                { key: 'ativo',    tipo: 'select', label: 'Registro', width: 120,
+                  opcoes: [{ v: '1', t: 'Ativos' }, { v: '0', t: 'Inativos' }] },
+            ], this.filtrarAcompanhamento);
+
+            this._aplicarFiltros('dsf');
         } catch (e) {
             console.error('Erro ao carregar desafios:', e);
             container.html('<div class="alert alert-danger">Erro ao carregar dados.</div>');
         }
     },
 
+    filtrarAcompanhamento: function (f) {
+        const lista = this._lista.filter(d =>
+            this._contem(`${d.tematica || ''} ${d.descricao || ''}`, f.tematica) &&
+            (!f.ano      || String(d.ano) === f.ano) &&
+            (!f.situacao || d.situacao === f.situacao) &&
+            (!f.ativo    || String(parseInt(d.bAtivo) === 1 ? 1 : 0) === f.ativo)
+        );
+        this._renderTabela(lista);
+    },
+
     _renderTabela: function (lista) {
-        const container = $('#desafiosContainer');
+        const container = $('#dsfResultado');
 
         if (lista.length === 0) {
-            container.html('<p class="text-muted">Nenhum desafio cadastrado.</p>');
+            container.html(this._lista.length
+                ? '<p class="text-muted small">Nenhum desafio encontrado com os filtros selecionados.</p>'
+                : '<p class="text-muted">Nenhum desafio cadastrado.</p>');
             return;
         }
 
@@ -118,7 +241,7 @@ let desafios = {
             'Concluído':    { bg: '#e3f2fd', cor: '#1565c0' },
         };
 
-        let html = `
+        let html = this._contador(lista.length, this._lista.length, 'desafio', 'desafios') + `
             <div style="overflow-x:auto">
             <table style="width:100%;border-collapse:collapse;font-size:0.85rem">
                 <thead style="background:#f8f9fa;position:sticky;top:0;z-index:1">
@@ -137,7 +260,7 @@ let desafios = {
                 <tbody>
         `;
 
-        lista.forEach((d, idx) => {
+        lista.forEach(d => {
             const ativo  = parseInt(d.bAtivo) === 1;
             const meta   = parseInt(d.meta_livros) || 0;
             const lidos  = parseInt(d.livros_lidos) || 0;
@@ -176,7 +299,7 @@ let desafios = {
                     <td style="padding:6px 10px;text-align:center">
                         <button class="btn btn-sm btn-outline-secondary"
                                 style="padding:2px 10px;font-size:0.8rem"
-                                onclick="desafios.abrirEdicao(${idx})">
+                                onclick="desafios.abrirEdicao(${parseInt(d.id)})">
                             Editar
                         </button>
                     </td>
@@ -185,13 +308,13 @@ let desafios = {
         });
 
         html += '</tbody></table></div>';
-        $('#desafiosContainer').html(html);
+        container.html(html);
     },
 
     // ─── EDITAR DESAFIO ──────────────────────────────────────────
 
-    abrirEdicao: function (idx) {
-        const d = this._lista[idx];
+    abrirEdicao: function (id) {
+        const d = this._lista.find(x => parseInt(x.id) === id);
         if (!d) return;
 
         $('#ed_id').val(d.id);
@@ -255,6 +378,9 @@ let desafios = {
 
     // ─── LIVROS DOS DESAFIOS ─────────────────────────────────────
 
+    _livros: [],
+    _livrosSort: { col: '', dir: 'asc' },
+
     carregarLivrosDesafios: async function () {
         const container = $('#livrosDesafiosContainer');
         if (!container.length) return;
@@ -269,65 +395,178 @@ let desafios = {
                 return;
             }
 
-            this._renderLivrosDesafios(json.data || []);
+            this._livros = json.data || [];
+
+            this._montarFiltros('#livrosDesafiosContainer', 'lvd', [
+                { key: 'desafio',   tipo: 'select', label: 'Desafio',   width: 210,
+                  opcoes: this._opcoesUnicas(this._livros, 'tematica') },
+                { key: 'titulo',    tipo: 'texto',  label: 'Título',    width: 200, placeholder: 'Digite o título...' },
+                { key: 'autor',     tipo: 'texto',  label: 'Autor',     width: 170, placeholder: 'Digite o autor...' },
+                { key: 'status',    tipo: 'select', label: 'Status',    width: 130,
+                  opcoes: [{ v: 'lido', t: 'Lido' }, { v: 'lendo', t: 'Lendo' }, { v: 'nao lido', t: 'Não lido' }] },
+                { key: 'categoria', tipo: 'select', label: 'Categoria', width: 190, todos: 'Todas',
+                  opcoes: this._opcoesUnicas(this._livros, 'categoria') },
+                { key: 'tema',      tipo: 'select', label: 'Tema',      width: 170,
+                  opcoes: this._opcoesUnicas(this._livros, 'tema') },
+                { key: 'paginas',   tipo: 'select', label: 'Páginas',   width: 130, todos: 'Todas',
+                  opcoes: [
+                      { v: 'ate100',  t: 'Até 100' },
+                      { v: '101_200', t: '101 a 200' },
+                      { v: '201_300', t: '201 a 300' },
+                      { v: '301_400', t: '301 a 400' },
+                      { v: 'mais400', t: 'Mais de 400' },
+                  ] },
+            ], this.filtrarLivros);
+
+            this._aplicarFiltros('lvd');
         } catch (e) {
             console.error('Erro ao carregar livros dos desafios:', e);
             container.html('<div class="alert alert-danger">Erro ao carregar dados.</div>');
         }
     },
 
-    _renderLivrosDesafios: function (lista) {
-        const container = $('#livrosDesafiosContainer');
+    _faixaPaginas: function (pag, faixa) {
+        if (!faixa) return true;
+        const p = parseInt(pag) || 0;
+        if (!p) return false;
+        switch (faixa) {
+            case 'ate100':  return p <= 100;
+            case '101_200': return p >= 101 && p <= 200;
+            case '201_300': return p >= 201 && p <= 300;
+            case '301_400': return p >= 301 && p <= 400;
+            case 'mais400': return p > 400;
+        }
+        return true;
+    },
 
-        if (!lista.length) {
+    filtrarLivros: function (f) {
+        let lista = this._livros.filter(item =>
+            (!f.desafio   || item.tematica === f.desafio) &&
+            this._contem(item.titulo, f.titulo) &&
+            this._contem(item.autor,  f.autor) &&
+            (!f.status    || this._norm(item.status_leitura) === f.status) &&
+            (!f.categoria || item.categoria === f.categoria) &&
+            (!f.tema      || item.tema === f.tema) &&
+            this._faixaPaginas(item.paginas, f.paginas)
+        );
+
+        const { col, dir } = this._livrosSort;
+        if (col) {
+            const sinal  = dir === 'asc' ? 1 : -1;
+            const numCol = col === 'sequencia' || col === 'paginas';
+            // DD/MM/YYYY → YYYYMMDD para ordenar; sem data vai para o fim
+            const chave  = item => {
+                const v = item[col];
+                if (numCol) return parseInt(v) || 0;
+                if (col === 'data_referencia') {
+                    return v ? v.split('/').reverse().join('') : (dir === 'asc' ? '99999999' : '');
+                }
+                return this._norm(v);
+            };
+            lista = lista.slice().sort((a, b) => {
+                const va = chave(a), vb = chave(b);
+                return va < vb ? -sinal : va > vb ? sinal : 0;
+            });
+        }
+
+        this._renderLivrosDesafios(lista, f);
+    },
+
+    ordenarLivros: function (col) {
+        if (this._livrosSort.col === col) {
+            this._livrosSort.dir = this._livrosSort.dir === 'asc' ? 'desc' : 'asc';
+        } else {
+            this._livrosSort = { col, dir: 'asc' };
+        }
+        this._aplicarFiltros('lvd');
+    },
+
+    _statusStyle: function (s) {
+        const map = {
+            'lido':     'background:#d4edda;color:#155724',
+            'lendo':    'background:#cce5ff;color:#004085',
+            'nao lido': 'background:#f8d7da;color:#b30000',
+        };
+        return map[this._norm(s)] || 'background:#fff3cd;color:#856404';
+    },
+
+    _renderLivrosDesafios: function (lista, f) {
+        const container = $('#lvdResultado');
+
+        if (!this._livros.length) {
             container.html('<p class="text-muted">Nenhum livro encontrado nos desafios.</p>');
             return;
         }
 
-        // Conta totais por desafio para o rodapé
+        // Totais por desafio sempre sobre a lista completa (não sobre o filtro)
         const totais = {};
-        lista.forEach(item => {
+        this._livros.forEach(item => {
+            if (f.desafio && item.tematica !== f.desafio) return;
             if (!totais[item.tematica]) totais[item.tematica] = { total: 0, lidos: 0 };
             totais[item.tematica].total++;
             if (item.status_leitura === 'Lido') totais[item.tematica].lidos++;
         });
 
-        let html = `<div style="overflow-x:auto">
-            <table style="width:100%;border-collapse:collapse;font-size:0.85rem">
-                <thead style="background:#f8f9fa;position:sticky;top:0;z-index:1">
-                    <tr>
-                        <th style="padding:7px 10px;border-bottom:2px solid #dee2e6;text-align:left">Desafio</th>
-                        <th style="padding:7px 10px;border-bottom:2px solid #dee2e6;text-align:center;white-space:nowrap">#</th>
-                        <th style="padding:7px 10px;border-bottom:2px solid #dee2e6;text-align:left">Título</th>
-                        <th style="padding:7px 10px;border-bottom:2px solid #dee2e6;text-align:left">Autor</th>
-                        <th style="padding:7px 10px;border-bottom:2px solid #dee2e6;text-align:left">Categoria</th>
-                        <th style="padding:7px 10px;border-bottom:2px solid #dee2e6;text-align:center;white-space:nowrap">Data</th>
-                    </tr>
-                </thead>
-                <tbody>`;
+        const self   = this;
+        const thBase = 'padding:7px 10px;border-bottom:2px solid #dee2e6;cursor:pointer;user-select:none;white-space:nowrap';
+        function th(col, label, align) {
+            const ind = self._livrosSort.col === col ? (self._livrosSort.dir === 'asc' ? ' ↑' : ' ↓') : '';
+            return `<th style="${thBase};text-align:${align || 'left'}" title="Clique para ordenar"
+                        onclick="desafios.ordenarLivros('${col}')">${label}${ind}</th>`;
+        }
 
-        let ultimaTematica = null;
-        let bgAlterna      = false;
+        let html = this._contador(lista.length, this._livros.length, 'livro', 'livros');
 
-        lista.forEach(item => {
-            if (item.tematica !== ultimaTematica) {
-                ultimaTematica = item.tematica;
-                bgAlterna      = !bgAlterna;
-            }
+        if (!lista.length) {
+            html += '<p class="text-muted small">Nenhum livro encontrado com os filtros selecionados.</p>';
+        } else {
+            html += `<div style="max-height:600px;overflow:auto;border:1px solid #dee2e6;border-radius:4px">
+                <table style="width:100%;border-collapse:collapse;font-size:0.85rem">
+                    <thead style="background:#f8f9fa;position:sticky;top:0;z-index:1">
+                        <tr>
+                            ${th('tematica',        'Desafio')}
+                            ${th('sequencia',       '#', 'center')}
+                            ${th('titulo',          'Título')}
+                            ${th('autor',           'Autor')}
+                            ${th('status_leitura',  'Status', 'center')}
+                            ${th('categoria',       'Categoria')}
+                            ${th('tema',            'Tema')}
+                            ${th('paginas',         'Páginas', 'center')}
+                            ${th('data_referencia', 'Data', 'center')}
+                        </tr>
+                    </thead>
+                    <tbody>`;
 
-            const rowBg = bgAlterna ? 'background:#fafafa' : '';
+            let ultimaTematica = null;
+            let bgAlterna      = false;
 
-            html += `<tr style="border-bottom:1px solid #dee2e6;${rowBg}">
-                <td style="padding:6px 10px;font-weight:500;max-width:200px;word-break:break-word">${item.tematica || ''}</td>
-                <td style="padding:6px 10px;text-align:center;color:#6c757d;font-size:0.8rem;white-space:nowrap">Leitura ${item.sequencia}</td>
-                <td style="padding:6px 10px;max-width:260px;word-break:break-word">${item.titulo || ''}</td>
-                <td style="padding:6px 10px;color:#555;max-width:180px;word-break:break-word">${item.autor || '—'}</td>
-                <td style="padding:6px 10px;color:#555;max-width:160px;word-break:break-word">${item.categoria || '—'}</td>
-                <td style="padding:6px 10px;text-align:center;font-size:0.8rem;white-space:nowrap">${item.data_referencia || '—'}</td>
-            </tr>`;
-        });
+            lista.forEach(item => {
+                if (item.tematica !== ultimaTematica) {
+                    ultimaTematica = item.tematica;
+                    bgAlterna      = !bgAlterna;
+                }
 
-        html += '</tbody></table></div>';
+                const rowBg = bgAlterna ? 'background:#fafafa' : '';
+
+                html += `<tr style="border-bottom:1px solid #dee2e6;${rowBg}">
+                    <td style="padding:6px 10px;font-weight:500;max-width:200px;word-break:break-word">${item.tematica || ''}</td>
+                    <td style="padding:6px 10px;text-align:center;color:#6c757d;font-size:0.8rem;white-space:nowrap">Leitura ${item.sequencia}</td>
+                    <td style="padding:6px 10px;max-width:260px;word-break:break-word">${item.titulo || ''}</td>
+                    <td style="padding:6px 10px;color:#555;max-width:180px;word-break:break-word">${item.autor || '—'}</td>
+                    <td style="padding:6px 10px;text-align:center;white-space:nowrap">
+                        <span style="padding:2px 8px;border-radius:4px;font-size:0.78rem;font-weight:600;${this._statusStyle(item.status_leitura)}">
+                            ${item.status_leitura || '—'}
+                        </span>
+                    </td>
+                    <td style="padding:6px 10px;color:#555;max-width:160px;word-break:break-word">${item.categoria || '—'}</td>
+                    <td style="padding:6px 10px;color:#555;max-width:160px;word-break:break-word">${item.tema || '—'}</td>
+                    <td style="padding:6px 10px;text-align:center;white-space:nowrap">${item.paginas || '—'}</td>
+                    <td style="padding:6px 10px;text-align:center;font-size:0.8rem;white-space:nowrap">${item.data_referencia || '—'}</td>
+                </tr>`;
+            });
+
+            html += '</tbody></table></div>';
+        }
 
         // Rodapé com totais por desafio
         html += '<div style="margin-top:16px;border-top:1px solid #dee2e6;padding-top:12px">';
@@ -355,7 +594,9 @@ let desafios = {
     },
 
     // ─── DESAFIOS EM ANDAMENTO (dashboard inline) ─────────────────
-    // Renderiza na div #bloco-desafios-andamento se existir
+    // Renderiza na div #desafiosAndamentoContainer se existir
+
+    _andamento: [],
 
     carregarAndamento: async function () {
         const el = document.getElementById('desafiosAndamentoContainer');
@@ -367,53 +608,75 @@ let desafios = {
             const resp = await fetch('/php/api/base/menu_lateral/desafios/listar_desafios.php?ativos=1');
             const json = await resp.json();
 
-            const lista = (json.status ? json.data : []).filter(d => d.situacao === 'Em andamento');
+            this._andamento = (json.status ? json.data : []).filter(d => d.situacao === 'Em andamento');
 
-            if (lista.length === 0) {
+            if (this._andamento.length === 0) {
                 el.innerHTML = '<p class="text-muted small" style="margin:6px 0">Nenhum desafio em andamento.</p>';
                 return;
             }
 
-            let html = `<div style="overflow-x:auto">
-                <table style="width:100%;border-collapse:collapse;font-size:0.82rem">
-                    <thead style="background:#f8f9fa">
-                        <tr>
-                            <th style="padding:4px 8px;border-bottom:1px solid #dee2e6">Desafio</th>
-                            <th style="padding:4px 8px;border-bottom:1px solid #dee2e6;text-align:center">Meta</th>
-                            <th style="padding:4px 8px;border-bottom:1px solid #dee2e6;text-align:center">Lidos</th>
-                            <th style="padding:4px 8px;border-bottom:1px solid #dee2e6;min-width:120px">Progresso</th>
-                        </tr>
-                    </thead>
-                    <tbody>`;
+            this._montarFiltros('#desafiosAndamentoContainer', 'dsa', [
+                { key: 'tematica', tipo: 'texto',  label: 'Desafio', width: 220, placeholder: 'Digite o desafio...' },
+                { key: 'ano',      tipo: 'select', label: 'Ano',     width: 110,
+                  opcoes: this._opcoesUnicas(this._andamento, 'ano').reverse() },
+            ], this.filtrarAndamento);
 
-            lista.forEach(d => {
-                const meta  = parseInt(d.meta_livros) || 0;
-                const lidos = parseInt(d.livros_lidos) || 0;
-                const pct   = meta > 0 ? Math.min((lidos / meta) * 100, 100).toFixed(1) : null;
-
-                html += `<tr style="border-bottom:1px solid #f0f0f0">
-                    <td style="padding:4px 8px;font-weight:500">${d.tematica || ''}</td>
-                    <td style="padding:4px 8px;text-align:center">${meta || '—'}</td>
-                    <td style="padding:4px 8px;text-align:center;color:#28a745;font-weight:bold">${lidos}</td>
-                    <td style="padding:4px 8px">
-                        ${pct !== null
-                            ? `<div style="display:flex;align-items:center;gap:5px">
-                                   <div style="flex:1;background:#e9ecef;border-radius:4px;height:7px;overflow:hidden">
-                                       <div style="width:${pct}%;background:#28a745;height:100%;border-radius:4px"></div>
-                                   </div>
-                                   <span style="font-size:0.78rem">${pct}%</span>
-                               </div>`
-                            : '—'}
-                    </td>
-                </tr>`;
-            });
-
-            html += '</tbody></table></div>';
-            el.innerHTML = html;
+            this._aplicarFiltros('dsa');
         } catch (e) {
             console.error('Erro ao carregar desafios em andamento:', e);
             el.innerHTML = '<div class="alert alert-danger py-1 mb-0" style="font-size:0.82rem">Erro ao carregar.</div>';
         }
+    },
+
+    filtrarAndamento: function (f) {
+        const lista = this._andamento.filter(d =>
+            this._contem(`${d.tematica || ''} ${d.descricao || ''}`, f.tematica) &&
+            (!f.ano || String(d.ano) === f.ano)
+        );
+
+        let html = this._contador(lista.length, this._andamento.length, 'desafio', 'desafios');
+
+        if (!lista.length) {
+            $('#dsaResultado').html(html + '<p class="text-muted small">Nenhum desafio encontrado com os filtros selecionados.</p>');
+            return;
+        }
+
+        html += `<div style="overflow-x:auto">
+            <table style="width:100%;border-collapse:collapse;font-size:0.82rem">
+                <thead style="background:#f8f9fa">
+                    <tr>
+                        <th style="padding:4px 8px;border-bottom:1px solid #dee2e6">Desafio</th>
+                        <th style="padding:4px 8px;border-bottom:1px solid #dee2e6;text-align:center">Meta</th>
+                        <th style="padding:4px 8px;border-bottom:1px solid #dee2e6;text-align:center">Lidos</th>
+                        <th style="padding:4px 8px;border-bottom:1px solid #dee2e6;min-width:120px">Progresso</th>
+                    </tr>
+                </thead>
+                <tbody>`;
+
+        lista.forEach(d => {
+            const meta  = parseInt(d.meta_livros) || 0;
+            const lidos = parseInt(d.livros_lidos) || 0;
+            const pct   = meta > 0 ? Math.min((lidos / meta) * 100, 100).toFixed(1) : null;
+
+            html += `<tr style="border-bottom:1px solid #f0f0f0">
+                <td style="padding:4px 8px;font-weight:500">${d.tematica || ''}</td>
+                <td style="padding:4px 8px;text-align:center">${meta || '—'}</td>
+                <td style="padding:4px 8px;text-align:center;color:#28a745;font-weight:bold">${lidos}</td>
+                <td style="padding:4px 8px">
+                    ${pct !== null
+                        ? `<div style="display:flex;align-items:center;gap:5px">
+                               <div style="flex:1;background:#e9ecef;border-radius:4px;height:7px;overflow:hidden">
+                                   <div style="width:${pct}%;background:#28a745;height:100%;border-radius:4px"></div>
+                               </div>
+                               <span style="font-size:0.78rem">${pct}%</span>
+                           </div>`
+                        : '—'}
+                </td>
+            </tr>`;
+        });
+
+        html += '</tbody></table></div>';
+        $('#dsaResultado').html(html);
     },
 
     // ─── INCLUIR LIVRO NO DESAFIO ────────────────────────────────

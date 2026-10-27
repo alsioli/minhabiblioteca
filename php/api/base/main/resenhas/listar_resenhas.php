@@ -62,6 +62,7 @@ function GetMethod() {
 
         $sql = "
             SELECT
+                id_leitura,
                 nome_livro,
                 autor,
                 mes_leitura,

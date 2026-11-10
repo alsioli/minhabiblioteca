@@ -1,5 +1,6 @@
 <?php
 include_once __DIR__ . '/../../../../utils/function/database.php';
+include_once __DIR__ . '/autor_helper.php';
 
 header('Content-Type: application/json; charset=utf-8');
 
@@ -9,8 +10,8 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
-$nome   = trim($_POST['nome_autor']    ?? '');
-$sexo   = trim($_POST['sexo_autor']    ?? '');
+$nome   = normalizarNomeAutor($_POST['nome_autor'] ?? '');
+$sexo   = normalizarSexoAutor($_POST['sexo_autor'] ?? '');
 $raca   = trim($_POST['raca']          ?? '');
 $nac    = trim($_POST['nacionalidade'] ?? '');
 $origem = trim($_POST['origem']        ?? '');
@@ -26,7 +27,7 @@ try {
 
     // Verifica se o autor já existe
     $rows = $db->GetMany(
-        "SELECT nome_autor FROM [Biblioteca].[dbo].[Autor] WHERE LOWER(nome_autor) = LOWER(:nome)",
+        "SELECT nome_autor FROM [Biblioteca].[dbo].[Autor] WHERE " . AUTOR_NOME_SQL . " = LOWER(:nome)",
         [':nome' => $nome]
     );
 
@@ -51,7 +52,7 @@ try {
                     [raça]        = COALESCE(NULLIF(:raca,   ''), [raça]),
                     nacionalidade = COALESCE(NULLIF(:nac,    ''), nacionalidade),
                     origem        = COALESCE(NULLIF(:origem, ''), origem)
-              WHERE LOWER(nome_autor) = LOWER(:nome)",
+              WHERE " . AUTOR_NOME_SQL . " = LOWER(:nome)",
             [
                 ':nome'   => $nome,
                 ':sexo'   => $sexo,

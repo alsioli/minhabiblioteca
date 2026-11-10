@@ -127,10 +127,56 @@
         }
     }
 
+    // ── Card 5: Top 5 países mais lidos no ano escolhido ──────────
+    let _anoPaisesLidos = null;
+
+    async function carregarPaisesLidos(ano) {
+        const elLista = document.getElementById('hc-paises-lidos');
+        const elAno   = document.getElementById('hc-lidos-ano');
+        if (!elLista) return;
+
+        if (ano) _anoPaisesLidos = String(ano);
+
+        try {
+            const url  = '/php/api/base/main/livros/listar_top_paises_lidos.php'
+                       + (_anoPaisesLidos ? '?ano=' + encodeURIComponent(_anoPaisesLidos) : '');
+            const resp = await fetch(url);
+            const json = await resp.json();
+            if (!json.status || !json.data) return;
+
+            const d = json.data;
+            _anoPaisesLidos = String(d.ano);
+
+            // Seletor de anos (só anos com leituras concluídas)
+            if (elAno) {
+                elAno.innerHTML = (d.anos || []).map(function (a) {
+                    return '<option value="' + a + '"' + (String(a) === _anoPaisesLidos ? ' selected' : '') + '>' + a + '</option>';
+                }).join('');
+            }
+
+            if (!d.top || d.top.length === 0) {
+                elLista.innerHTML = '<span style="font-size:10px;color:rgba(255,255,255,0.5)">Sem dados</span>';
+                return;
+            }
+
+            const medals = ['🥇', '🥈', '🥉'];
+            elLista.innerHTML = d.top.map(function (p, i) {
+                return '<div class="hc-top-item">' +
+                    '<span class="hc-top-medal">' + (medals[i] || (i + 1) + '.') + '</span>' +
+                    '<span class="hc-top-pais" title="' + (p.pais || '') + '">' + (p.pais || '—') + '</span>' +
+                    '<span class="hc-top-count">' + p.total + '</span>' +
+                    '</div>';
+            }).join('');
+        } catch (e) {
+            console.error('Erro ao carregar países mais lidos:', e);
+        }
+    }
+
     // ── Inicializa ao carregar a página ──────────────────────────
     function init() {
         carregarCitacoes();
         carregarContadores();
+        carregarPaisesLidos();
     }
 
     if (document.readyState === 'loading') {
@@ -140,7 +186,11 @@
     }
 
     // Expõe para outros módulos atualizarem os cards após sincronização
-    window.atualizarHeaderContadores = carregarContadores;
+    window.atualizarHeaderContadores = function () {
+        carregarContadores();
+        carregarPaisesLidos(); // mantém o ano escolhido
+    };
+    window.carregarPaisesLidos = carregarPaisesLidos;
 
 })();
 

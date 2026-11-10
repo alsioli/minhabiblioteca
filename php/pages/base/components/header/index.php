@@ -62,6 +62,18 @@
                 </div>
             </div>
 
+            <!-- Card 5: Top 5 países mais lidos (Leituras concluídas) por ano -->
+            <div class="header-card header-card-lg">
+                <div class="hc-titulo hc-titulo-com-select">
+                    <span>Mais lidos</span>
+                    <select id="hc-lidos-ano" class="hc-select-ano" aria-label="Ano"
+                            onchange="carregarPaisesLidos(this.value)"></select>
+                </div>
+                <div id="hc-paises-lidos" class="hc-top-lista hc-top-lista-5">
+                    <span style="font-size:10px;color:rgba(255,255,255,0.5)">Carregando...</span>
+                </div>
+            </div>
+
         </div>
     </div>
 

@@ -103,17 +103,28 @@ let biblioteca = {
         } catch (e) { /* silencioso */ }
     },
 
+    // Limpa o nome do autor: tira espaços nas pontas, espaços duplos, NBSP e tabs
+    _normNome: function (s) {
+        return String(s || '').replace(/\s+/g, ' ').trim(); // \s já inclui NBSP e espaços Unicode
+    },
+
+    // Procura o autor no cache da Lista de Escritores (ignora maiúsculas e espaços)
+    _autorNoCache: function (nome) {
+        var self = this;
+        var low  = this._normNome(nome).toLowerCase();
+        return (this._autoresData || []).find(function (a) {
+            return a.nome && self._normNome(a.nome).toLowerCase() === low;
+        });
+    },
+
     preencherDadosAutor: async function (nome, modo) {
-        if (!nome || nome.trim().length < 2) return;
-        var nomeTrim = nome.trim();
+        var nomeTrim = this._normNome(nome);
+        if (nomeTrim.length < 2) return;
         try {
             var d = null;
 
             // Tenta cache local primeiro (carregado junto com o datalist no init)
-            var low    = nomeTrim.toLowerCase();
-            var cached = (this._autoresData || []).find(function (a) {
-                return a.nome && a.nome.toLowerCase() === low;
-            });
+            var cached = this._autorNoCache(nomeTrim);
             if (cached && (cached.sexo || cached.raca || cached.nacionalidade)) {
                 d = cached;
             } else {
@@ -150,12 +161,9 @@ let biblioteca = {
     _agendarPreencherAutor: function (nome, modo) {
         var self = this;
         clearTimeout(this._timerPreencherAutor);
-        if (!nome || nome.length < 2) return;
-        var low    = nome.toLowerCase();
-        var cached = (this._autoresData || []).find(function (a) {
-            return a.nome && a.nome.toLowerCase() === low;
-        });
-        if (cached) {
+        nome = this._normNome(nome);
+        if (nome.length < 2) return;
+        if (this._autorNoCache(nome)) {
             this.preencherDadosAutor(nome, modo);
             return;
         }
@@ -311,26 +319,9 @@ cadastrarLivro: async function () {
                     confirmButtonColor: '#28a745'
                 });
 
-                // Captura dados do autor antes do reset (para inserção condicional)
-                var _nomeAutor = ($('#livro_autor').val() || '').trim();
-                var _sexoAutor = $('#livro_sexo_autor').val() || '';
-                var _racaAutor = ($('#livro_raca').val() || '').trim();
-                var _nacAutor  = ($('#livro_nacionalidade').val() || '').trim();
-
-                // Atualiza tabelas relacionadas
+                // Atualiza tabelas relacionadas (inclui recarregar a Lista de Escritores,
+                // pois o autor novo é gravado na tabela Autor pelo create_cadastro.php)
                 this._refreshPosSalvamento();
-
-                // Insere autor na tabela Autor se for novo (nunca sobrescreve existente)
-                if (_nomeAutor) {
-                    var _bodyAutor = new FormData();
-                    _bodyAutor.append('nome_autor',    _nomeAutor);
-                    _bodyAutor.append('sexo_autor',    _sexoAutor);
-                    _bodyAutor.append('raca',          _racaAutor);
-                    _bodyAutor.append('nacionalidade', _nacAutor);
-                    fetch('/php/api/base/menu_lateral/biblioteca/inserir_autor_se_novo.php', {
-                        method: 'POST', body: _bodyAutor
-                    }).catch(function () {});
-                }
 
                 // Reset do formulário
                 $form.trigger('reset');
@@ -457,6 +448,9 @@ consultarLivro: async function () {
                         <th style="padding:0.25rem">Título</th>
                         <th style="padding:0.25rem">Autor</th>
                         <th style="padding:0.25rem">Editora</th>
+                        <th style="padding:0.25rem">Tipo de edição</th>
+                        <th style="padding:0.25rem">Status</th>
+                        <th style="padding:0.25rem">Tema</th>
                     </tr>
                 </thead>
                 <tbody style="font-size:0.85rem">
@@ -470,13 +464,17 @@ consultarLivro: async function () {
                     <td style="padding:0.25rem">${livro.titulo || ''}</td>
                     <td style="padding:0.25rem">${livro.autor  || ''}</td>
                     <td style="padding:0.25rem">${livro.editora || ''}</td>
+                    <td style="padding:0.25rem">${livro.tipo_edicao || ''}</td>
+                    <td style="padding:0.25rem">${livro.status || ''}</td>
+                    <td style="padding:0.25rem">${livro.tema || ''}</td>
                 </tr>
             `;
         });
 
         tabela += '</tbody></table>';
         $("#tabelaResultadosConsultar").remove();
-        $("#titulo_consultar").after(tabela);
+        // Insere abaixo da linha Título/Autor para ocupar a largura toda do modal
+        $("#titulo_consultar").closest('.linha').after(tabela);
     },
 
     selecionarLivroConsultar: async function(id, local) {
@@ -692,6 +690,10 @@ consultarLivro: async function () {
         // Atualiza tabela Escritores se estiver visível
         if (document.getElementById('tabelaEscritoresContainer')) {
             this.listarEscritores();
+        }
+        // Atualiza a Consulta Geral de Livros se estiver aberta
+        if (window.consulta_geral_view && document.getElementById('cgTabela')) {
+            consulta_geral_view.buscar();
         }
         // Atualiza blocos do main se estiverem carregados
         if (window.dashboard && document.getElementById('bloco-adquiridos')) {
@@ -966,9 +968,7 @@ consultarLivro: async function () {
             clearTimeout(timer);
             if (!nome) return;
             timer = setTimeout(function () {
-                var lista = self._listaAutores || [];
-                var low   = nome.toLowerCase();
-                if (lista.some(function (n) { return n.toLowerCase() === low; })) {
+                if (self._autorNoCache(nome)) {
                     _buscarEChamar(nome);
                 }
             }, 200);
@@ -992,13 +992,15 @@ $(document).ready(function () {
     // Delegação: funciona mesmo quando o modal é recriado no DOM
     $(document).off('change.bibcad', '#livro_autor')
                .on('change.bibcad', '#livro_autor', function () {
-                   var nome = $(this).val().trim();
+                   var nome = biblioteca._normNome($(this).val());
+                   $(this).val(nome); // grava o nome já sem espaços sobrando
                    if (nome) biblioteca.preencherDadosAutor(nome, 'cadastro');
                });
 
     $(document).off('change.bibatualizacao', '#autor_atualizar')
                .on('change.bibatualizacao', '#autor_atualizar', function () {
-                   var nome = $(this).val().trim();
+                   var nome = biblioteca._normNome($(this).val());
+                   $(this).val(nome); // grava o nome já sem espaços sobrando
                    if (nome) biblioteca.preencherDadosAutor(nome, 'atualizar');
                });
 

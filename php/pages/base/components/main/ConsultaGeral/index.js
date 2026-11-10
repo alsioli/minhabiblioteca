@@ -127,6 +127,11 @@ window.consulta_geral_view = {
         }
     },
 
+    abrirCadastro: function (id) {
+        if (!id || !window.menuLateral) return;
+        menuLateral.abrirModalAtualizarLivro(id);
+    },
+
     _formatMes: function (m) {
         if (!m) return '-';
         const parts = m.split('-');
@@ -200,7 +205,9 @@ window.consulta_geral_view = {
             const tit = (row.titulo || '-').replace(/"/g, '&quot;');
             const aut = (row.autor  || '-').replace(/"/g, '&quot;');
 
-            html += '<tr onmouseover="this.style.background=\'#f8f9fa\'" onmouseout="this.style.background=\'\'">';
+            html += '<tr style="cursor:pointer" title="Clique para abrir o cadastro"'
+                  + ' onclick="consulta_geral_view.abrirCadastro(' + (parseInt(row.id, 10) || 0) + ')"'
+                  + ' onmouseover="this.style.background=\'#f8f9fa\'" onmouseout="this.style.background=\'\'">';
             html += '<td style="' + tdSt + ';text-align:center;white-space:nowrap;color:#888">'
                   + (row.id || '-') + '</td>';
             html += '<td style="' + tdSt + ';font-weight:500;max-width:280px;overflow:hidden;'
@@ -240,7 +247,7 @@ window.consulta_geral_view = {
             this._pagina = 0;
 
             const thSt = 'padding:6px 10px;text-align:left;border-bottom:2px solid #6a2bbf;'
-                       + 'font-size:0.82rem;background:rgba(106,43,191,0.07);position:sticky;top:0;z-index:1;'
+                       + 'font-size:0.82rem;background:#f3eefa;position:sticky;top:0;z-index:2;'  // fundo sólido: linhas não aparecem por trás ao rolar
                        + 'white-space:nowrap;cursor:pointer;user-select:none;color:#6a2bbf';
             const thC  = 'text-align:center;';
             const self = this;

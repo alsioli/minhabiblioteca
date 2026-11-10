@@ -213,6 +213,40 @@
     flex-shrink: 0;
 }
 
+/* Card 5: Mais lidos por ano — título com seletor de ano */
+.hc-titulo-com-select {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+}
+
+.hc-select-ano {
+    font-size: 9px;
+    font-weight: 700;
+    color: #fff;
+    background: rgba(255, 255, 255, 0.12);
+    border: 1px solid rgba(255, 255, 255, 0.35);
+    border-radius: 4px;
+    padding: 0 2px;
+    height: 16px;
+    cursor: pointer;
+}
+
+.hc-select-ano option {
+    color: #222;
+    background: #fff;
+}
+
+/* 5 itens: mais compacto para não aumentar a altura do header */
+.hc-top-lista-5 {
+    gap: 1px;
+}
+
+.hc-top-lista-5 .hc-top-count {
+    font-size: 11px;
+}
+
 /* ── Bloco direita: Título ───────────────────────────────── */
 .bloco-direita {
     width: 22%;

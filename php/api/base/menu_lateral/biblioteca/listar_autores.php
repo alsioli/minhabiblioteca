@@ -6,6 +6,7 @@
  */
 
 include_once __DIR__ . '/../../../../utils/function/database.php';
+include_once __DIR__ . '/autor_helper.php';
 
 header('Content-Type: application/json; charset=utf-8');
 
@@ -15,19 +16,19 @@ if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
     exit;
 }
 
-$busca = trim($_GET['busca'] ?? '');
+$busca = normalizarNomeAutor($_GET['busca'] ?? '');
 
 // Busca vazia: retorna todos os autores da tabela Autor (dropdown inicial)
 if ($busca === '') {
     try {
         $db = new DataBase();
         $rows = $db->GetMany(
-            "SELECT TOP 100 nome_autor        AS nome,
-                    ISNULL(sexo_autor, '')    AS sexo,
-                    ISNULL([raça], '')        AS raca,
-                    ISNULL(nacionalidade, '') AS nacionalidade
+            "SELECT LTRIM(RTRIM(nome_autor))              AS nome,
+                    LTRIM(RTRIM(ISNULL(sexo_autor, '')))    AS sexo,
+                    LTRIM(RTRIM(ISNULL([raça], '')))        AS raca,
+                    LTRIM(RTRIM(ISNULL(nacionalidade, ''))) AS nacionalidade
              FROM [Biblioteca].[dbo].[Autor]
-             ORDER BY nome_autor ASC",
+             ORDER BY LTRIM(RTRIM(nome_autor)) ASC",
             []
         );
         echo json_encode(['status' => true, 'data' => $rows], JSON_UNESCAPED_UNICODE);
@@ -52,10 +53,10 @@ try {
     // 1. Busca na tabela Autor (tem os dados completos)
     try {
         $rows = $db->GetMany(
-            "SELECT TOP 15 nome_autor        AS nome,
-                    ISNULL(sexo_autor, '')   AS sexo,
-                    ISNULL([raça], '')       AS raca,
-                    ISNULL(nacionalidade, '') AS nacionalidade
+            "SELECT TOP 15 LTRIM(RTRIM(nome_autor))   AS nome,
+                    LTRIM(RTRIM(ISNULL(sexo_autor, '')))    AS sexo,
+                    LTRIM(RTRIM(ISNULL([raça], '')))        AS raca,
+                    LTRIM(RTRIM(ISNULL(nacionalidade, ''))) AS nacionalidade
              FROM [Biblioteca].[dbo].[Autor]
              WHERE LOWER(nome_autor) LIKE LOWER(:busca)
              ORDER BY nome_autor ASC",
@@ -74,14 +75,14 @@ try {
     try {
         $rows = $db->GetMany(
             "SELECT TOP 15 DISTINCT
-                    autor                    AS nome,
-                    ISNULL(sexo_autor, '')   AS sexo,
-                    ISNULL([raça], '')       AS raca,
-                    ISNULL(nacionalidade, '') AS nacionalidade
+                    LTRIM(RTRIM(autor))                     AS nome,
+                    LTRIM(RTRIM(ISNULL(sexo_autor, '')))    AS sexo,
+                    LTRIM(RTRIM(ISNULL([raça], '')))        AS raca,
+                    LTRIM(RTRIM(ISNULL(nacionalidade, ''))) AS nacionalidade
              FROM [Biblioteca].[dbo].[Livros]
              WHERE LOWER(autor) LIKE LOWER(:busca)
                AND autor IS NOT NULL
-             ORDER BY autor ASC",
+             ORDER BY LTRIM(RTRIM(autor)) ASC",
             [':busca' => $like]
         );
         foreach ($rows as $r) {

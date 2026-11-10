@@ -36,7 +36,8 @@ let menuLateral = {
         });
     },
 
-    abrirModalAtualizarLivro: async function () {
+    // idLivro (opcional): abre o modal já preenchido com o livro da tabela Livros
+    abrirModalAtualizarLivro: async function (idLivro) {
         $('#modalAtualizarLivro').remove();
         $.ajax({
             url: '/php/pages/base/components/menu_lateral/biblioteca/index.php',
@@ -46,9 +47,13 @@ let menuLateral = {
                 $('#modalAtualizarLivro').modal('show');
 
                 $.getScript('/php/pages/base/components/menu_lateral/biblioteca/index.js')
-                    .done(function () {
+                    .done(async function () {
                         if (window.biblioteca && typeof biblioteca.carregarSelects === 'function') {
-                            biblioteca.carregarSelects();
+                            // Aguarda os selects para que Tipo de Edição/Natureza recebam o valor do livro
+                            await biblioteca.carregarSelects();
+                        }
+                        if (idLivro && window.biblioteca) {
+                            biblioteca.selecionarLivro(idLivro, 'Biblioteca');
                         }
                         // Autocomplete no campo Autor do modal de atualização
                         if (window.biblioteca && typeof biblioteca._initAutocompleteAutor === 'function') {

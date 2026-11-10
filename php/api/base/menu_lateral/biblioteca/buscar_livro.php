@@ -140,7 +140,14 @@ function PostMethod() {
                 }
 
                 $where = implode(' OR ', $conditions);
-                $queryParts[] = "SELECT id, titulo, autor, editora, '{$tabelaInfo['local']}' AS local_leitura FROM {$tabelaInfo['tabela']} WHERE {$where}";
+                // Livros guarda o tipo em tipo_edicao; as plataformas, em tipo_midia
+                $colTipo = $tabelaInfo['local'] === 'Biblioteca' ? 'tipo_edicao' : 'tipo_midia';
+                $queryParts[] = "SELECT id, titulo, autor, editora,
+                                        CAST({$colTipo} AS NVARCHAR(100)) AS tipo_edicao,
+                                        CAST(status AS NVARCHAR(100)) AS status,
+                                        CAST(tema AS NVARCHAR(200)) AS tema,
+                                        '{$tabelaInfo['local']}' AS local_leitura
+                                 FROM {$tabelaInfo['tabela']} WHERE {$where}";
             }
 
             $union = implode("\nUNION ALL\n", $queryParts) . "\nORDER BY local_leitura, titulo";

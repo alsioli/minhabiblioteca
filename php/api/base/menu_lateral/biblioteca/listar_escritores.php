@@ -16,15 +16,15 @@ if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
 try {
     $db   = new DataBase();
     $rows = $db->GetMany(
-        "SELECT TOP 1000
+        "SELECT
                 id_autor,
-                nome_autor,
-                ISNULL(sexo_autor, '')    AS sexo_autor,
+                LTRIM(RTRIM(nome_autor))           AS nome_autor,
+                LTRIM(RTRIM(ISNULL(sexo_autor, ''))) AS sexo_autor,
                 ISNULL([raça], '')        AS raca,
                 ISNULL(nacionalidade, '') AS nacionalidade,
                 ISNULL(origem, '')        AS origem
          FROM [Biblioteca].[dbo].[Autor]
-         ORDER BY nome_autor ASC",
+         ORDER BY LTRIM(RTRIM(nome_autor)) ASC",
         []
     );
     echo json_encode(['status' => true, 'data' => $rows], JSON_UNESCAPED_UNICODE);

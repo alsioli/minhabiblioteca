@@ -1,6 +1,7 @@
 <?php
 
 require_once __DIR__ . '/../../../../utils/function/database.php';
+require_once __DIR__ . '/autor_helper.php';
 
 function normalizeTipoCodigo($tipo_codigo) {
     $tipo_codigo = trim((string)$tipo_codigo);
@@ -135,6 +136,11 @@ function PostMethod() {
         }
     }
 
+    // Nome do autor sem espaços sobrando (igual ao gravado na Lista de Escritores)
+    if (isset($dadosCorrigidos['autor'])) {
+        $dadosCorrigidos['autor'] = normalizarNomeAutor($dadosCorrigidos['autor']);
+    }
+
     // mes_leitura/ano/mes só existem na tabela Livros (Biblioteca)
     if ($local === 'Biblioteca') {
         $mesLeitura = trim($data['mes_leitura'] ?? '');
@@ -180,25 +186,12 @@ function PostMethod() {
         $result_status = true;
         $result_data   = ['id' => $id, 'message' => 'Livro atualizado com sucesso'];
 
-        // Upsert na tabela Autores (silencioso)
-        $autorNome = trim($data['autor']          ?? '');
-        $autorSexo = trim($data['sexo_autor']     ?? '');
-        $autorRaca = trim($data['raca']           ?? '');
-        $autorNac  = trim($data['nacionalidade']  ?? '');
-
-        if ($autorNome !== '') {
-            try {
-                $db->ExecuteNonQuery(
-                    "IF NOT EXISTS (SELECT 1 FROM [Biblioteca].[dbo].[Autor] WHERE LOWER(nome_autor) = LOWER(:nome))
-                         INSERT INTO [Biblioteca].[dbo].[Autor] (nome_autor, sexo_autor, [raça], nacionalidade)
-                         VALUES (:nome2, NULLIF(:sexo,''), NULLIF(:raca,''), NULLIF(:nac,''))",
-                    [
-                        ':nome'  => $autorNome, ':nome2' => $autorNome,
-                        ':sexo'  => $autorSexo, ':raca'  => $autorRaca, ':nac' => $autorNac,
-                    ]
-                );
-            } catch (Exception $e) { /* silencioso */ }
-        }
+        // Inclui o autor na Lista de Escritores (tabela Autor) se for novo;
+        // se já existir, só completa sexo/raça/nacionalidade vazios. Silencioso.
+        try {
+            garantirAutor($db, $data['autor'] ?? '', $data['sexo_autor'] ?? '',
+                          $data['raca'] ?? '', $data['nacionalidade'] ?? '');
+        } catch (Throwable $e) { /* não falha o salvamento do livro */ }
 
     } catch (Exception $e) {
         $result_error = 'Erro ao atualizar: ' . $e->getMessage();

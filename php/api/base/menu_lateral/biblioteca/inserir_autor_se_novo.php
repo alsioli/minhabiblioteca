@@ -2,10 +2,11 @@
 /*
  * Insere o autor na tabela Autor SOMENTE se ele não existir.
  * Chamado após cadastro de livro para manter a tabela Autor atualizada com novos autores.
- * Nunca sobrescreve dados de autores já cadastrados.
+ * Nunca sobrescreve dados de autores já cadastrados (só completa campos vazios).
  */
 
 include_once __DIR__ . '/../../../../utils/function/database.php';
+include_once __DIR__ . '/autor_helper.php';
 
 header('Content-Type: application/json; charset=utf-8');
 
@@ -15,10 +16,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
-$nome = trim($_POST['nome_autor']    ?? '');
-$sexo = trim($_POST['sexo_autor']    ?? '');
-$raca = trim($_POST['raca']          ?? '');
-$nac  = trim($_POST['nacionalidade'] ?? '');
+$nome = normalizarNomeAutor($_POST['nome_autor'] ?? '');
 
 if ($nome === '') {
     echo json_encode(['status' => false, 'error' => 'Nome do autor é obrigatório.']);
@@ -27,12 +25,7 @@ if ($nome === '') {
 
 try {
     $db = new DataBase();
-    $db->ExecuteNonQuery(
-        "IF NOT EXISTS (SELECT 1 FROM [Biblioteca].[dbo].[Autor] WHERE LOWER(nome_autor) = LOWER(:nome))
-             INSERT INTO [Biblioteca].[dbo].[Autor] (nome_autor, sexo_autor, [raça], nacionalidade)
-             VALUES (:nome2, NULLIF(:sexo,''), NULLIF(:raca,''), NULLIF(:nac,''))",
-        [':nome' => $nome, ':nome2' => $nome, ':sexo' => $sexo, ':raca' => $raca, ':nac' => $nac]
-    );
+    garantirAutor($db, $nome, $_POST['sexo_autor'] ?? '', $_POST['raca'] ?? '', $_POST['nacionalidade'] ?? '');
     echo json_encode(['status' => true]);
 } catch (Exception $e) {
     echo json_encode(['status' => false, 'error' => $e->getMessage()]);

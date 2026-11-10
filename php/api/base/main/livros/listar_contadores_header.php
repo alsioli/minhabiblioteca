@@ -98,16 +98,15 @@ function GetMethod() {
         $rowMesAnterior    = $db->GetOne($sqlMedia, [':startDateMA' => $startDateMesAnterior, ':endDateMA' => $endDateMesAnterior]);
         $totalMesAnterior  = (int)($rowMesAnterior['total'] ?? 0);
 
-        // ── Card 3: Top 3 países — baseado em Leituras concluídas ─
+        // ── Card 3: Top 3 países — todo o acervo da tabela Livros (nacionalidade do autor) ─
         $sqlPaises = "
             SELECT TOP 3
-                TRIM(pais) AS pais,
-                COUNT(*)   AS total
-            FROM [Biblioteca].[dbo].[Leituras]
-            WHERE data_fim IS NOT NULL
-              AND pais IS NOT NULL
-              AND TRIM(pais) <> ''
-            GROUP BY TRIM(pais)
+                TRIM(nacionalidade) AS pais,
+                COUNT(*)            AS total
+            FROM [Biblioteca].[dbo].[Livros]
+            WHERE nacionalidade IS NOT NULL
+              AND TRIM(nacionalidade) <> ''
+            GROUP BY TRIM(nacionalidade)
             ORDER BY total DESC
         ";
         $topPaises = $db->GetMany($sqlPaises);

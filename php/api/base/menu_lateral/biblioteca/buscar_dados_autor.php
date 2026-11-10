@@ -18,6 +18,7 @@
  */
 
 include_once __DIR__ . '/../../../../utils/function/database.php';
+include_once __DIR__ . '/autor_helper.php';
 
 header('Content-Type: application/json; charset=utf-8');
 
@@ -27,7 +28,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
     exit;
 }
 
-$autor     = trim($_GET['autor'] ?? '');
+$autor     = normalizarNomeAutor($_GET['autor'] ?? '');
 $autorLower = mb_strtolower($autor, 'UTF-8');
 
 if (strlen($autor) < 2) {
@@ -41,11 +42,13 @@ try {
     // 1. Tenta tabela Autor — comparação case-insensitive via LOWER()
     try {
         $row = $db->GetOne(
-            "SELECT ISNULL(sexo_autor, '') AS sexo,
-                    ISNULL([raça], '')      AS raca,
-                    ISNULL(nacionalidade, '') AS nacionalidade
+            "SELECT TOP 1
+                    LTRIM(RTRIM(ISNULL(sexo_autor, '')))    AS sexo,
+                    LTRIM(RTRIM(ISNULL([raça], '')))        AS raca,
+                    LTRIM(RTRIM(ISNULL(nacionalidade, ''))) AS nacionalidade
              FROM [Biblioteca].[dbo].[Autor]
-             WHERE LOWER(nome_autor) = LOWER(:nome)",
+             WHERE " . AUTOR_NOME_SQL . " = LOWER(:nome)
+             ORDER BY CASE WHEN sexo_autor IS NULL THEN 1 ELSE 0 END, id_autor",
             [':nome' => $autor]
         );
         if ($row) {
@@ -59,11 +62,11 @@ try {
     // 2. Fallback: busca no histórico de Livros — também case-insensitive
     $row = $db->GetOne(
         "SELECT TOP 1
-                ISNULL(sexo_autor, '') AS sexo,
-                ISNULL([raça], '')     AS raca,
-                ISNULL(nacionalidade, '') AS nacionalidade
+                LTRIM(RTRIM(ISNULL(sexo_autor, '')))    AS sexo,
+                LTRIM(RTRIM(ISNULL([raça], '')))        AS raca,
+                LTRIM(RTRIM(ISNULL(nacionalidade, ''))) AS nacionalidade
          FROM [Biblioteca].[dbo].[Livros]
-         WHERE LOWER(autor) = LOWER(:autor)
+         WHERE LOWER(LTRIM(RTRIM(autor))) = LOWER(:autor)
            AND (sexo_autor IS NOT NULL OR [raça] IS NOT NULL OR nacionalidade IS NOT NULL)",
         [':autor' => $autor]
     );
